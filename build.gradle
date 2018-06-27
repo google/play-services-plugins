@@ -1,0 +1,33 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+    }
+}
+
+project.ext.group = 'com.google.android.gms'
+project.ext.archivesBaseName = 'strict-version-matcher-plugin'
+project.ext.version = '1.0.2'
+project.ext.pomDesc = 'Gradle plug-in to enforce version ranges for Google Play services and Firebase dependencies.'
+
+apply plugin: 'groovy'
+
+repositories {
+  jcenter()
+}
+
+dependencies {
+    compile gradleApi()
+    testCompile 'junit:junit:4.12'
+    testCompile "com.google.truth:truth:0.39"
+}
+
+apply from: 'publish.gradle'
+
+if (project.has('bintrayUser') && project.has('bintrayKey')) {
+    apply from: 'bintray.gradle'
+}
+
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
