@@ -1,7 +1,7 @@
 # Strict Version Matcher Gradle Plugin
 
 This plugin scans a subset of Google Play services and Firebase dependencies
-during the Bradle build. It raises an error when version resolution is specified
+during the Gradle build. It raises an error when version resolution is specified
 in the POM file but not honored by the Gradle build system. This can happen when
 Gradle's default dependency resolution strategy is used because it uses the
 highest referenced version even if it crossed the major version boundary.
