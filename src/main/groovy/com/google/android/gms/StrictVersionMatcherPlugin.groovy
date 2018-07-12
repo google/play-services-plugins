@@ -47,6 +47,9 @@ class StrictVersionMatcherPlugin implements Plugin<Project> {
 
   public static HashMap<String, HashMap<String, HashSet<VersionRange>>> versionsByGroupAndName = new HashMap<>();
 
+  public static boolean depsScanned = false
+
+
   @Override
   void apply(Project project) {
     failOnVersionConflictForGroup(project, "com.google.android.gms")
@@ -78,6 +81,7 @@ class StrictVersionMatcherPlugin implements Plugin<Project> {
     versionsByGroupAndName = new HashMap<>();
     project.configurations.all {
       resolutionStrategy.eachDependency { details ->
+        checkNewModule();
         String group = details.requested.group
         String name = details.requested.name
         String version = details.requested.version
@@ -105,6 +109,7 @@ class StrictVersionMatcherPlugin implements Plugin<Project> {
 
           @Override
           void afterResolve(ResolvableDependencies resolvableDependencies) {
+            depsScanned = true
             resolvableDependencies.getResolutionResult().allComponents {artifact ->
               String group = artifact.moduleVersion.group
               String name = artifact.moduleVersion.name
@@ -127,6 +132,16 @@ class StrictVersionMatcherPlugin implements Plugin<Project> {
             }
           }
         })
+  }
+
+  /**
+   * Checks if we are scanning through a new module, if we are, we should reset the versions.
+   */
+  static void checkNewModule() {
+    if (depsScanned) {
+      depsScanned = false;
+      versionsByGroupAndName = new HashMap<>();
+    }
   }
 
   @groovy.transform.Immutable static class Version {
