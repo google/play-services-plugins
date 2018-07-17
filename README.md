@@ -13,4 +13,10 @@ get started.
 
 ### strict-version-matcher-plugin
 
-Helps with managing cross-library version dependencies between libraries
+Helps with managing cross-library version dependencies between components.
+
+### oss-licenses-plugin
+
+Helps apps to display open source software licenses and notices.
+
+
