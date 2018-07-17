@@ -1,0 +1,16 @@
+<project>
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>groupA</groupId>
+  <artifactId>groupA-deps1</artifactId>
+  <version>1</version>
+  <name>groupA deps1</name>
+  <description>groupA deps1</description>
+
+  <licenses>
+    <license>
+      <name>Apache 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+    </license>
+  </licenses>
+</project>

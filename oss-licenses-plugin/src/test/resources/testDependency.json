@@ -1,0 +1,26 @@
+[
+  {
+    "group": "groupA",
+    "version": "1",
+    "fileLocation": "dependencies/groupA/deps1.txt",
+    "name": "deps1"
+  },
+  {
+    "group": "groupB",
+    "version": "2",
+    "fileLocation": "dependencies/groupB/abc/deps2.txt",
+    "name": "deps2"
+  },
+  {
+    "group": "com.google.android.gms",
+    "version": "3",
+    "fileLocation": "src/test/resources/dependencies/groupC/deps3.txt",
+    "name": "deps3"
+  },
+  {
+    "group": "com.google.firebase",
+    "version": "4",
+    "fileLocation": "src/test/resources/dependencies/groupD/deps4.txt",
+    "name": "deps4"
+  }
+]
