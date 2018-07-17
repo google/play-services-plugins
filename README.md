@@ -1,26 +1,16 @@
-# Strict Version Matcher Gradle Plugin
+# Google Play services Plugins
 
-This plugin scans a subset of Google Play services and Firebase dependencies
-during the Gradle build. It raises an error when version resolution is specified
-in the POM file but not honored by the Gradle build system. This can happen when
-Gradle's default dependency resolution strategy is used because it uses the
-highest referenced version even if it crossed the major version boundary.
+This project contains plugins to help with using Google Play services and
+Firebase libraries.
 
-## To use
+## Getting Started
 
-In your app's build.gradle:
+The plugins contained in this project are meant to work with the Google Play
+services SDK.  See https://developers.google.com/android/guides/overview to
+get started.
 
-```
-apply plugin: 'com.google.android.gms.strict-version-matcher-plugin'
-```
+## Contents
 
-In order to use this plugin, you will also need to add the following to your
-buildscript classpath, obtained from Google’s
-[Maven repository](//developer.android.com/studio/build/dependencies#google-maven):
+### strict-version-matcher-plugin
 
-```
-classpath 'com.google.android.gms:strict-version-matcher-plugin:1.0.2'
-```
-
-These instructions are also documented
-[online](//developers.google.com/android/guides/versioning)
+Helps with managing cross-library version dependencies between libraries
