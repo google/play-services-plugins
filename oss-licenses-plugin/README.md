@@ -1,12 +1,12 @@
 # OSS Licenses Gradle Plugin
 
-The Gradle plugin scans the POM dependencies of the project at compile time.
+This Gradle plugin scans the POM dependencies of a project at compile time.
 When a Maven POM exists for a direct dependency of the app, the plugin processes
 the [`<licenses>`](https://maven.apache.org/pom.html#Licenses) element and
 embeds the link and title of each license in an Android asset in the final app
 APK.
 
-For Google Play services dependencies, the licenses info is gathered from
+For Google Play services dependencies, the license info is gathered from
 third_party_licenses.json and third_party_licenses.txt files in the distributed
 .aar.
 
@@ -34,14 +34,14 @@ and add the oss-licenses plugin to your dependencies:
       dependencies {
         // ...
         // Add this line:
-        classpath "com.google.gms:oss-licenses:0.9.2"
+        classpath 'com.google.android.gms:oss-licenses-plugin:0.9.3'
       }
 
 In your app-level `build.gradle`, apply the plugin by adding the following line
 under the existing `apply plugin: 'com.android.application'` at the top of the
 file:
 
-    apply plugin: 'com.google.gms.oss.licenses.plugin'
+    apply plugin: 'com.google.android.gms.oss-licenses-plugin'
 
 ### Add the library to your app
 
