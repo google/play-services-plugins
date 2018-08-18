@@ -9,6 +9,6 @@ cache:
 # Using build matrix support to build the sub-projects
 env:
   - TEST_DIR=strict-version-matcher-plugin
-  - TEST_DIR=oss-license-plugin
+  - TEST_DIR=oss-licenses-plugin
 
 script: cd $TEST_DIR && gradle assemble && gradle test
