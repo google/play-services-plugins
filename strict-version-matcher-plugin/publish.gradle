@@ -7,11 +7,9 @@ jar {
 groovydoc {
     exclude     "**/internal/**"
     includePrivate false
-
-    docTitle project.ext.pomDesc
+    docTitle "Strict-Version-Matcher-Plugin"
     header ""
     footer "Copyright (C) 2018 Google, LLC."
-    overview ""
 }
 
 task javadocJar(type: Jar, dependsOn:groovydoc) {
