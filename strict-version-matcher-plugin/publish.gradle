@@ -4,18 +4,6 @@ jar {
     from 'LICENSE'
 }
 
-groovydoc {
-    exclude     "**/internal/**"
-    includePrivate false
-    docTitle "Strict-Version-Matcher-Plugin"
-    header ""
-    footer "Copyright (C) 2018 Google, LLC."
-}
-
-task javadocJar(type: Jar, dependsOn:groovydoc) {
-    classifier  'javadoc'
-    from        groovydoc.destinationDir
-}
 
 task sourcesJar(type: Jar, dependsOn:classes) {
     classifier = 'sources'
@@ -25,7 +13,6 @@ task sourcesJar(type: Jar, dependsOn:classes) {
 artifacts {
     archives jar
     archives sourcesJar
-    archives javadocJar
 }
 
 // This configures everything in the POM that is not yet supported in the DSL

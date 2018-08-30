@@ -18,8 +18,6 @@ package com.google.android.gms;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.android.gms.StrictVersionMatcherPlugin.Version;
-import com.google.android.gms.StrictVersionMatcherPlugin.VersionRange;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.HashMap;
@@ -29,19 +27,4 @@ import org.junit.Test;
 
 public class StrictVersionMatcherPluginTest {
 
-  @Test
-  public void testVersionCompare() {
-    assertThat(StrictVersionMatcherPlugin.versionCompare("1.0.0", "2.0.0")).isLessThan(0);
-    assertThat(StrictVersionMatcherPlugin.versionCompare("1.10.1", "1.9.0")).isGreaterThan(0);
-    assertThat(StrictVersionMatcherPlugin.versionCompare("1.0.0", "1.0.0")).isEqualTo(0);
-  }
-
-  @Test
-  public void closedNonRangeVersionRangeTest() {
-    VersionRange range = VersionRange.fromString("[1.2.3]");
-    Version version = Version.fromString("1.2.3-SNAPSHOT");
-    Version highVersion = Version.fromString("5.3.2");
-    assertThat(range.versionInRange(version)).isTrue();
-    assertThat(range.versionInRange(highVersion)).isFalse();
-  }
 }

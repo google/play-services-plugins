@@ -10,15 +10,15 @@ buildscript {
 
 project.ext.group = 'com.google.android.gms'
 project.ext.archivesBaseName = 'strict-version-matcher-plugin'
-project.ext.version = '1.0.2'
+project.ext.version = '1.1.0'
 project.ext.pomDesc = 'Gradle plug-in to enforce version ranges for Google Play services and Firebase dependencies.'
 
-apply plugin: 'groovy'
 apply plugin: 'kotlin'
 
 repositories {
   jcenter()
 }
+
 
 dependencies {
     compile gradleApi()
