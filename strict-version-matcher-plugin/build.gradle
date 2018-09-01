@@ -29,15 +29,15 @@ dependencies {
 
 apply from: 'publish.gradle'
 
-sourceCompatibility = 1.7
-targetCompatibility = 1.7
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
 compileKotlin {
     kotlinOptions {
-        jvmTarget = "1.7"
+        jvmTarget = "1.8"
     }
 }
 compileTestKotlin {
     kotlinOptions {
-        jvmTarget = "1.7"
+        jvmTarget = "1.8"
     }
 }
