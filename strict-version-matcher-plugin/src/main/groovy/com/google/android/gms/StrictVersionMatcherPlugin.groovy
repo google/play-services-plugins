@@ -17,6 +17,9 @@
 package com.google.android.gms
 
 import groovy.transform.Immutable
+import org.gradle.api.artifacts.Configuration
+import org.gradle.api.artifacts.ModuleVersionIdentifier
+import org.gradle.api.artifacts.ResolvedArtifact
 
 import java.util.regex.Matcher
 import java.util.regex.Pattern
@@ -55,7 +58,7 @@ class StrictVersionMatcherPlugin implements Plugin<Project> {
     }
     if (i < vals1.length && i < vals2.length) {
       int diff = Integer.valueOf(vals1[i]) <=> Integer.valueOf(vals2[i])
-      return Integer.signum(diff);
+      return Integer.signum(diff)
     }
     return Integer.signum(vals1.length - vals2.length)
   }
@@ -69,8 +72,8 @@ class StrictVersionMatcherPlugin implements Plugin<Project> {
    */
   static void failOnVersionConflictForGroup(Project project, String groupPrefix) {
     versionsByGroupAndName = new HashMap<>()
-    project.configurations.all {
-      resolutionStrategy.eachDependency { details ->
+    project.configurations.all { Configuration configuration ->
+      configuration.resolutionStrategy.eachDependency { details ->
         checkNewModule()
         String group = details.requested.group
         String name = details.requested.name
@@ -100,10 +103,12 @@ class StrictVersionMatcherPlugin implements Plugin<Project> {
           @Override
           void afterResolve(ResolvableDependencies resolvableDependencies) {
             depsScanned = true
-            resolvableDependencies.getResolutionResult().allComponents {artifact ->
+            resolvableDependencies.getResolutionResult().allComponents { ResolvedArtifact artifact ->
               String group = artifact.moduleVersion.group
               String name = artifact.moduleVersion.name
-              Version version = Version.fromString(artifact.moduleVersion.version)
+              ModuleVersionIdentifier versionInfo = artifact.moduleVersion.version
+              Version version = Version.fromString(versionInfo.getGroup() + ":" +
+                      versionInfo.getName() + ":" + versionInfo.getVersion())
               if (group == null || name == null || version == null) {
                 return
               }
