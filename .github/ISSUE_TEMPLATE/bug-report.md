@@ -23,7 +23,7 @@ If applicable, add screenshots to help explain your problem.
 **Desktop (please complete the following information):**
  - Gradle version: [e.g. 4.1]
  - Android Studio version [e.g. 3.1 (stable)]:
- - Plugin version [e.g. 16.0.0]: 
+ - Plugin name and version [e.g. OSS Licenses 16.0.0]: 
 
 **Additional context**
 Add any other context about the problem here.
