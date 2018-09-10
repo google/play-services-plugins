@@ -1,8 +1,10 @@
 buildscript {
+    ext.kotlin_version = '1.2.61'
     repositories {
         jcenter()
     }
     dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }
 
@@ -12,6 +14,7 @@ project.ext.version = '1.0.2'
 project.ext.pomDesc = 'Gradle plug-in to enforce version ranges for Google Play services and Firebase dependencies.'
 
 apply plugin: 'groovy'
+apply plugin: 'kotlin'
 
 repositories {
   jcenter()
@@ -21,9 +24,20 @@ dependencies {
     compile gradleApi()
     testCompile 'junit:junit:4.12'
     testCompile "com.google.truth:truth:0.39"
+    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
 }
 
 apply from: 'publish.gradle'
 
-sourceCompatibility = 1.7
-targetCompatibility = 1.7
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+compileKotlin {
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+}
+compileTestKotlin {
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+}
