@@ -11,11 +11,11 @@ interface VersionEvaluator {
  */
 object VersionEvaluators {
 
-    fun getEvaluator(versionString: String, isSemver: Boolean): VersionEvaluator {
+    fun getEvaluator(versionString: String, isSemVer: Boolean): VersionEvaluator {
         return if (versionString.startsWith("[") && versionString.endsWith("]")) {
             ExactVersionEvaluator(versionString.substring(1, versionString.length - 1))
-        } else if (isSemver) {
-            SemverVersionEvaluator(versionString)
+        } else if (isSemVer) {
+            SemVerVersionEvaluator(versionString)
         } else {
             AlwaysCompatibleEvaluator()
         }
@@ -34,7 +34,7 @@ object VersionEvaluators {
         }
     }
 
-    class SemverVersionEvaluator(versionString: String) : VersionEvaluator {
+    class SemVerVersionEvaluator(versionString: String) : VersionEvaluator {
         internal var versionInfo: SemVerInfo
 
         init {
@@ -46,7 +46,5 @@ object VersionEvaluators {
             return major == versionInfo.major && minor >= versionInfo.minor
         }
     }
-
-
 }
 
