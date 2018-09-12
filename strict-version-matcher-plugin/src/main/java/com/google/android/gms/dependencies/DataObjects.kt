@@ -117,7 +117,7 @@ data class SemVerInfo(val major: Int, val minor: Int, val patch: Int) {
             val parts = version.split(".")
             if (parts.size != 3) {
                 throw IllegalArgumentException(
-                        "versionString didn't have 3 parts divided by periods.")
+                        "Version string didn't have 3 parts divided by periods: $versionString")
             }
             val major = Integer.valueOf(parts[0])
             val minor = Integer.valueOf(parts[1])
