@@ -205,7 +205,8 @@ public class StrictVersionMatcherPlugin implements Plugin<Project> {
                     logger.info("Dependency Resolution Help: Displaying all currently known " +
                             "paths to any version of the dependency: " + dep.getToArtifact());
                     // This means a resolved version failed a dependency rule.
-                    GradleException exception = new GradleException("One resolved Google Play " +
+                    GradleException exception = new GradleException("In '" + projectName +
+                            "' one resolved Google Play " +
                             "services library dependency depends on another at an exact version " +
                             "(e.g. \"[1.4.3]\"), but isn't being resolved to that version. " +
                             "Behavior exhibited by the library will be unknown. Execute gradle " +
