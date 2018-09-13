@@ -76,12 +76,12 @@ public class DependencyAnalyzerTest {
         // A1 -> B1
         dependencyAnalyzer.registerVersion(artifactA_v1_0_0, artifactB_1.getArtifact(), artifactB_1.getVersion());
         // A2 -> B2
-        dependencyAnalyzer.registerVersion(artifactA_v2_0_0, artifactB_1.getArtifact(), artifactB_2.getVersion());
+        dependencyAnalyzer.registerVersion(artifactA_v2_0_0, artifactB_2.getArtifact(), artifactB_2.getVersion());
 
         Collection<Dependency> deps = dependencyAnalyzer.getActiveDependencies(Lists.newArrayList(artifactA_v2_0_0, artifactB_2));
         // Given A2 and B2 only the A2 -> B2 dep should be returned as pertinent.
         Assert.assertNotNull("No deps retrieved.", deps);
-        Assert.assertEquals("Only one dependency should be active.", 1, deps.size());
+        Assert.assertEquals("Only one dependency should be active but got:\n" + deps , 1, deps.size());
         Assert.assertEquals("The A2 declared dependency should be returned.", new Dependency(artifactA_v2_0_0, artifactB_2.getArtifact(), artifactB_2.getVersion()), deps.toArray()[0]);
     }
 
@@ -97,13 +97,13 @@ public class DependencyAnalyzerTest {
     }
 
     @Test
-    public void testGetActiveDependencies_SimpleExactVersionInvaldDependencies() {
+    public void testGetActiveDependencies_SimpleExactVersionInvalidDependencies() {
         DependencyAnalyzer dependencyAnalyzer = new DependencyAnalyzer();
         for (Dependency dep : simpleExactVersionInValidDiamondDependency) {
             dependencyAnalyzer.registerDependency(dep);
         }
         Collection<Dependency> deps = dependencyAnalyzer.getActiveDependencies(Lists.newArrayList(
-                artifactA_v1_0_0, artifactB_1, artifactC_1, artifactD_1));
+                artifactA_v1_0_0, artifactB_1, artifactC_2, artifactD_1));
         Assert.assertEquals("Exactly 4 dependencies should be active.", 4, deps.size());
     }
 }

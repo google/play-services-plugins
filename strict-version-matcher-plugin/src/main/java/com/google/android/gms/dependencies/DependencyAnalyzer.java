@@ -85,7 +85,7 @@ public class DependencyAnalyzer {
         ArrayList<Dependency> dependencies = new ArrayList<>();
         for (ArtifactDependencyManager mgr : mapClone.values()) {
             for (Dependency dep : mgr.getDependencies()) {
-                if (artifactVersions.contains(dep.getFromArtifactVersion()) ||
+                if (artifactVersions.contains(dep.getFromArtifactVersion()) &&
                         artifacts.contains(dep.getToArtifact())) {
                     dependencies.add(dep);
                 }
