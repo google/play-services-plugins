@@ -36,7 +36,7 @@ public class DependencyInspector implements DependencyResolutionListener {
   private final String projectName;
 
   /**
-   * Creates a Listener for inspectiondd  and analysis.
+   * Creates a Listener for inspection and analysis.
    *
    * @param dependencyAnalyzer where to register newly discovered dependencies and then extract them
    *                           for analysis.
