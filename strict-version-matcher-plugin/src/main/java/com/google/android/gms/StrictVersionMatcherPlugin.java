@@ -25,6 +25,10 @@ public class StrictVersionMatcherPlugin implements Plugin<Project> {
     // de-duplication that happens to produce an Android test app that
     // can be run in the same process as the Android App (under test).
     project.getGradle().addListener(
-        new DependencyInspector(globalDependencies, project.getName()));
+        new DependencyInspector(globalDependencies, project.getName(),
+            "This error message came from the strict-version-matcher-plugin Gradle plugin, report" +
+                " issues at https://github.com/google/play-services-plugins and disable by " +
+                "removing the reference to your plugin in your build.gradle files at your own " +
+                "risk."));
   }
 }
