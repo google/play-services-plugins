@@ -1,12 +1,12 @@
 package com.google.android.gms.dependencies
 
+import org.gradle.internal.impldep.com.google.common.annotations.VisibleForTesting
 import java.util.logging.Logger
 
 // Utilizing Kotlin to eliminate boilerplate of data classes.
 
 // TODO: Javadoc.
 // TODO: Unit tests.
-// TODO: Code formatting.
 // TODO: Support SemVer qualifiers.
 data class Node(val child: Node?, val dependency: Dependency)
 
@@ -93,11 +93,32 @@ data class Dependency(val fromArtifactVersion: ArtifactVersion, val toArtifact: 
   }
 }
 
+/**
+ * Tracking object for dependencies to a single Artifact (unversioned).
+ */
 data class ArtifactDependencyManager(val artifact: Artifact) {
-  var dependencies: HashSet<Dependency> = HashSet()
+  // Synchronized access to the dependencies to ensure elements aren't
+  // added while it's being iterated to provide a copy via the getter.
+  private val dependencyLock = Object()
+  @VisibleForTesting internal val dependencies: HashSet<Dependency> = HashSet()
+
   fun addDependency(dependency: Dependency) {
+    synchronized(dependencyLock) {
+      dependencies.add(dependency)
+    }
     // TODO: Check for conflicting duplicate adds and fail.
-    dependencies.add(dependency);
+  }
+
+  /**
+   * Returns the current dependencies to the artifact.
+   */
+  fun getDependencies(): Collection<Dependency> {
+    var dependencies = HashSet<Dependency>()
+    synchronized(dependencyLock) {
+      dependencies = this.dependencies
+      //dependencies.addAll(this.dependencies);
+    }
+    return this.dependencies
   }
 
   fun getExtendedToString(): String {
