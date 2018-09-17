@@ -94,17 +94,21 @@ data class Dependency(val fromArtifactVersion: ArtifactVersion, val toArtifact: 
 }
 
 /**
- * Tracking object for dependencies to a single Artifact (unversioned).
+ * Tracking object for dependencies to a Artifacts (unversioned).
  */
-data class ArtifactDependencyManager(val artifact: Artifact) {
-  // Synchronized access to the dependencies to ensure elements aren't
-  // added while it's being iterated to provide a copy via the getter.
+class ArtifactDependencyManager {
+  /** Synchronized access to the dependencies to ensure elements aren't added while it's being iterated to provide a copy via the getter. */
   private val dependencyLock = Object()
-  @VisibleForTesting internal val dependencies: HashSet<Dependency> = HashSet()
+  @VisibleForTesting internal val dependencies: HashMap<Artifact, ArrayList<Dependency>> = HashMap()
 
   fun addDependency(dependency: Dependency) {
     synchronized(dependencyLock) {
-      dependencies.add(dependency)
+      var depListForArtifact = dependencies.get(dependency.toArtifact)
+      if (depListForArtifact == null) {
+        depListForArtifact = ArrayList()
+        dependencies[dependency.toArtifact] = depListForArtifact
+      }
+      depListForArtifact.add(dependency)
     }
     // TODO: Check for conflicting duplicate adds and fail.
   }
@@ -112,21 +116,13 @@ data class ArtifactDependencyManager(val artifact: Artifact) {
   /**
    * Returns the current dependencies to the artifact.
    */
-  fun getDependencies(): Collection<Dependency> {
-    val dependencies = HashSet<Dependency>()
+  fun getDependencies(artifact : Artifact): Collection<Dependency> {
     synchronized(dependencyLock) {
-      dependencies.addAll(this.dependencies);
+      if (this.dependencies[artifact] == null) {
+        return HashSet()
+      }
+      return HashSet(this.dependencies[artifact])
     }
-    return dependencies
-  }
-
-  fun getExtendedToString(): String {
-    val stringBuilder = StringBuilder(toString())
-    for (dep in dependencies) {
-      stringBuilder.append(",")
-      stringBuilder.append(dep.toArtifactVersionString)
-    }
-    return stringBuilder.toString()
   }
 }
 

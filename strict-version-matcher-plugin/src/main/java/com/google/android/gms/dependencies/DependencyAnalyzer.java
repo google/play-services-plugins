@@ -6,7 +6,6 @@ import org.gradle.api.logging.Logging;
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 
 /**
@@ -23,27 +22,17 @@ import java.util.HashSet;
  * <p>
  * Thread-safety is provided via blocking and deep object copies.
  * <p>
- * TODO: Copy of depMgrMap isn't thread-safe. TODO: Javadoc. TODO: Unit tests. TODO: Code
- * formatting. TODO: Support SemVer qualifiers.
+ * TODO: Support SemVer qualifiers.
  */
 public class DependencyAnalyzer {
   private Logger logger = Logging.getLogger(DependencyAnalyzer.class);
 
-  /**
-   * Maintaining a manager per Artifact for the dependencies that get registered.
-   */
-  private HashMap<Artifact, ArtifactDependencyManager> depMgrMap = new HashMap<>();
+  private ArtifactDependencyManager dependencyManager = new ArtifactDependencyManager();
 
   /**
    * Register a {Dependency}.
    */
-  public synchronized void registerDependency(@Nonnull Dependency dependency) {
-    // Create a DependencyManager if it doesn't exist.
-    ArtifactDependencyManager dependencyManager = depMgrMap.get(dependency.getToArtifact());
-    if (dependencyManager == null) {
-      dependencyManager = new ArtifactDependencyManager(dependency.getToArtifact());
-      depMgrMap.put(dependencyManager.getArtifact(), dependencyManager);
-    }
+  synchronized void registerDependency(@Nonnull Dependency dependency) {
     dependencyManager.addDependency(dependency);
   }
 
@@ -55,7 +44,7 @@ public class DependencyAnalyzer {
    * @return Dependencies found or an empty collection.
    */
   @Nonnull
-  public synchronized Collection<Dependency> getActiveDependencies(
+  synchronized Collection<Dependency> getActiveDependencies(
       Collection<ArtifactVersion> versionedArtifacts) {
     // Summarize the artifacts in play.
     HashSet<Artifact> artifacts = new HashSet<>();
@@ -68,13 +57,10 @@ public class DependencyAnalyzer {
       artifactVersions.add(version);
     }
 
-    HashMap<Artifact, ArtifactDependencyManager> mapClone =
-        (HashMap<Artifact, ArtifactDependencyManager>) depMgrMap.clone();
-
     // Find all the dependencies that we need to enforce.
     ArrayList<Dependency> dependencies = new ArrayList<>();
-    for (ArtifactDependencyManager mgr : mapClone.values()) {
-      for (Dependency dep : mgr.getDependencies()) {
+    for (Artifact artifact : artifacts) {
+      for (Dependency dep : dependencyManager.getDependencies(artifact)) {
         if (artifactVersions.contains(dep.getFromArtifactVersion()) &&
             artifacts.contains(dep.getToArtifact())) {
           dependencies.add(dep);
@@ -84,22 +70,20 @@ public class DependencyAnalyzer {
     return dependencies;
   }
 
-  public synchronized Collection<Node> getPaths(Artifact artifact) {
+  synchronized Collection<Node> getPaths(Artifact artifact) {
     ArrayList<Node> l = new ArrayList<>();
-    Collection<Dependency> deps = getDeps(artifact);
-    if (deps != null) {
-      for (Dependency d : deps) {
-        // Proceed to report back info.
-        getNode(l, new Node(null, d), d.getFromArtifactVersion());
-      }
+    Collection<Dependency> deps = dependencyManager.getDependencies(artifact);
+    for (Dependency d : deps) {
+      // Proceed to report back info.
+      getNode(l, new Node(null, d), d.getFromArtifactVersion());
     }
     return l;
   }
 
   private synchronized void getNode(ArrayList<Node> terminalPathList, Node n,
                                     ArtifactVersion artifactVersion) {
-    Collection<Dependency> deps = getDeps(artifactVersion.getArtifact());
-    if (deps == null || deps.size() < 1) {
+    Collection<Dependency> deps = dependencyManager.getDependencies(artifactVersion.getArtifact());
+    if (deps.size() < 1) {
       terminalPathList.add(n);
       return;
     }
@@ -109,31 +93,5 @@ public class DependencyAnalyzer {
         getNode(terminalPathList, new Node(n, d), d.getFromArtifactVersion());
       }
     }
-  }
-
-  private synchronized Collection<Dependency> getDeps(Artifact artifact) {
-    ArtifactDependencyManager mgr = depMgrMap.get(artifact);
-    if (mgr == null || mgr.getDependencies().size() < 1) {
-      return null;
-    }
-    return mgr.getDependencies();
-  }
-
-  public synchronized Collection<Dependency> getAllDependencies(Collection<Artifact> artifactList) {
-    HashMap<Artifact, ArtifactDependencyManager> mapClone =
-        (HashMap<Artifact, ArtifactDependencyManager>) depMgrMap.clone();
-
-    // Find all the dependencies that we need to enforce.
-    ArrayList<Dependency> dependencies = new ArrayList<>();
-    for (ArtifactDependencyManager mgr : mapClone.values()) {
-      // logger.warn("Inspecting dep mgr: " + mgr.getExtendedToString());
-      for (Dependency dep : mgr.getDependencies()) {
-        if (artifactList.contains(dep.getFromArtifactVersion().getArtifact()) ||
-            artifactList.contains(dep.getToArtifact())) {
-          dependencies.add(dep);
-        }
-      }
-    }
-    return dependencies;
   }
 }
