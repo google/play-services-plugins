@@ -47,13 +47,6 @@ public class DependencyAnalyzer {
     dependencyManager.addDependency(dependency);
   }
 
-  // VisibleForTesting
-  void registerVersion(@Nonnull ArtifactVersion from, @Nonnull Artifact to,
-                       @Nonnull String versionString) {
-    Dependency dep = new Dependency(from, to, versionString);
-    registerDependency(dep);
-  }
-
   /**
    * Returns a set of Dependencies that were registered between the ArtifactVersions supplied.
    *
