@@ -113,12 +113,11 @@ data class ArtifactDependencyManager(val artifact: Artifact) {
    * Returns the current dependencies to the artifact.
    */
   fun getDependencies(): Collection<Dependency> {
-    var dependencies = HashSet<Dependency>()
+    val dependencies = HashSet<Dependency>()
     synchronized(dependencyLock) {
-      dependencies = this.dependencies
-      //dependencies.addAll(this.dependencies);
+      dependencies.addAll(this.dependencies);
     }
-    return this.dependencies
+    return dependencies
   }
 
   fun getExtendedToString(): String {
