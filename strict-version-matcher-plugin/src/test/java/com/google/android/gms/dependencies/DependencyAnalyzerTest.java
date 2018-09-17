@@ -8,26 +8,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-public class DependencyAnalyzerTest {
-    private static final ArtifactVersion artifactA_v1_0_0 =
-            ArtifactVersion.Companion.fromGradleRef("c.g.a:artA:1.0.0");
-    private static final ArtifactVersion artifactA_v2_0_0 =
-            ArtifactVersion.Companion.fromGradleRef("c.g.a:artA:2.0.0");
-    private static final ArtifactVersion artifactB_1 = new ArtifactVersion(
-            "c.g.b", "artB", "1.0.0");
-    private static final ArtifactVersion artifactB_2 = new ArtifactVersion(
-            "c.g.b", "artB", "2.0.0");
-    private static final ArtifactVersion artifactC_1 = new ArtifactVersion(
-            "c.g.b", "artC", "1.0.0");
-    private static final ArtifactVersion artifactC_2 = new ArtifactVersion(
-            "c.g.b", "artC", "2.0.0");
-    private static final ArtifactVersion artifactD_1 = new ArtifactVersion(
-            "c.g.b", "artD", "1.0.0");
-    private static final ArtifactVersion artifactD_2 = new ArtifactVersion(
-            "c.g.b", "artD", "2.0.0");
+import static com.google.android.gms.dependencies.TestUtilKt.*;
 
-    private static final Dependency artA_1_0_0_to_artB_1_0_0 =
-            Dependency.Companion.fromArtifactVersions(artifactA_v1_0_0, artifactB_1);
+public class DependencyAnalyzerTest {
 
     /**
      * Diamond dependency: A deps to B and C, then B and C dep to D.
@@ -48,41 +31,38 @@ public class DependencyAnalyzerTest {
 
     static {
         simpleValidDiamondDependency.addAll(Lists.newArrayList(
-                artA_1_0_0_to_artB_1_0_0,
-                new Dependency(artifactA_v1_0_0, artifactC_1.getArtifact(), artifactC_1.getVersion()),
-                new Dependency(artifactB_1, artifactD_1.getArtifact(), artifactD_1.getVersion()),
-                new Dependency(artifactC_1, artifactD_1.getArtifact(), artifactD_1.getVersion())));
+            ART_A_100_TO_ART_B_100, ART_A_100_TO_ART_C_100, ART_B_100_TO_ART_D_100,
+            ART_C_100_TO_ART_D_100));
     }
 
     static {
         simpleSemVerInValidDiamondDependency.addAll(Lists.newArrayList(
-                artA_1_0_0_to_artB_1_0_0,
-                new Dependency(artifactA_v1_0_0, artifactC_2.getArtifact(), artifactC_2.getVersion()),
-                new Dependency(artifactB_1, artifactD_1.getArtifact(), artifactD_1.getVersion()),
-                new Dependency(artifactC_2, artifactD_2.getArtifact(), artifactD_2.getVersion())));
+            ART_A_100_TO_ART_B_100, ART_A_100_TO_ART_C_200, ART_B_100_TO_ART_D_100,
+            ART_C_200_TO_ART_D_200));
     }
 
     static {
         simpleExactVersionInValidDiamondDependency.addAll(Lists.newArrayList(
-                artA_1_0_0_to_artB_1_0_0,
-                new Dependency(artifactA_v1_0_0, artifactC_2.getArtifact(), artifactC_2.getVersion()),
-                new Dependency(artifactB_1, artifactD_1.getArtifact(), "[1.0.0]"),
-                new Dependency(artifactC_2, artifactD_2.getArtifact(), "[2.0.0]")));
+            ART_A_100_TO_ART_B_100, ART_A_100_TO_ART_C_200,
+            new Dependency(ARTIFACT_B_100, ARTIFACT_D_100.getArtifact(), "[1.0.0]"),
+            new Dependency(ARTIFACT_C_200, ARTIFACT_D_200.getArtifact(), "[2.0.0]")));
     }
 
     @Test
     public void testGetActiveDependencies_SimpleArtifactSelection() {
         DependencyAnalyzer dependencyAnalyzer = new DependencyAnalyzer();
-        // A1 -> B1
-        dependencyAnalyzer.registerVersion(artifactA_v1_0_0, artifactB_1.getArtifact(), artifactB_1.getVersion());
-        // A2 -> B2
-        dependencyAnalyzer.registerVersion(artifactA_v2_0_0, artifactB_2.getArtifact(), artifactB_2.getVersion());
+        dependencyAnalyzer.registerDependency(ART_A_100_TO_ART_B_100);
+        dependencyAnalyzer.registerDependency(ART_A_200_TO_ART_B_200);
 
-        Collection<Dependency> deps = dependencyAnalyzer.getActiveDependencies(Lists.newArrayList(artifactA_v2_0_0, artifactB_2));
+        Collection<Dependency> deps = dependencyAnalyzer.getActiveDependencies(
+            Lists.newArrayList(ARTIFACT_A_200, ARTIFACT_B_200));
         // Given A2 and B2 only the A2 -> B2 dep should be returned as pertinent.
         Assert.assertNotNull("No deps retrieved.", deps);
-        Assert.assertEquals("Only one dependency should be active but got:\n" + deps , 1, deps.size());
-        Assert.assertEquals("The A2 declared dependency should be returned.", new Dependency(artifactA_v2_0_0, artifactB_2.getArtifact(), artifactB_2.getVersion()), deps.toArray()[0]);
+        Assert.assertEquals("Only one dependency should be active but got:\n" + deps,
+            1, deps.size());
+        Assert.assertEquals("The A2 declared dependency should be returned.",
+            new Dependency(ARTIFACT_A_200, ARTIFACT_B_200.getArtifact(),
+                ARTIFACT_B_200.getVersion()), deps.toArray()[0]);
     }
 
     @Test
@@ -92,7 +72,7 @@ public class DependencyAnalyzerTest {
             dependencyAnalyzer.registerDependency(dep);
         }
         Collection<Dependency> deps = dependencyAnalyzer.getActiveDependencies(Lists.newArrayList(
-                artifactA_v1_0_0, artifactB_1, artifactC_1, artifactD_1));
+                ARTIFACT_A_100, ARTIFACT_B_100, ARTIFACT_C_100, ARTIFACT_D_100));
         Assert.assertEquals("Exactly 4 dependencies should be active.", 4, deps.size());
     }
 
@@ -103,7 +83,7 @@ public class DependencyAnalyzerTest {
             dependencyAnalyzer.registerDependency(dep);
         }
         Collection<Dependency> deps = dependencyAnalyzer.getActiveDependencies(Lists.newArrayList(
-                artifactA_v1_0_0, artifactB_1, artifactC_2, artifactD_1));
+                ARTIFACT_A_100, ARTIFACT_B_100, ARTIFACT_C_200, ARTIFACT_D_100));
         Assert.assertEquals("Exactly 4 dependencies should be active.", 4, deps.size());
     }
 }

@@ -4,11 +4,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.ExpectedException
 
-private val ARTIFACT_B_300 = ArtifactVersion.fromGradleRef("c.g.a:artB:3.0.0");
-private val ARTIFACT_A_100 = ArtifactVersion.fromGradleRef("c.g.a:artA:1.0.0");
-private val ARTIFACT_B_100 = ArtifactVersion.fromGradleRef("c.g.a:artB:1.0.0");
-private val ARTIFACT_B_200 = ArtifactVersion.fromGradleRef("c.g.a:artB:2.0.0");
-
 class ArtifactDependencyManagerTest {
 
   @Rule @JvmField var thrown: ExpectedException = ExpectedException.none()
