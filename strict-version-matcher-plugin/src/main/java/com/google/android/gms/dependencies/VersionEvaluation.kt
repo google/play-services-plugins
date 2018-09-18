@@ -11,12 +11,12 @@ interface VersionEvaluator {
  */
 object VersionEvaluators {
 
-  fun getEvaluator(versionString: String, isSemVer: Boolean): VersionEvaluator {
-    val isSemVerClassCompatible = versionString.indexOf(",") < 0 && versionString.indexOf(")") < 0 &&
-                                  versionString.indexOf("(") < 0
+  fun getEvaluator(versionString: String, enableStrictMatching: Boolean): VersionEvaluator {
+    val hasVersionRange = versionString.indexOf(",") > 0 || versionString.indexOf(")") > 0 ||
+                                   versionString.indexOf("(") > 0
     return if (versionString.startsWith("[") && versionString.endsWith("]")) {
       ExactVersionEvaluator(versionString.substring(1, versionString.length - 1))
-    } else if (isSemVer && isSemVerClassCompatible) {
+    } else if (enableStrictMatching && !hasVersionRange) {
       SemVerVersionEvaluator(versionString)
     } else {
       AlwaysCompatibleEvaluator()

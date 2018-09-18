@@ -64,9 +64,9 @@ data class Dependency(val fromArtifactVersion: ArtifactVersion, val toArtifact: 
   private val versionEvaluator: VersionEvaluator
 
   init {
-    val isSemver = toArtifact.groupId.equals("com.google.android.gms") ||
+    val enableStrictMatching = toArtifact.groupId.equals("com.google.android.gms") ||
                    toArtifact.groupId.equals("com.google.firebase");
-    versionEvaluator = VersionEvaluators.getEvaluator(toArtifactVersionString, isSemver)
+    versionEvaluator = VersionEvaluators.getEvaluator(toArtifactVersionString, enableStrictMatching)
   }
 
   fun isVersionCompatible(versionString: String): Boolean {

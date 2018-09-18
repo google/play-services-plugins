@@ -46,13 +46,10 @@ public class DependencyAnalyzer {
   @Nonnull
   synchronized Collection<Dependency> getActiveDependencies(
       Collection<ArtifactVersion> versionedArtifacts) {
-    // Summarize the artifacts in play.
+    // Summarize the artifacts in use.
     HashSet<Artifact> artifacts = new HashSet<>();
     HashSet<ArtifactVersion> artifactVersions = new HashSet<>();
     for (ArtifactVersion version : versionedArtifacts) {
-      if (version.getGroupId().equals("com.google.android.gms")) {
-        logger.debug("Getting artifact: " + version + ":" + version.getArtifact());
-      }
       artifacts.add(version.getArtifact());
       artifactVersions.add(version);
     }
@@ -71,13 +68,13 @@ public class DependencyAnalyzer {
   }
 
   synchronized Collection<Node> getPaths(Artifact artifact) {
-    ArrayList<Node> l = new ArrayList<>();
+    ArrayList<Node> pathsToReturn = new ArrayList<>();
     Collection<Dependency> deps = dependencyManager.getDependencies(artifact);
-    for (Dependency d : deps) {
+    for (Dependency dep : deps) {
       // Proceed to report back info.
-      getNode(l, new Node(null, d), d.getFromArtifactVersion());
+      getNode(pathsToReturn, new Node(null, dep), dep.getFromArtifactVersion());
     }
-    return l;
+    return pathsToReturn;
   }
 
   private synchronized void getNode(ArrayList<Node> terminalPathList, Node n,
@@ -87,10 +84,10 @@ public class DependencyAnalyzer {
       terminalPathList.add(n);
       return;
     }
-    for (Dependency d : deps) {
-      if (d.isVersionCompatible(artifactVersion.getVersion())) {
+    for (Dependency dep : deps) {
+      if (dep.isVersionCompatible(artifactVersion.getVersion())) {
         // Proceed to report back info.
-        getNode(terminalPathList, new Node(n, d), d.getFromArtifactVersion());
+        getNode(terminalPathList, new Node(n, dep), dep.getFromArtifactVersion());
       }
     }
   }

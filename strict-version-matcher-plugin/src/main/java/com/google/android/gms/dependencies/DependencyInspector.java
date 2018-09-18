@@ -230,14 +230,26 @@ public class DependencyInspector implements DependencyResolutionListener {
   @NotNull
   private String getErrorMessage(@Nonnull Dependency dep, @Nonnull ArtifactVersion resolvedVersion,
                                  @Nonnull Collection<Node> depPaths) {
-    StringBuilder errorMessage = new StringBuilder("In project '" + projectName +
-        "' a resolved Google Play services library dependency depends on another at an exact " +
-        "version (e.g. \"" + dep.getToArtifactVersionString() + "\" " +
-        "), but isn't being resolved to that version. Behavior exhibited by the library will " +
-        "be unknown. \n\nDependency failing: " + dep.getDisplayString() + ", but " +
-        dep.getToArtifact().getArtifactId() + " version was " + resolvedVersion.getVersion() +
-        ".\n\nThe following dependencies are project dependencies that are direct or have " +
-        "transitive dependencies that lead to the artifact with the issue.");
+    StringBuilder errorMessage = new StringBuilder("In project '")
+        .append(projectName)
+        .append("' a resolved Google Play services library dependency depends on another at an " +
+                "exact version (e.g. \"")
+        .append(dep.getToArtifactVersionString())
+        .append("\", but isn't being resolved to that version. Behavior exhibited by the library " +
+                "will be unknown.")
+        .append(System.lineSeparator())
+        .append(System.lineSeparator())
+        .append("Dependency failing: ")
+        .append(dep.getDisplayString())
+        .append(", but ")
+        .append(dep.getToArtifact().getArtifactId())
+        .append(" version was ")
+        .append(resolvedVersion.getVersion())
+        .append(".")
+        .append(System.lineSeparator())
+        .append(System.lineSeparator())
+        .append("The following dependencies are project dependencies that are direct or have " +
+                "transitive dependencies that lead to the artifact with the issue.");
 
     // Append the highest level dependencies into the error message using a Set to deduplicate them.
     // The paths are different at their leaf nodes, but that information isn't being displayed.
@@ -269,10 +281,11 @@ public class DependencyInspector implements DependencyResolutionListener {
 
     // Add dependency strings to error message.
     for (String d : directDependencyStrings) {
-      errorMessage.append("\n").append(d);
+      errorMessage.append(System.lineSeparator()).append(d);
     }
 
-    errorMessage.append("\n\n")
+    errorMessage.append(System.lineSeparator())
+        .append(System.lineSeparator())
         .append("For extended debugging info execute Gradle from the command line with ")
         .append("./gradlew --info :")
         .append(projectName)
@@ -283,6 +296,9 @@ public class DependencyInspector implements DependencyResolutionListener {
     }
 
     // Keep the error from being a single line in AndroidStudio window.
-    return errorMessage.toString().replaceAll(".{120}(?=.)", "$0\n");
+    // REGEX: Any 120 (".") characters get put into a capture group.
+    return errorMessage.toString().replaceAll(".{120}(?=.)",
+        // The capture group is then replaced with what was captured "$0" plus an end line.
+       "$0" + System.lineSeparator());
   }
 }

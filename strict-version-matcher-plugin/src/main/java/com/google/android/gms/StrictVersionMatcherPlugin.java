@@ -28,7 +28,7 @@ public class StrictVersionMatcherPlugin implements Plugin<Project> {
         new DependencyInspector(globalDependencies, project.getName(),
             "This error message came from the strict-version-matcher-plugin Gradle plugin, report" +
                 " issues at https://github.com/google/play-services-plugins and disable by " +
-                "removing the reference to your plugin in your build.gradle files at your own " +
-                "risk."));
+                "removing the reference to the plugin (\"apply 'strict-version-matcher-plugin'\")" +
+                " from build.gradle."));
   }
 }
