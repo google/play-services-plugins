@@ -1,7 +1,8 @@
-.idea/workspace.xml
-.idea/gradle.xml
+.idea/*
+!.idea/codeStyles
+
 build/
 out/
 strict-version-matcher-plugin.iml
 .gradle
-.idea/uiDesigner.xml
+local.properties

@@ -25,6 +25,7 @@ dependencies {
     testCompile 'junit:junit:4.12'
     testCompile "com.google.truth:truth:0.39"
     implementation 'com.google.code.findbugs:jsr305:3.0.0'
+    compile 'com.google.guava:guava:23.4-android'
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
 }
 
