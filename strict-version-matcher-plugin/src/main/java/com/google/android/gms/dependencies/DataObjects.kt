@@ -1,6 +1,7 @@
 package com.google.android.gms.dependencies
 
 import org.gradle.internal.impldep.com.google.common.annotations.VisibleForTesting
+import java.util.*
 import java.util.logging.Logger
 
 // Utilizing Kotlin to eliminate boilerplate of data classes.
@@ -65,8 +66,9 @@ data class Dependency(val fromArtifactVersion: ArtifactVersion, val toArtifact: 
 
   init {
     val enableStrictMatching = toArtifact.groupId.equals("com.google.android.gms") ||
-                   toArtifact.groupId.equals("com.google.firebase");
-    versionEvaluator = VersionEvaluators.getEvaluator(toArtifactVersionString, enableStrictMatching)
+        toArtifact.groupId.equals("com.google.firebase")
+    versionEvaluator = VersionEvaluators.getEvaluator(toArtifactVersionString,
+        enableStrictMatching)
   }
 
   fun isVersionCompatible(versionString: String): Boolean {
