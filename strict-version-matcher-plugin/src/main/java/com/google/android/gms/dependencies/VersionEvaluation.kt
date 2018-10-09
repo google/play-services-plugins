@@ -17,7 +17,9 @@ object VersionEvaluators {
     return if (versionString.startsWith("[") && versionString.endsWith("]")) {
       ExactVersionEvaluator(versionString.substring(1, versionString.length - 1))
     } else if (enableStrictMatching && !hasVersionRange) {
-      SemVerVersionEvaluator(versionString)
+      // TODO: Re-enable SemVer validator.
+      // SemVerVersionEvaluator(versionString)
+      AlwaysCompatibleEvaluator()
     } else {
       AlwaysCompatibleEvaluator()
     }
