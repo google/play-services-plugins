@@ -7,7 +7,7 @@ import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
-class ArtifactDependencyManagerTest {
+class DataObjectsTest {
 
   @Rule @JvmField var thrown: ExpectedException = ExpectedException.none()
 
