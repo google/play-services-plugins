@@ -3,6 +3,8 @@ package com.google.android.gms.dependencies;
 import com.google.common.collect.Lists;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -10,6 +12,7 @@ import java.util.List;
 
 import static com.google.android.gms.dependencies.TestUtilKt.*;
 
+@RunWith(JUnit4.class)
 public class DependencyAnalyzerTest {
 
     /**
