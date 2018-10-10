@@ -6,9 +6,9 @@ import org.gradle.api.artifacts.ResolvableDependencies;
 import org.gradle.api.artifacts.result.DependencyResult;
 import org.gradle.api.artifacts.result.ResolutionResult;
 import org.gradle.api.artifacts.result.ResolvedComponentResult;
-import org.gradle.api.logging.Logger;
-import org.gradle.api.logging.Logging;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -34,7 +34,7 @@ import java.util.HashSet;
  */
 public class DependencyInspector implements DependencyResolutionListener {
   private static final String GRADLE_PROJECT = "gradle.project";
-  private static Logger logger = Logging.getLogger(DependencyInspector.class);
+  private static Logger logger = LoggerFactory.getLogger(DependencyInspector.class);
   private final DependencyAnalyzer dependencyAnalyzer;
   private final String projectName;
   private final String exceptionMessageAddendum;
