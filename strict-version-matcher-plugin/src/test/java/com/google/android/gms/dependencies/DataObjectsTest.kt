@@ -3,8 +3,11 @@ package com.google.android.gms.dependencies
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.ExpectedException
+import org.junit.runner.RunWith
+import org.junit.runners.JUnit4
 
-class ArtifactDependencyManagerTest {
+@RunWith(JUnit4::class)
+class DataObjectsTest {
 
   @Rule @JvmField var thrown: ExpectedException = ExpectedException.none()
 

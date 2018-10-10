@@ -1,6 +1,6 @@
 package com.google.android.gms.dependencies
 
-import org.gradle.internal.impldep.com.google.common.annotations.VisibleForTesting
+import com.google.common.annotations.VisibleForTesting
 import java.util.*
 import java.util.logging.Logger
 
@@ -21,7 +21,7 @@ data class Artifact(val groupId: String, val artifactId: String) {
       val stringSplit = referenceString.split(":")
       if (stringSplit.size < 2) {
         throw IllegalArgumentException(
-            "Invalid Gradle reference string: $referenceString");
+            "Invalid Gradle reference string: $referenceString")
       }
       return Artifact(groupId = stringSplit[0], artifactId = stringSplit[1])
     }
@@ -42,7 +42,7 @@ data class ArtifactVersion(val groupId: String, val artifactId: String,
     fun fromGradleRef(referenceString: String): ArtifactVersion {
       val stringSplit = referenceString.split(":")
       if (stringSplit.size < 3) {
-        throw IllegalArgumentException("Invalid Gradle reference string: $referenceString");
+        throw IllegalArgumentException("Invalid Gradle reference string: $referenceString")
       }
       return ArtifactVersion(groupId = stringSplit[0],
           artifactId = stringSplit[1], version = stringSplit[2])
@@ -131,7 +131,7 @@ class ArtifactDependencyManager {
 data class SemVerInfo(val major: Int, val minor: Int, val patch: Int) {
   companion object {
     fun parseString(versionString: String): SemVerInfo {
-      val version = versionString.trim();
+      val version = versionString.trim()
       val parts = version.split(".")
       if (parts.size != 3) {
         throw IllegalArgumentException(
@@ -140,7 +140,7 @@ data class SemVerInfo(val major: Int, val minor: Int, val patch: Int) {
       val major = Integer.valueOf(parts[0])
       val minor = Integer.valueOf(parts[1])
 
-      var patchString = parts[2];
+      var patchString = parts[2]
       val dashIndex = patchString.indexOf("-")
       if (dashIndex != -1) {
         patchString = patchString.substring(0, dashIndex)
