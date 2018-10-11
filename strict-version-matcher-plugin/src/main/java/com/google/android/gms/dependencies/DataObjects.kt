@@ -1,8 +1,9 @@
 package com.google.android.gms.dependencies
 
 import com.google.common.annotations.VisibleForTesting
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import java.util.*
-import java.util.logging.Logger
 
 // Utilizing Kotlin to eliminate boilerplate of data classes.
 
@@ -61,7 +62,7 @@ data class ArtifactVersion(val groupId: String, val artifactId: String,
 
 data class Dependency(val fromArtifactVersion: ArtifactVersion, val toArtifact: Artifact,
                       val toArtifactVersionString: String) {
-  private val logger: Logger = Logger.getLogger("Dependency")
+  private val logger: Logger = LoggerFactory.getLogger(Dependency::class.java)
   private val versionEvaluator: VersionEvaluator
 
   init {
@@ -75,7 +76,7 @@ data class Dependency(val fromArtifactVersion: ArtifactVersion, val toArtifact: 
     if (versionEvaluator.isCompatible(versionString)) {
       return true
     }
-    logger.fine("Failed comparing ${this.toArtifactVersionString} with" +
+    logger.debug("Failed comparing ${this.toArtifactVersionString} with" +
                 " $versionString using ${versionEvaluator.javaClass}")
     return false
   }

@@ -1,7 +1,7 @@
 package com.google.android.gms.dependencies;
 
-import org.gradle.api.logging.Logger;
-import org.gradle.api.logging.Logging;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
@@ -25,7 +25,7 @@ import java.util.HashSet;
  * TODO: Support SemVer qualifiers.
  */
 public class DependencyAnalyzer {
-  private Logger logger = Logging.getLogger(DependencyAnalyzer.class);
+  private Logger logger = LoggerFactory.getLogger(DependencyAnalyzer.class);
 
   private ArtifactDependencyManager dependencyManager = new ArtifactDependencyManager();
 
