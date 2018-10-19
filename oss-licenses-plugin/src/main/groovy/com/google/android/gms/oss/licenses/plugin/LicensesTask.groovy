@@ -34,14 +34,14 @@ import java.util.zip.ZipFile
  * and third_party_license_metadata file.
  */
 class LicensesTask extends DefaultTask {
-    private static final int LINE_SEPARATOR_LEN = System
-            .getProperty("line.separator").length()
+    private static final String UTF_8 = "UTF-8"
+    private static final byte[] LINE_SEPARATOR = System
+            .getProperty("line.separator").getBytes(UTF_8)
     private static final int GRANULAR_BASE_VERSION = 14
     private static final String GOOGLE_PLAY_SERVICES_GROUP =
         "com.google.android.gms"
     private static final String LICENSE_ARTIFACT_SURFIX = "-license"
     private static final String FIREBASE_GROUP = "com.google.firebase"
-    private static final String UTF_8 = "UTF-8"
     private static final String FAIL_READING_LICENSES_ERROR =
         "Failed to read license text."
     private static final Pattern FILE_EXTENSION = ~/\.[^\.]+$/
@@ -155,16 +155,16 @@ class LicensesTask extends DefaultTask {
 
             if (!googleServiceLicenses.contains(key)) {
                 googleServiceLicenses.add(key)
-                String content = getTextFromInputStream(
+                byte[] content = getBytesFromInputStream(
                     licensesZip.getInputStream(txtFile),
                     startValue,
                     lengthValue)
-                appendLicense(key, lengthValue, content)
+                appendLicense(key, content)
             }
         }
     }
 
-    protected String getTextFromInputStream(
+    protected byte[] getBytesFromInputStream(
         InputStream stream,
         long offset,
         int length) {
@@ -188,7 +188,7 @@ class LicensesTask extends DefaultTask {
             }
             stream.close()
 
-            return textArray.toString(UTF_8)
+            return textArray.toByteArray()
         } catch (Exception e) {
             throw new RuntimeException(FAIL_READING_LICENSES_ERROR, e)
         }
@@ -213,31 +213,34 @@ class LicensesTask extends DefaultTask {
                 rootNode.licenses.license.each { node ->
                     String nodeName = node.name
                     String nodeUrl = node.url
-                    appendLicense("${licenseKey} ${nodeName}", nodeUrl.length(),
-                        nodeUrl)
+                    appendLicense("${licenseKey} ${nodeName}", nodeUrl.getBytes(UTF_8))
                 }
             } else {
                 String nodeUrl = rootNode.licenses.license.url
-                appendLicense(licenseKey, nodeUrl.length(), nodeUrl)
+                appendLicense(licenseKey, nodeUrl.getBytes(UTF_8))
             }
         }
     }
 
-    protected void appendLicense(String key, int length, String content) {
+    protected void appendLicense(String key, byte[] content) {
         if (licensesMap.containsKey(key)) {
             return
         }
 
-        licensesMap.put(key, "${start}:${length}")
+        licensesMap.put(key, "${start}:${content.length}")
+        appendLicenseContent(content)
+        appendLicenseContent(LINE_SEPARATOR)
+    }
+
+    protected void appendLicenseContent(byte[] content) {
         licenses.append(content)
-        licenses.append(System.getProperty("line.separator"))
-        start += length + LINE_SEPARATOR_LEN
+        start += content.length
     }
 
     protected void writeMetadata() {
         for (entry in licensesMap) {
-            licensesMetadata.append("$entry.value $entry.key")
-            licensesMetadata.append(System.getProperty("line.separator"))
+            licensesMetadata.append("$entry.value $entry.key", UTF_8)
+            licensesMetadata.append(LINE_SEPARATOR)
         }
     }
 }
