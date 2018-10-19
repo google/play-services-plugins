@@ -32,6 +32,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -47,6 +48,7 @@ import org.junit.runners.JUnit4;
 /** Tests for {@link LicensesTask} */
 @RunWith(JUnit4.class)
 public class LicensesTaskTest {
+  private static final Charset UTF_8 = Charset.forName("UTF-8");
   private static final String BASE_DIR = "src/test/resources";
   private static final String LINE_BREAK = System.getProperty("line.separator");
   private Project project;
@@ -124,7 +126,7 @@ public class LicensesTaskTest {
     String group1 = "groupA";
     licensesTask.addLicensesFromPom(deps1, name1, group1);
 
-    String content = new String(Files.readAllBytes(licensesTask.licenses.toPath()));
+    String content = new String(Files.readAllBytes(licensesTask.licenses.toPath()), UTF_8);
     String expected = "http://www.opensource.org/licenses/mit-license.php" + LINE_BREAK;
     assertTrue(licensesTask.licensesMap.containsKey("groupA:deps1"));
     assertEquals(expected, content);
@@ -142,7 +144,7 @@ public class LicensesTaskTest {
     String group2 = "groupB";
     licensesTask.addLicensesFromPom(deps2, name2, group2);
 
-    String content = new String(Files.readAllBytes(licensesTask.licenses.toPath()));
+    String content = new String(Files.readAllBytes(licensesTask.licenses.toPath()), UTF_8);
     String expected =
         "http://www.opensource.org/licenses/mit-license.php"
             + LINE_BREAK
@@ -167,7 +169,7 @@ public class LicensesTaskTest {
     String group2 = "groupA";
     licensesTask.addLicensesFromPom(deps2, name2, group2);
 
-    String content = new String(Files.readAllBytes(licensesTask.licenses.toPath()));
+    String content = new String(Files.readAllBytes(licensesTask.licenses.toPath()), UTF_8);
     String expected = "http://www.opensource.org/licenses/mit-license.php" + LINE_BREAK;
 
     assertThat(licensesTask.licensesMap.size(), is(1));
@@ -176,11 +178,11 @@ public class LicensesTaskTest {
   }
 
   @Test
-  public void testGetTextFromInputStream_throwException() throws IOException {
+  public void testGetBytesFromInputStream_throwException() throws IOException {
     InputStream inputStream = mock(InputStream.class);
     when(inputStream.read(any(byte[].class), anyInt(), anyInt())).thenThrow(new IOException());
     try {
-      licensesTask.getTextFromInputStream(inputStream, 1, 1);
+      licensesTask.getBytesFromInputStream(inputStream, 1, 1);
       fail("This test should throw Exception.");
     } catch (RuntimeException e) {
       assertEquals("Failed to read license text.", e.getMessage());
@@ -188,18 +190,18 @@ public class LicensesTaskTest {
   }
 
   @Test
-  public void testGetTextFromInputStream_normalText() {
+  public void testGetBytesFromInputStream_normalText() {
     String test = "test";
-    InputStream inputStream = new ByteArrayInputStream(test.getBytes());
-    String content = licensesTask.getTextFromInputStream(inputStream, 1, 1);
+    InputStream inputStream = new ByteArrayInputStream(test.getBytes(UTF_8));
+    String content = new String(licensesTask.getBytesFromInputStream(inputStream, 1, 1), UTF_8);
     assertEquals("e", content);
   }
 
   @Test
-  public void testGetTextFromInputStream_specialCharacters() {
+  public void testGetBytesFromInputStream_specialCharacters() {
     String test = "Copyright © 1991-2017 Unicode";
-    InputStream inputStream = new ByteArrayInputStream(test.getBytes());
-    String content = licensesTask.getTextFromInputStream(inputStream, 4, 18);
+    InputStream inputStream = new ByteArrayInputStream(test.getBytes(UTF_8));
+    String content = new String(licensesTask.getBytesFromInputStream(inputStream, 4, 18), UTF_8);
     assertEquals("right © 1991-2017", content);
   }
 
@@ -211,7 +213,7 @@ public class LicensesTaskTest {
     File artifact = new File(tempOutput.getPath() + "play-services-foo-license.aar");
     licensesTask.addGooglePlayServiceLicenses(artifact);
 
-    String content = new String(Files.readAllBytes(licensesTask.licenses.toPath()));
+    String content = new String(Files.readAllBytes(licensesTask.licenses.toPath()), UTF_8);
     String expected = "safeparcel" + LINE_BREAK + "JSR 305" + LINE_BREAK;
     assertEquals(expected, content);
     assertThat(licensesTask.googleServiceLicenses.size(), is(2));
@@ -237,7 +239,7 @@ public class LicensesTaskTest {
     licensesTask.addGooglePlayServiceLicenses(artifactFoo);
     licensesTask.addGooglePlayServiceLicenses(artifactBar);
 
-    String content = new String(Files.readAllBytes(licensesTask.licenses.toPath()));
+    String content = new String(Files.readAllBytes(licensesTask.licenses.toPath()), UTF_8);
     String expected = "safeparcel" + LINE_BREAK + "JSR 305" + LINE_BREAK;
     assertEquals(expected, content);
     assertThat(licensesTask.googleServiceLicenses.size(), is(2));
@@ -250,10 +252,10 @@ public class LicensesTaskTest {
 
   @Test
   public void testAppendLicense() throws IOException {
-    licensesTask.appendLicense("license1", 4, "test");
+    licensesTask.appendLicense("license1", "test".getBytes(UTF_8));
 
     String expected = "test" + LINE_BREAK;
-    String content = new String(Files.readAllBytes(licensesTask.licenses.toPath()));
+    String content = new String(Files.readAllBytes(licensesTask.licenses.toPath()), UTF_8);
     assertTrue(licensesTask.licensesMap.containsKey("license1"));
     assertEquals(expected, content);
   }
@@ -265,7 +267,7 @@ public class LicensesTaskTest {
     licensesTask.writeMetadata();
 
     String expected = "0:4 license1" + LINE_BREAK + "6:10 license2" + LINE_BREAK;
-    String content = new String(Files.readAllBytes(licensesTask.licensesMetadata.toPath()));
+    String content = new String(Files.readAllBytes(licensesTask.licensesMetadata.toPath()), UTF_8);
     assertEquals(expected, content);
   }
 }
