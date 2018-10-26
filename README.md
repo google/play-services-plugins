@@ -20,3 +20,7 @@ Helps with managing cross-library version dependencies between components.
 Helps apps to display open source software licenses and notices.
 
 
+### google-services-plugin
+
+Required for firebase applications on android, converts google-services.json to a resource file for use by the app, and references the code in strict-version-matcher.
+
