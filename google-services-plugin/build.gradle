@@ -1,0 +1,36 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath "com.jfrog.bintray.gradle:gradle-bintray-plugin:1.2"
+    }
+}
+
+project.ext.group = 'com.google.gms'
+project.ext.archivesBaseName = 'google-services'
+project.ext.version = '4.2.0'
+project.ext.pomDesc = 'Gradle plug-in to build Firebase applications.'
+
+apply plugin: 'groovy'
+
+repositories {
+  jcenter()
+  maven { url 'https://maven.google.com' }
+}
+
+dependencies {
+    compile gradleApi()
+    compile 'com.google.android.gms:strict-version-matcher-plugin:1.1.0'
+    testCompile 'junit:junit:4.12'
+    testCompile "com.google.truth:truth:0.39"
+}
+
+apply from: 'publish.gradle'
+
+if (project.has('bintrayUser') && project.has('bintrayKey')) {
+    apply from: 'bintray.gradle'
+}
+
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
