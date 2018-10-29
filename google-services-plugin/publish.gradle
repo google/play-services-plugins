@@ -1,0 +1,57 @@
+apply plugin: 'maven-publish'
+
+jar {
+    from 'LICENSE'
+}
+
+groovydoc {
+    exclude     "**/internal/**"
+    includePrivate false
+
+    docTitle project.ext.pomDesc
+    header ""
+    footer "Copyright (C) 2015 The Android Open Source Project"
+    overview ""
+}
+
+task javadocJar(type: Jar, dependsOn:groovydoc) {
+    classifier  'javadoc'
+    from        groovydoc.destinationDir
+}
+
+task sourcesJar(type: Jar, dependsOn:classes) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+artifacts {
+    archives jar
+    archives sourcesJar
+    archives javadocJar
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+
+            groupId project.ext.group
+            artifactId project.ext.archivesBaseName
+            version project.ext.version
+
+            from components.java
+
+            artifact sourcesJar {
+                classifier "sources"
+            }
+
+            artifact javadocJar {
+                classifier "javadoc"
+            }
+        }
+    }
+}
+
+publishing.repositories.maven {
+    url "$buildDir/repo"
+}
+
