@@ -51,15 +51,17 @@ public class GoogleServicesPluginTest {
         toStringList(GoogleServicesPlugin.getJsonLocations("flavorTest/release", null));
     assertThat(output)
         .containsAllOf(
-            "src/release",
-            "src/flavorRelease",
-            "src/flavor",
-            "src/flavor/release",
+            "src/flavorTest/release",
             "src/release/flavorTest",
+            "src/flavor/release",
+            "src/test/release",
             "src/flavorTest",
+            "src/release",
             "src/flavorTestRelease",
-            "src/flavor/test/release",
-            "src/flavor/testRelease");
+            "src/flavor",
+            "src/flavorRelease",
+            "src/test",
+            "src/testRelease");
   }
 
   // This is neccesary because some of the strings are actually groovy string implementations

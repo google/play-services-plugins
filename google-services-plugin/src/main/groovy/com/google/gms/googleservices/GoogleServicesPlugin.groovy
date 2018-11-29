@@ -253,8 +253,9 @@ class GoogleServicesPlugin implements Plugin<Project> {
     fileLocations.add("src/$buildType")
     fileLocations.add("src/$flavorName${buildType.capitalize()}")
     fileLocations.add("src/$buildType")
-    String fileLocation = "src"
+
     for(String flavor : flavorNames) {
+      String fileLocation = "src"
       fileLocation += "/$flavor"
       fileLocations.add(fileLocation)
       fileLocations.add("$fileLocation/$buildType")
