@@ -208,8 +208,15 @@ class GoogleServicesPlugin implements Plugin<Project> {
       task.packageNameXOR1 = variant.applicationId
     }
 
-    // Use the target version for the task.
-    variant.registerResGeneratingTask(task, outputDir)
+    // This is neccesary for backwards compatibility with versions of gradle that do not support
+    // this new API.
+    if (variant.respondsTo(variant, "registerGeneratedResFolders")) {
+      task.ext.generatedResFolders = files(outputDir).builtBy(task)
+      variant.registerGeneratedResFolders(outputDir)
+      variant.mergeResources.dependsOn(task)
+    } else {
+      variant.registerResGeneratingTask(task, outputDir)
+    }
   }
 
   private static List<String> splitVariantNames(String variant) {
