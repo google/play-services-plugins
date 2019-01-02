@@ -19,7 +19,7 @@ buildscript classpath, obtained from Google’s
 [Maven repository](//developer.android.com/studio/build/dependencies#google-maven):
 
 ```
-classpath 'com.google.android.gms:strict-version-matcher-plugin:1.0.2'
+classpath 'com.google.android.gms:strict-version-matcher-plugin:1.1.0'
 ```
 
 These instructions are also documented
