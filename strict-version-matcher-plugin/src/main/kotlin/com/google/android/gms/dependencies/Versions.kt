@@ -15,30 +15,30 @@ data class SemVerVersionInfo(val major: Int, val minor: Int, val patch: Int) {
          *
          * @param[versionString] Three-part Semver string to convert.
          */
-        fun parseString(versionString:String) : SemVerVersionInfo {
-            val version = versionString.trim();
+        fun parseString(versionString: String): SemVerVersionInfo {
+            val version = versionString.trim()
             val parts = version.split(".")
             if (parts.size != 3) {
-                throw IllegalArgumentException("versionString didn't have 3 parts divided by periods.");
+                throw IllegalArgumentException("versionString didn't have 3 parts divided by periods.")
             }
             val major = Integer.valueOf(parts[0])
             val minor = Integer.valueOf(parts[1])
 
             var patchString = parts[2]
-            var dashIndex = patchString.indexOf("-")
+            val dashIndex = patchString.indexOf("-")
             if (dashIndex != -1) {
                 patchString = patchString.substring(0, dashIndex)
             }
             // TODO: Update to account for qualifiers to the version.
             val patch = Integer.valueOf(patchString)
-            return SemVerVersionInfo(major= major, minor = minor, patch = patch)
+            return SemVerVersionInfo(major = major, minor = minor, patch = patch)
         }
     }
 }
 
 data class Version(val rawString: String, val trimmedString: String) {
     companion object {
-        fun fromString(version: String?) : Version? {
+        fun fromString(version: String?): Version? {
             if (version == null) {
                 return null
             }
@@ -47,12 +47,12 @@ data class Version(val rawString: String, val trimmedString: String) {
     }
 }
 
-data class VersionRange(val closedStart: Boolean, val closedEnd: Boolean, val rangeStart: Version, val rangeEnd:Version) {
-    fun toVersionString() : String {
+data class VersionRange(val closedStart: Boolean, val closedEnd: Boolean, val rangeStart: Version, val rangeEnd: Version) {
+    fun toVersionString(): String {
         return (if (closedStart) "[" else "(") + rangeStart.trimmedString + "," + rangeEnd.trimmedString + (if (closedEnd) "]" else ")")
     }
 
-    fun versionInRange(compareTo : Version) : Boolean {
+    fun versionInRange(compareTo: Version): Boolean {
         if (closedStart) {
             if (versionCompare(rangeStart.trimmedString, compareTo.trimmedString) > 0) {
                 return false
@@ -75,7 +75,7 @@ data class VersionRange(val closedStart: Boolean, val closedEnd: Boolean, val ra
     }
 
     companion object {
-        fun versionCompare(str1 : String, str2 : String) : Int {
+        fun versionCompare(str1: String, str2: String): Int {
             val vals1 = str1.split("\\.")
             val vals2 = str2.split("\\.")
             var i = 0
@@ -94,12 +94,13 @@ data class VersionRange(val closedStart: Boolean, val closedEnd: Boolean, val ra
         // And here is an example with the capture group 1 in <triangle brackets>
         // [<1.><2.><3>]  or
         // VisibleForTesting(otherwise = Private)
-        val VERSION_RANGE_PATTERN = Pattern.compile("\\[(\\d+\\.)*(\\d+)+(-\\w)*\\]")
-        fun fromString(versionRange : String) : VersionRange? {
+        val VERSION_RANGE_PATTERN = Pattern.compile("\\[(\\d+\\.)*(\\d+)+(-\\w)*]")
+
+        fun fromString(versionRange: String): VersionRange? {
             val versionRangeMatcher = VERSION_RANGE_PATTERN.matcher(versionRange)
             if (versionRangeMatcher.matches()) {
                 val v = Version.fromString(versionRangeMatcher.group(1)) ?: return null
-                return VersionRange( true, true, v, v)
+                return VersionRange(true, true, v, v)
             }
             return null
         }

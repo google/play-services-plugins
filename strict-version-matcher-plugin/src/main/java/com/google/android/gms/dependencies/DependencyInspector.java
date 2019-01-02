@@ -10,11 +10,12 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * This listener attaches to the Gradle project dependency resolution process in order to alert when
@@ -33,272 +34,267 @@ import java.util.HashSet;
  * plugins.
  */
 public class DependencyInspector implements DependencyResolutionListener {
-  private static final String GRADLE_PROJECT = "gradle.project";
-  private static Logger logger = LoggerFactory.getLogger(DependencyInspector.class);
-  private final DependencyAnalyzer dependencyAnalyzer;
-  private final String projectName;
-  private final String exceptionMessageAddendum;
+    private static final String GRADLE_PROJECT = "gradle.project";
+    private static Logger logger = LoggerFactory.getLogger(DependencyInspector.class);
+    private final DependencyAnalyzer dependencyAnalyzer;
+    private final String projectName;
+    private final String exceptionMessageAddendum;
 
-  /**
-   * Attaches a Listener for inspection and analysis.
-   *
-   * @param dependencyAnalyzer       where to register newly discovered dependencies and then
-   *                                 extract all known dependencies for analysis.
-   * @param projectName              Gradle project name for clear error and info messaging.
-   * @param exceptionMessageAddendum Message to append to the error message of exceptions thrown.
-   *
-   * @see DependencyAnalyzer
-   */
-  public DependencyInspector(@Nonnull DependencyAnalyzer dependencyAnalyzer,
-                             @Nonnull String projectName,
-                             @Nullable String exceptionMessageAddendum) {
-    this.dependencyAnalyzer = dependencyAnalyzer;
-    this.exceptionMessageAddendum = exceptionMessageAddendum;
-    this.projectName = projectName;
-  }
-
-  /**
-   * Returns {@code inputString} after shortening the Google owned Group Ids.
-   * <p>
-   * E.g. com.google.android.gms -> c.g.a.g
-   */
-  private static String simplifyKnownGroupIds(@Nonnull String inputString) {
-    return inputString.replace(
-        "com.google.android.gms", "c.g.a.g").replace(
-        "com.google.firebase", "c.g.f");
-  }
-
-  private static void printNode(int depth, @Nonnull Node n) {
-    StringBuilder prefix = new StringBuilder();
-    for (int z = 0; z < depth; z++) {
-      prefix.append("--");
+    /**
+     * Attaches a Listener for inspection and analysis.
+     *
+     * @param dependencyAnalyzer       where to register newly discovered dependencies and then
+     *                                 extract all known dependencies for analysis.
+     * @param projectName              Gradle project name for clear error and info messaging.
+     * @param exceptionMessageAddendum Message to append to the error message of exceptions thrown.
+     * @see DependencyAnalyzer
+     */
+    public DependencyInspector(@Nonnull DependencyAnalyzer dependencyAnalyzer,
+                               @Nonnull String projectName,
+                               @Nullable String exceptionMessageAddendum) {
+        this.dependencyAnalyzer = dependencyAnalyzer;
+        this.exceptionMessageAddendum = exceptionMessageAddendum;
+        this.projectName = projectName;
     }
-    prefix.append(" ");
-    Dependency dep = n.getDependency();
-    if (GRADLE_PROJECT.equals(n.getDependency().getFromArtifactVersion().getGroupId())) {
-      String fromRef = dep.getFromArtifactVersion().getGradleRef().replace(
-          GRADLE_PROJECT, "");
-      String toRef = simplifyKnownGroupIds(dep.getToArtifact().getGradleRef());
-      logger.info(prefix.toString() + fromRef + " task/module dep -> " + toRef + "@" +
-          dep.getToArtifactVersionString());
-    } else {
-      String fromRef = simplifyKnownGroupIds(dep.getFromArtifactVersion().getGradleRef());
-      String toRef = simplifyKnownGroupIds(dep.getToArtifact().getGradleRef());
-      logger.info(prefix.toString() + fromRef + " library depends -> " + toRef + "@" +
-          dep.getToArtifactVersionString());
-    }
-    if (n.getChild() != null) {
-      printNode(depth + 1, n.getChild());
-    }
-  }
 
-  private void registerDependencies(@Nonnull ResolvableDependencies resolvableDependencies,
-                                    @Nonnull String projectName, @Nonnull String taskName) {
-    ResolutionResult resolutionResult = resolvableDependencies.getResolutionResult();
-    // Record all of the dependencies into the tracker.
-    for (DependencyResult depResult : resolutionResult.getAllDependencies()) {
-      ArtifactVersion fromDep;
-      // Notes regarding getAllDependencies()
-      // * it contains all dep links within each project.
-      // * it contains links that may not be needed after the final
-      //   versions are determined.
-      // * depResult.getFrom() == null represents a direct dep from the
-      //   project being evaluated.
-      if (depResult.getFrom() == null ||
-          "".equals(depResult.getFrom().getId().getDisplayName())) {
-        // Register the dep from the project directly.
-        fromDep = ArtifactVersion.Companion.fromGradleRef(
-            GRADLE_PROJECT + ":" + projectName + "-" + taskName + ":0.0.0");
-      } else {
-        String depFromString = ("" + depResult.getFrom().getId().getDisplayName());
-        if (depFromString.startsWith("project ")) {
-          // TODO(paulrashidi): Figure out if a third level dependency shows depFromString.
-          // In a project with other project dependencies the dep
-          // string will be "project :module1"
-          String depName = depFromString.split(":")[1];
-          // Register the dep from another module in the project.
-          fromDep = ArtifactVersion.Companion.fromGradleRef(
-              GRADLE_PROJECT + ":" + projectName + "-" + taskName + "-" + depName + ":0.0.0");
+    /**
+     * Returns {@code inputString} after shortening the Google owned Group Ids.
+     * <p>
+     * E.g. com.google.android.gms -> c.g.a.g
+     */
+    private static String simplifyKnownGroupIds(@Nonnull String inputString) {
+        return inputString.replace(
+                "com.google.android.gms", "c.g.a.g").replace(
+                "com.google.firebase", "c.g.f");
+    }
+
+    private static void printNode(int depth, @Nonnull Node n) {
+        StringBuilder prefix = new StringBuilder();
+        for (int z = 0; z < depth; z++) {
+            prefix.append("--");
+        }
+        prefix.append(" ");
+        Dependency dep = n.getDependency();
+        if (GRADLE_PROJECT.equals(n.getDependency().getFromArtifactVersion().getGroupId())) {
+            String fromRef = dep.getFromArtifactVersion().getGradleRef().replace(
+                    GRADLE_PROJECT, "");
+            String toRef = simplifyKnownGroupIds(dep.getToArtifact().getGradleRef());
+            logger.info(prefix.toString() + fromRef + " task/module dep -> " + toRef + "@" +
+                    dep.getToArtifactVersionString());
         } else {
-          try {
-            fromDep = ArtifactVersion.Companion.fromGradleRef(depFromString);
-          } catch (IllegalArgumentException iae) {
-            logger.info("Skipping misunderstood FROM dep string: " + depFromString);
-            continue;
-          }
+            String fromRef = simplifyKnownGroupIds(dep.getFromArtifactVersion().getGradleRef());
+            String toRef = simplifyKnownGroupIds(dep.getToArtifact().getGradleRef());
+            logger.info(prefix.toString() + fromRef + " library depends -> " + toRef + "@" +
+                    dep.getToArtifactVersionString());
         }
-      }
-      if (depResult.getRequested() == null) {
-        // Prevent odd build setups from throwing errors.
-        continue;
-      }
-      ArtifactVersion toDep;
-      String toDepString = "" + depResult.getRequested();
-      try {
-        toDep = ArtifactVersion.Companion.fromGradleRef(toDepString);
-      } catch (IllegalArgumentException iae) {
-        logger.info("Skipping misunderstood TO dep string: " + toDepString);
-        continue;
-      }
-      dependencyAnalyzer.registerDependency(
-          Dependency.Companion.fromArtifactVersions(fromDep, toDep));
-    }
-  }
-
-  @Override
-  public void beforeResolve(ResolvableDependencies resolvableDependencies) {
-    // This information isn't currently useful to the plugin.
-
-    // After doing testing, the only dependencies info available in
-    // resolvableDependencies is resolvableDependencies.dependencies.
-    // Those are the declared dependencies for task within the module.
-    // Also, not sure if Android test tasks have already had the
-    // dependencies de-duped by this time.
-  }
-
-  @Override
-  public void afterResolve(ResolvableDependencies resolvableDependencies) {
-    String taskName = resolvableDependencies.getName();
-
-    // Use of Product Flavors can change task names so skip tasks without compile in the name (case
-    // in-sensitive).
-    if (!taskName.contains("ompile")) {
-      return;
+        if (n.getChild() != null) {
+            printNode(depth + 1, n.getChild());
+        }
     }
 
-    // Phase 1: register all the dependency information from the project globally.
-    logger.info("Registered task dependencies: " + projectName + ":" + taskName);
-    if (resolvableDependencies.getResolutionResult() != null &&
-        resolvableDependencies.getResolutionResult().getAllDependencies() != null) {
-      registerDependencies(resolvableDependencies, projectName, taskName);
+    private void registerDependencies(@Nonnull ResolvableDependencies resolvableDependencies,
+                                      @Nonnull String projectName, @Nonnull String taskName) {
+        ResolutionResult resolutionResult = resolvableDependencies.getResolutionResult();
+        // Record all of the dependencies into the tracker.
+        for (DependencyResult depResult : resolutionResult.getAllDependencies()) {
+            ArtifactVersion fromDep;
+            // Notes regarding getAllDependencies()
+            // * it contains all dep links within each project.
+            // * it contains links that may not be needed after the final
+            //   versions are determined.
+            // * depResult.getFrom() == null represents a direct dep from the
+            //   project being evaluated.
+            depResult.getFrom();
+            if ("".equals(depResult.getFrom().getId().getDisplayName())) {
+                // Register the dep from the project directly.
+                fromDep = ArtifactVersion.Companion.fromGradleRef(
+                        GRADLE_PROJECT + ":" + projectName + "-" + taskName + ":0.0.0");
+            } else {
+                String depFromString = ("" + depResult.getFrom().getId().getDisplayName());
+                if (depFromString.startsWith("project ")) {
+                    // TODO(paulrashidi): Figure out if a third level dependency shows depFromString.
+                    // In a project with other project dependencies the dep
+                    // string will be "project :module1"
+                    String depName = depFromString.split(":")[1];
+                    // Register the dep from another module in the project.
+                    fromDep = ArtifactVersion.Companion.fromGradleRef(
+                            GRADLE_PROJECT + ":" + projectName + "-" + taskName + "-" + depName + ":0.0.0");
+                } else {
+                    try {
+                        fromDep = ArtifactVersion.Companion.fromGradleRef(depFromString);
+                    } catch (IllegalArgumentException iae) {
+                        logger.info("Skipping misunderstood FROM dep string: " + depFromString);
+                        continue;
+                    }
+                }
+            }
+            depResult.getRequested();
+            ArtifactVersion toDep;
+            String toDepString = "" + depResult.getRequested();
+            try {
+                toDep = ArtifactVersion.Companion.fromGradleRef(toDepString);
+            } catch (IllegalArgumentException iae) {
+                logger.info("Skipping misunderstood TO dep string: " + toDepString);
+                continue;
+            }
+            dependencyAnalyzer.registerDependency(
+                    Dependency.Companion.fromArtifactVersions(fromDep, toDep));
+        }
     }
 
-    // Phase 2: take the resolved versions of Artifacts, go get the dependencies that
-    // apply to those specific versions, and then ensure all are being honored.
-    logger.info("Starting dependency analysis");
-    ResolutionResult resolutionResult = resolvableDependencies.getResolutionResult();
+    @Override
+    public void beforeResolve(ResolvableDependencies resolvableDependencies) {
+        // This information isn't currently useful to the plugin.
 
-    // Create an Artifact to ArtifactVersion mapping for resolved components.
-    HashMap<Artifact, ArtifactVersion> resolvedVersions = new HashMap<>();
-    for (ResolvedComponentResult resolvedComponentResult :
-        resolutionResult.getAllComponents()) {
-      ArtifactVersion version = ArtifactVersion.Companion.fromGradleRefOrNull(
-          resolvedComponentResult.getId().toString());
-      if (version != null) {
-        resolvedVersions.put(version.getArtifact(), version);
-      }
+        // After doing testing, the only dependencies info available in
+        // resolvableDependencies is resolvableDependencies.dependencies.
+        // Those are the declared dependencies for task within the module.
+        // Also, not sure if Android test tasks have already had the
+        // dependencies de-duped by this time.
     }
 
-    // Quick no-op when no versions.
-    if (resolvedVersions.size() < 1) {
-      return;
-    }
+    @Override
+    public void afterResolve(ResolvableDependencies resolvableDependencies) {
+        String taskName = resolvableDependencies.getName();
 
-    // Retrieve dependencies that apply to the resolved dep set.
-    Collection<Dependency> activeDeps = dependencyAnalyzer.getActiveDependencies(
-        resolvedVersions.values());
-    // Validate each of the dependencies that should apply.
-    for (Dependency dep : activeDeps) {
-      ArtifactVersion resolvedVersion = resolvedVersions.get(dep.getToArtifact());
-
-      // Check whether dependency is still valid.
-      if (!dep.isVersionCompatible(resolvedVersion.getVersion())) {
-        // This means a resolved version failed a dependency rule.
-
-        logger.warn("Dependency resolved to an incompatible version: " + dep);
-
-        // TODO: Warn, not fail, when the Major version boundaries are breached.
-        // TODO: Experiment with collecting all issues and reporting them at once.
-        Collection<Node> depsPaths = dependencyAnalyzer.getPaths(
-            resolvedVersion.getArtifact());
-
-        // Print extended path information at INFO level.
-        logger.info("Dependency Resolution Help: Displaying all currently known " +
-            "paths to any version of the dependency: " + dep.getToArtifact());
-        logger.info("NOTE: com.google.android.gms translated to c.g.a.g for brevity. " +
-            "Same for com.google.firebase -> c.g.f");
-        // TODO: The depPaths nodes need to be consolidated prior to display.
-        for (Node n : depsPaths) {
-          printNode(1, n);
+        // Use of Product Flavors can change task names so skip tasks without compile in the name (case
+        // in-sensitive).
+        if (!taskName.contains("compile")) {
+            return;
         }
 
-        throw new GradleException(getErrorMessage(dep, resolvedVersion, depsPaths));
-      }
-    }
-  }
+        // Phase 1: register all the dependency information from the project globally.
+        logger.info("Registered task dependencies: " + projectName + ":" + taskName);
+        resolvableDependencies.getResolutionResult();
+        resolvableDependencies.getResolutionResult().getAllDependencies();
+        registerDependencies(resolvableDependencies, projectName, taskName);
 
-  @NotNull
-  private String getErrorMessage(@Nonnull Dependency dep, @Nonnull ArtifactVersion resolvedVersion,
-                                 @Nonnull Collection<Node> depPaths) {
-    StringBuilder errorMessage = new StringBuilder("In project '")
-        .append(projectName)
-        .append("' a resolved Google Play services library dependency depends on another at an " +
-                "exact version (e.g. \"")
-        .append(dep.getToArtifactVersionString())
-        .append("\", but isn't being resolved to that version. Behavior exhibited by the library " +
-                "will be unknown.")
-        .append(System.lineSeparator())
-        .append(System.lineSeparator())
-        .append("Dependency failing: ")
-        .append(dep.getDisplayString())
-        .append(", but ")
-        .append(dep.getToArtifact().getArtifactId())
-        .append(" version was ")
-        .append(resolvedVersion.getVersion())
-        .append(".")
-        .append(System.lineSeparator())
-        .append(System.lineSeparator())
-        .append("The following dependencies are project dependencies that are direct or have " +
-                "transitive dependencies that lead to the artifact with the issue.");
+        // Phase 2: take the resolved versions of Artifacts, go get the dependencies that
+        // apply to those specific versions, and then ensure all are being honored.
+        logger.info("Starting dependency analysis");
+        ResolutionResult resolutionResult = resolvableDependencies.getResolutionResult();
 
-    // Append the highest level dependencies into the error message using a Set to deduplicate them.
-    // The paths are different at their leaf nodes, but that information isn't being displayed.
-    HashSet<String> directDependencyStrings = new HashSet<>();
-    StringBuilder currentString = new StringBuilder();
-    for (Node node : depPaths) {
-      String[] projectNameParts =
-          node.getDependency().getFromArtifactVersion().getArtifactId().split("-");
-      if (projectNameParts[0].equals(projectNameParts[2])) {
-        currentString.append("-- Project '")
-            .append(projectNameParts[0])
-            .append("' depends onto ");
-      } else {
-        currentString.append("-- Project '")
-            .append(projectNameParts[0])
-            .append("' depends on project '")
-            .append(projectNameParts[2])
-            .append("' which depends onto ");
-      }
-      currentString.append(node.getDependency().getToArtifact().getGroupId())
-          .append(":")
-          .append(node.getDependency().getToArtifact().getArtifactId())
-          .append("@")
-          .append(node.getDependency().getToArtifactVersionString());
+        // Create an Artifact to ArtifactVersion mapping for resolved components.
+        HashMap<Artifact, ArtifactVersion> resolvedVersions = new HashMap<>();
+        for (ResolvedComponentResult resolvedComponentResult :
+                resolutionResult.getAllComponents()) {
+            ArtifactVersion version = ArtifactVersion.Companion.fromGradleRefOrNull(
+                    resolvedComponentResult.getId().toString());
+            if (version != null) {
+                resolvedVersions.put(version.getArtifact(), version);
+            }
+        }
 
-      directDependencyStrings.add(currentString.toString());
-      currentString.delete(0, currentString.length());
-    }
+        // Quick no-op when no versions.
+        if (resolvedVersions.size() < 1) {
+            return;
+        }
 
-    // Add dependency strings to error message.
-    for (String d : directDependencyStrings) {
-      errorMessage.append(System.lineSeparator()).append(d);
+        // Retrieve dependencies that apply to the resolved dep set.
+        Collection<Dependency> activeDeps = dependencyAnalyzer.getActiveDependencies(
+                resolvedVersions.values());
+        // Validate each of the dependencies that should apply.
+        for (Dependency dep : activeDeps) {
+            ArtifactVersion resolvedVersion = resolvedVersions.get(dep.getToArtifact());
+
+            // Check whether dependency is still valid.
+            if (!dep.isVersionCompatible(resolvedVersion.getVersion())) {
+                // This means a resolved version failed a dependency rule.
+
+                logger.warn("Dependency resolved to an incompatible version: " + dep);
+
+                // TODO: Warn, not fail, when the Major version boundaries are breached.
+                // TODO: Experiment with collecting all issues and reporting them at once.
+                Collection<Node> depsPaths = dependencyAnalyzer.getPaths(
+                        resolvedVersion.getArtifact());
+
+                // Print extended path information at INFO level.
+                logger.info("Dependency Resolution Help: Displaying all currently known " +
+                        "paths to any version of the dependency: " + dep.getToArtifact());
+                logger.info("NOTE: com.google.android.gms translated to c.g.a.g for brevity. " +
+                        "Same for com.google.firebase -> c.g.f");
+                // TODO: The depPaths nodes need to be consolidated prior to display.
+                for (Node n : depsPaths) {
+                    printNode(1, n);
+                }
+
+                throw new GradleException(getErrorMessage(dep, resolvedVersion, depsPaths));
+            }
+        }
     }
 
-    errorMessage.append(System.lineSeparator())
-        .append(System.lineSeparator())
-        .append("For extended debugging info execute Gradle from the command line with ")
-        .append("./gradlew --info :")
-        .append(projectName)
-        .append(":assembleDebug to see the dependency paths to the artifact. ");
+    @NotNull
+    private String getErrorMessage(@Nonnull Dependency dep, @Nonnull ArtifactVersion resolvedVersion,
+                                   @Nonnull Collection<Node> depPaths) {
+        StringBuilder errorMessage = new StringBuilder("In project '")
+                .append(projectName)
+                .append("' a resolved Google Play services library dependency depends on another at an " +
+                        "exact version (e.g. \"")
+                .append(dep.getToArtifactVersionString())
+                .append("\", but isn't being resolved to that version. Behavior exhibited by the library " +
+                        "will be unknown.")
+                .append(System.lineSeparator())
+                .append(System.lineSeparator())
+                .append("Dependency failing: ")
+                .append(dep.getDisplayString())
+                .append(", but ")
+                .append(dep.getToArtifact().getArtifactId())
+                .append(" version was ")
+                .append(resolvedVersion.getVersion())
+                .append(".")
+                .append(System.lineSeparator())
+                .append(System.lineSeparator())
+                .append("The following dependencies are project dependencies that are direct or have " +
+                        "transitive dependencies that lead to the artifact with the issue.");
 
-    if (exceptionMessageAddendum != null && !"".equals(exceptionMessageAddendum.trim())) {
-      errorMessage.append(exceptionMessageAddendum);
+        // Append the highest level dependencies into the error message using a Set to deduplicate them.
+        // The paths are different at their leaf nodes, but that information isn't being displayed.
+        HashSet<String> directDependencyStrings = new HashSet<>();
+        StringBuilder currentString = new StringBuilder();
+        for (Node node : depPaths) {
+            String[] projectNameParts =
+                    node.getDependency().getFromArtifactVersion().getArtifactId().split("-");
+            if (projectNameParts[0].equals(projectNameParts[2])) {
+                currentString.append("-- Project '")
+                        .append(projectNameParts[0])
+                        .append("' depends onto ");
+            } else {
+                currentString.append("-- Project '")
+                        .append(projectNameParts[0])
+                        .append("' depends on project '")
+                        .append(projectNameParts[2])
+                        .append("' which depends onto ");
+            }
+            currentString.append(node.getDependency().getToArtifact().getGroupId())
+                    .append(":")
+                    .append(node.getDependency().getToArtifact().getArtifactId())
+                    .append("@")
+                    .append(node.getDependency().getToArtifactVersionString());
+
+            directDependencyStrings.add(currentString.toString());
+            currentString.delete(0, currentString.length());
+        }
+
+        // Add dependency strings to error message.
+        for (String d : directDependencyStrings) {
+            errorMessage.append(System.lineSeparator()).append(d);
+        }
+
+        errorMessage.append(System.lineSeparator())
+                .append(System.lineSeparator())
+                .append("For extended debugging info execute Gradle from the command line with ")
+                .append("./gradlew --info :")
+                .append(projectName)
+                .append(":assembleDebug to see the dependency paths to the artifact. ");
+
+        if (exceptionMessageAddendum != null && !"".equals(exceptionMessageAddendum.trim())) {
+            errorMessage.append(exceptionMessageAddendum);
+        }
+
+        // Keep the error from being a single line in AndroidStudio window.
+        // REGEX: Any 120 (".") characters get put into a capture group.
+        return errorMessage.toString().replaceAll(".{120}(?=.)",
+                // The capture group is then replaced with what was captured "$0" plus an end line.
+                "$0" + System.lineSeparator());
     }
-
-    // Keep the error from being a single line in AndroidStudio window.
-    // REGEX: Any 120 (".") characters get put into a capture group.
-    return errorMessage.toString().replaceAll(".{120}(?=.)",
-        // The capture group is then replaced with what was captured "$0" plus an end line.
-       "$0" + System.lineSeparator());
-  }
 }
