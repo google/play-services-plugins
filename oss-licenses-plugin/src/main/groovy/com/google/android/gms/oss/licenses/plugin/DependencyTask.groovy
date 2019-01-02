@@ -86,7 +86,7 @@ class DependencyTask extends DefaultTask {
                 }
             }
             return artifactSet.isEmpty()
-        } catch (JsonException exception) {
+        } catch (JsonException ignored) {
             return false
         }
     }
@@ -127,9 +127,9 @@ class DependencyTask extends DefaultTask {
      * @return true if configuration can be resolved or the api is lower than
      * 3.3, otherwise false.
      */
-    protected boolean canBeResolved(Configuration configuration) {
+    protected static boolean canBeResolved(Configuration configuration) {
         return configuration.metaClass.respondsTo(configuration,
-                "isCanBeResolved")? configuration.isCanBeResolved() : true
+                "isCanBeResolved") ? configuration.isCanBeResolved() : true
     }
 
     /**
@@ -139,17 +139,17 @@ class DependencyTask extends DefaultTask {
      * configurations are either testCompile or androidTestCompile, otherwise
      * false.
      */
-    protected boolean isTest(Configuration configuration) {
+    protected static boolean isTest(Configuration configuration) {
         boolean isTestConfiguration = (
                 configuration.name.startsWith(TEST_PREFIX) ||
-                configuration.name.startsWith(ANDROID_TEST_PREFIX))
+                        configuration.name.startsWith(ANDROID_TEST_PREFIX))
         configuration.hierarchy.each {
             isTestConfiguration |= TEST_COMPILE.contains(it.name)
         }
         return isTestConfiguration
     }
 
-    protected Set<ResolvedArtifact> getResolvedArtifacts(
+    protected static Set<ResolvedArtifact> getResolvedArtifacts(
             Configuration configuration) {
         /**
          * skip the configurations that are either cannot be resolved in
@@ -162,7 +162,7 @@ class DependencyTask extends DefaultTask {
         try {
             return configuration.getResolvedConfiguration()
                     .getResolvedArtifacts()
-        } catch(ResolveException exception) {
+        } catch (ResolveException ignored) {
             return null
         }
     }

@@ -16,10 +16,6 @@
 
 package com.google.android.gms.oss.licenses.plugin;
 
-import static org.junit.Assert.assertFalse;
-
-import java.io.File;
-import java.io.IOException;
 import org.gradle.api.Project;
 import org.gradle.testfixtures.ProjectBuilder;
 import org.junit.Rule;
@@ -28,40 +24,48 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-/** Tests for {@link LicensesCleanUpTask} */
+import java.io.File;
+import java.io.IOException;
+
+import static org.junit.Assert.assertFalse;
+
+/**
+ * Tests for {@link LicensesCleanUpTask}
+ */
 @RunWith(JUnit4.class)
 public class LicensesCleanUpTaskTest {
-  @Rule public TemporaryFolder temporaryFolder = new TemporaryFolder();
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
-  @Test
-  public void testAction() throws IOException {
-    File testDir = temporaryFolder.newFolder();
+    @Test
+    public void testAction() throws IOException {
+        File testDir = temporaryFolder.newFolder();
 
-    File dependencyDir = new File(testDir, "dependency");
-    dependencyDir.mkdir();
+        File dependencyDir = new File(testDir, "dependency");
+        dependencyDir.mkdir();
 
-    File dependencyFile = new File(dependencyDir, "dependency.json");
+        File dependencyFile = new File(dependencyDir, "dependency.json");
 
-    File licensesDir = new File(testDir, "raw");
-    licensesDir.mkdir();
+        File licensesDir = new File(testDir, "raw");
+        licensesDir.mkdir();
 
-    File licensesFile = new File(licensesDir, "third_party_licenses");
-    File metadataFile = new File(licensesDir, "third_party_license_metadata");
+        File licensesFile = new File(licensesDir, "third_party_licenses");
+        File metadataFile = new File(licensesDir, "third_party_license_metadata");
 
-    Project project = ProjectBuilder.builder().withProjectDir(testDir).build();
-    LicensesCleanUpTask task =
-        project.getTasks().create("licensesCleanUp", LicensesCleanUpTask.class);
-    task.dependencyDir = dependencyDir;
-    task.dependencyFile = dependencyFile;
-    task.licensesDir = licensesDir;
-    task.licensesFile = licensesFile;
-    task.metadataFile = metadataFile;
+        Project project = ProjectBuilder.builder().withProjectDir(testDir).build();
+        LicensesCleanUpTask task =
+                project.getTasks().create("licensesCleanUp", LicensesCleanUpTask.class);
+        task.dependencyDir = dependencyDir;
+        task.dependencyFile = dependencyFile;
+        task.licensesDir = licensesDir;
+        task.licensesFile = licensesFile;
+        task.metadataFile = metadataFile;
 
-    task.action();
-    assertFalse(task.dependencyFile.exists());
-    assertFalse(task.dependencyDir.exists());
-    assertFalse(task.licensesFile.exists());
-    assertFalse(task.metadataFile.exists());
-    assertFalse(task.licensesDir.exists());
-  }
+        task.action();
+        assertFalse(task.dependencyFile.exists());
+        assertFalse(task.dependencyDir.exists());
+        assertFalse(task.licensesFile.exists());
+        assertFalse(task.metadataFile.exists());
+        assertFalse(task.licensesDir.exists());
+    }
 }

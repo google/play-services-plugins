@@ -16,10 +16,6 @@
 
 package com.google.android.gms.oss.licenses.plugin;
 
-import static org.junit.Assert.assertEquals;
-
-import java.io.File;
-import java.util.Arrays;
 import org.gradle.api.Project;
 import org.gradle.testfixtures.ProjectBuilder;
 import org.junit.Before;
@@ -29,40 +25,46 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
-/** Test for {@link LicensesTask#isGoogleServices(String, String)} */
+import java.io.File;
+import java.util.Arrays;
+
+import static org.junit.Assert.assertEquals;
+
+/**
+ * Test for {@link LicensesTask#isGoogleServices(String, String)}
+ */
 @RunWith(Parameterized.class)
 public class GoogleServicesLicenseTest {
-  private static final String BASE_DIR = "src/test/resources";
-  private Project project;
-  private LicensesTask licensesTask;
+    private static final String BASE_DIR = "src/test/resources";
+    private LicensesTask licensesTask;
 
-  @Parameters
-  public static Iterable<Object[]> data() {
-    return Arrays.asList(
-        new Object[][] {
-          {"com.google.android.gms", "play-services-foo", true},
-          {"com.google.firebase", "firebase-bar", true},
-          {"com.example", "random", false},
-        });
-  }
+    @Parameters
+    public static Iterable<Object[]> data() {
+        return Arrays.asList(
+                new Object[][]{
+                        {"com.google.android.gms", "play-services-foo", true},
+                        {"com.google.firebase", "firebase-bar", true},
+                        {"com.example", "random", false},
+                });
+    }
 
-  @Parameter(0)
-  public String inputGroup;
+    @Parameter()
+    public String inputGroup;
 
-  @Parameter(1)
-  public String inputArtifactName;
+    @Parameter(1)
+    public String inputArtifactName;
 
-  @Parameter(2)
-  public Boolean expectedResult;
+    @Parameter(2)
+    public Boolean expectedResult;
 
-  @Before
-  public void setUp() {
-    project = ProjectBuilder.builder().withProjectDir(new File(BASE_DIR)).build();
-    licensesTask = project.getTasks().create("generateLicenses", LicensesTask.class);
-  }
+    @Before
+    public void setUp() {
+        Project project = ProjectBuilder.builder().withProjectDir(new File(BASE_DIR)).build();
+        licensesTask = project.getTasks().create("generateLicenses", LicensesTask.class);
+    }
 
-  @Test
-  public void test() {
-    assertEquals(expectedResult, licensesTask.isGoogleServices(inputGroup, inputArtifactName));
-  }
+    @Test
+    public void test() {
+        assertEquals(expectedResult, licensesTask.isGoogleServices(inputGroup, inputArtifactName));
+    }
 }

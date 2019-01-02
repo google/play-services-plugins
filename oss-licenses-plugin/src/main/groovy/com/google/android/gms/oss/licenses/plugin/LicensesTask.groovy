@@ -39,12 +39,12 @@ class LicensesTask extends DefaultTask {
             .getProperty("line.separator").getBytes(UTF_8)
     private static final int GRANULAR_BASE_VERSION = 14
     private static final String GOOGLE_PLAY_SERVICES_GROUP =
-        "com.google.android.gms"
-    private static final String LICENSE_ARTIFACT_SURFIX = "-license"
+            "com.google.android.gms"
+    private static final String LICENSE_ARTIFACT_SUFFIX = "-license"
     private static final String FIREBASE_GROUP = "com.google.firebase"
     private static final String FAIL_READING_LICENSES_ERROR =
-        "Failed to read license text."
-    private static final Pattern FILE_EXTENSION = ~/\.[^\.]+$/
+            "Failed to read license text."
+    private static final Pattern FILE_EXTENSION = ~/\.[^.]+$/
 
     protected int start = 0
     protected Set<String> googleServiceLicenses = []
@@ -78,7 +78,7 @@ class LicensesTask extends DefaultTask {
 
             if (isGoogleServices(group, name)) {
                 // Add license info for google-play-services itself
-                if (!name.endsWith(LICENSE_ARTIFACT_SURFIX)) {
+                if (!name.endsWith(LICENSE_ARTIFACT_SUFFIX)) {
                     addLicensesFromPom(artifactLocation, name, group)
                 }
                 // Add transitive licenses info for google-play-services. For
@@ -88,7 +88,7 @@ class LicensesTask extends DefaultTask {
                 // dependency.
                 if (isGranularVersion(version)) {
                     addGooglePlayServiceLicenses(artifactLocation)
-                } else if (name.endsWith(LICENSE_ARTIFACT_SURFIX)) {
+                } else if (name.endsWith(LICENSE_ARTIFACT_SUFFIX)) {
                     addGooglePlayServiceLicenses(artifactLocation)
                 }
             } else {
@@ -109,23 +109,23 @@ class LicensesTask extends DefaultTask {
         if (licenses == null) {
             println("not defined licenses")
         }
-        licenses.newWriter().withWriter {w ->
+        licenses.newWriter().withWriter { w ->
             w << ''
         }
     }
 
     protected void initLicensesMetadata() {
-        licensesMetadata.newWriter().withWriter {w ->
+        licensesMetadata.newWriter().withWriter { w ->
             w << ''
         }
     }
 
-    protected boolean isGoogleServices(String group, String name) {
+    protected static boolean isGoogleServices(String group, String name) {
         return (GOOGLE_PLAY_SERVICES_GROUP.equalsIgnoreCase(group)
                 || FIREBASE_GROUP.equalsIgnoreCase(group))
     }
 
-    protected boolean isGranularVersion (String version) {
+    protected static boolean isGranularVersion(String version) {
         String[] versions = version.split("\\.")
         return (versions.length > 0
                 && Integer.valueOf(versions[0]) >= GRANULAR_BASE_VERSION)
@@ -143,7 +143,7 @@ class LicensesTask extends DefaultTask {
         }
 
         Object licensesObj = jsonSlurper.parse(licensesZip.getInputStream(
-            jsonFile))
+                jsonFile))
         if (licensesObj == null) {
             return
         }
@@ -156,18 +156,18 @@ class LicensesTask extends DefaultTask {
             if (!googleServiceLicenses.contains(key)) {
                 googleServiceLicenses.add(key)
                 byte[] content = getBytesFromInputStream(
-                    licensesZip.getInputStream(txtFile),
-                    startValue,
-                    lengthValue)
+                        licensesZip.getInputStream(txtFile),
+                        startValue,
+                        lengthValue)
                 appendLicense(key, content)
             }
         }
     }
 
-    protected byte[] getBytesFromInputStream(
-        InputStream stream,
-        long offset,
-        int length) {
+    protected static byte[] getBytesFromInputStream(
+            InputStream stream,
+            long offset,
+            int length) {
         try {
             byte[] buffer = new byte[1024]
             ByteArrayOutputStream textArray = new ByteArrayOutputStream()
@@ -177,12 +177,12 @@ class LicensesTask extends DefaultTask {
             int bytes = 0
 
             while (bytesRemaining > 0
-                && (bytes =
-                stream.read(
-                    buffer,
-                    0,
-                    Math.min(bytesRemaining, buffer.length)))
-                != -1) {
+                    && (bytes =
+                    stream.read(
+                            buffer,
+                            0,
+                            Math.min(bytesRemaining, buffer.length)))
+                    != -1) {
                 textArray.write(buffer, 0, bytes)
                 bytesRemaining -= bytes
             }
@@ -195,15 +195,15 @@ class LicensesTask extends DefaultTask {
     }
 
     protected void addLicensesFromPom(File artifactFile, String artifactName,
-        String group) {
+                                      String group) {
         String pomFileName = artifactFile.getName().replaceFirst(FILE_EXTENSION,
-            ".pom")
+                ".pom")
 
         // Search for pom file. When the artifact is cached in gradle cache, the
         // pom file will be stored in a hashed directory.
         FileTree tree = project.fileTree(
-            dir: artifactFile.parentFile.parentFile,
-            include: ["**/${pomFileName}", pomFileName])
+                dir: artifactFile.parentFile.parentFile,
+                include: ["**/${pomFileName}", pomFileName])
         for (File pomFile : tree) {
             def rootNode = new XmlSlurper().parse(pomFile)
             if (rootNode.licenses.size() == 0) continue

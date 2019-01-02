@@ -25,7 +25,7 @@ class OssLicensesPlugin implements Plugin<Project> {
         def getDependencies = project.tasks.create("getDependencies",
                 DependencyTask)
         def dependencyOutput = new File(project.buildDir,
-            "generated/third_party_licenses")
+                "generated/third_party_licenses")
         def generatedJson = new File(dependencyOutput, "dependencies.json")
         getDependencies.configurations = project.getConfigurations()
         getDependencies.outputDir = dependencyOutput
@@ -49,7 +49,7 @@ class OssLicensesPlugin implements Plugin<Project> {
 
         licenseTask.dependsOn(getDependencies)
 
-        project.android.applicationVariants.all{ BaseVariant variant ->
+        project.android.applicationVariants.all { BaseVariant variant ->
             variant.preBuild.dependsOn(licenseTask)
             variant.registerResGeneratingTask(licenseTask, resourceOutput)
         }

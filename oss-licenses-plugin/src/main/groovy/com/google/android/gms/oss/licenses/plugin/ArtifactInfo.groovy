@@ -23,9 +23,9 @@ class ArtifactInfo {
     private String version
 
     ArtifactInfo(String group,
-            String name,
-            String fileLocation,
-            String version) {
+                 String name,
+                 String fileLocation,
+                 String version) {
         this.group = group
         this.name = name
         this.fileLocation = fileLocation
