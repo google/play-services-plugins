@@ -16,59 +16,58 @@
 
 package com.google.gms.googleservices;
 
-import static com.google.common.truth.Truth.assertThat;
+import com.google.common.truth.Truth;
+
+import org.junit.Test;
+
 import java.util.ArrayList;
 import java.util.List;
-import java.util.HashMap;
-import java.util.stream.Collectors;
-import org.gradle.api.GradleException;
-import org.junit.Test;
 
 public class GoogleServicesPluginTest {
 
-  @Test
-  public void testNoFlavor() {
-    List<String> output = toStringList(GoogleServicesPlugin.getJsonLocations("release", null));
-    assertThat(output).contains("src/release");
-  }
-
-  @Test
-  public void testOneFlavor() {
-    List<String> output =
-        toStringList(GoogleServicesPlugin.getJsonLocations("flavor/release", null));
-    assertThat(output)
-        .containsAllOf(
-            "src/release",
-            "src/flavorRelease",
-            "src/flavor",
-            "src/flavor/release",
-            "src/release/flavor");
-  }
-
-  @Test
-  public void testMultipleFlavors() {
-    List<String> output =
-        toStringList(GoogleServicesPlugin.getJsonLocations("flavorTest/release", null));
-    assertThat(output)
-        .containsAllOf(
-            "src/release",
-            "src/flavorRelease",
-            "src/flavor",
-            "src/flavor/release",
-            "src/release/flavorTest",
-            "src/flavorTest",
-            "src/flavorTestRelease",
-            "src/flavor/test/release",
-            "src/flavor/testRelease");
-  }
-
-  // This is neccesary because some of the strings are actually groovy string implementations
-  // which fail equality tests with java strings during testing
-  private static List<String> toStringList(List<String> input) {
-    ArrayList<String> strings = new ArrayList<String>(input.size());
-    for (Object oldString : input) {
-      strings.add(oldString.toString());
+    @Test
+    public void testNoFlavor() {
+        List<String> output = toStringList(GoogleServicesPlugin.getJsonLocations("release", null));
+        Truth.assertThat(output).contains("src/release");
     }
-    return strings;
-  }
+
+    @Test
+    public void testOneFlavor() {
+        List<String> output =
+                toStringList(GoogleServicesPlugin.getJsonLocations("flavor/release", null));
+        Truth.assertThat(output)
+                .containsAllOf(
+                        "src/release",
+                        "src/flavorRelease",
+                        "src/flavor",
+                        "src/flavor/release",
+                        "src/release/flavor");
+    }
+
+    @Test
+    public void testMultipleFlavors() {
+        List<String> output =
+                toStringList(GoogleServicesPlugin.getJsonLocations("flavorTest/release", null));
+        Truth.assertThat(output)
+                .containsAllOf(
+                        "src/release",
+                        "src/flavorRelease",
+                        "src/flavor",
+                        "src/flavor/release",
+                        "src/release/flavorTest",
+                        "src/flavorTest",
+                        "src/flavorTestRelease",
+                        "src/flavor/test/release",
+                        "src/flavor/testRelease");
+    }
+
+    // This is necessary because some of the strings are actually groovy string implementations
+    // which fail equality tests with java strings during testing
+    private static List<String> toStringList(List<String> input) {
+        ArrayList<String> strings = new ArrayList<>(input.size());
+        for (Object oldString : input) {
+            strings.add(oldString.toString());
+        }
+        return strings;
+    }
 }

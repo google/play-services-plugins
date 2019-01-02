@@ -27,11 +27,6 @@ import com.google.gson.JsonPrimitive;
 
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
-import org.gradle.api.Project;
-import org.gradle.api.artifacts.Configuration;
-import org.gradle.api.artifacts.ConfigurationContainer;
-import org.gradle.api.artifacts.Dependency;
-import org.gradle.api.artifacts.DependencySet;
 import org.gradle.api.resources.TextResource;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputFile;
@@ -41,7 +36,6 @@ import org.gradle.api.tasks.TaskAction;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.regex.Matcher;
@@ -50,419 +44,421 @@ import java.util.regex.Pattern;
 /** */
 public class GoogleServicesTask extends DefaultTask {
 
-  private static final String STATUS_DISABLED = "1";
-  private static final String STATUS_ENABLED = "2";
+    private static final String STATUS_DISABLED = "1";
+    private static final String STATUS_ENABLED = "2";
 
-  private static final String OAUTH_CLIENT_TYPE_WEB = "3";
+    private static final String OAUTH_CLIENT_TYPE_WEB = "3";
 
-  private static final Pattern GOOGLE_APP_ID_REGEX =
-      Pattern.compile("(\\d+):(\\d+):(\\p{Alnum}+):(\\p{XDigit}+)");
-  private static final String GOOGLE_APP_ID_VERSION = "1";
+    private static final Pattern GOOGLE_APP_ID_REGEX =
+            Pattern.compile("(\\d+):(\\d+):(\\p{Alnum}+):(\\p{XDigit}+)");
+    private static final String GOOGLE_APP_ID_VERSION = "1";
 
-  /**
-   * The input is not technically optional but we want to control the error message.
-   * Without @Optional, Gradle will complain itself the file is missing.
-   */
-  @InputFile @Optional public File quickstartFile;
+    /**
+     * The input is not technically optional but we want to control the error message.
+     * Without @Optional, Gradle will complain itself the file is missing.
+     */
+    @InputFile
+    @Optional
+    public File quickstartFile;
 
-  @OutputDirectory public File intermediateDir;
+    @OutputDirectory
+    public File intermediateDir;
 
-  @Input public String packageNameXOR1;
-  
-  @Input public TextResource packageNameXOR2;
+    @Input
+    public String packageNameXOR1;
 
-  @Input public String searchedLocation;
+    @Input
+    public TextResource packageNameXOR2;
 
-  @TaskAction
-  public void action() throws IOException {
-    if (!quickstartFile.isFile()) {
-      throw new GradleException(
-          String.format(
-              "File %s is missing. "
-                  + "The Google Services Plugin cannot function without it. %n Searched Location: %s",
-              quickstartFile.getName(), searchedLocation));
-    }
+    @Input
+    public String searchedLocation;
 
-    getProject().getLogger().warn("Parsing json file: " + quickstartFile.getPath());
-
-    // delete content of outputdir.
-    deleteFolder(intermediateDir);
-    if (!intermediateDir.mkdirs()) {
-      throw new GradleException("Failed to create folder: " + intermediateDir);
-    }
-
-    JsonElement root = new JsonParser().parse(Files.newReader(quickstartFile, Charsets.UTF_8));
-
-    if (!root.isJsonObject()) {
-      throw new GradleException("Malformed root json");
-    }
-
-    JsonObject rootObject = root.getAsJsonObject();
-
-    Map<String, String> resValues = new TreeMap<String, String>();
-    Map<String, Map<String, String>> resAttributes = new TreeMap<String, Map<String, String>>();
-
-    handleProjectNumberAndProjectId(rootObject, resValues);
-    handleFirebaseUrl(rootObject, resValues);
-
-    JsonObject clientObject = getClientForPackageName(rootObject);
-
-    if (clientObject != null) {
-      handleAnalytics(clientObject, resValues);
-      handleMapsService(clientObject, resValues);
-      handleGoogleApiKey(clientObject, resValues);
-      handleGoogleAppId(clientObject, resValues);
-      handleWebClientId(clientObject, resValues);
-    } else {
-      throw new GradleException("No matching client found for package name '" + getPackageName() + "'");
-    }
-
-    // write the values file.
-    File values = new File(intermediateDir, "values");
-    if (!values.exists() && !values.mkdirs()) {
-      throw new GradleException("Failed to create folder: " + values);
-    }
-
-    Files.write(
-        getValuesContent(resValues, resAttributes), new File(values, "values.xml"), Charsets.UTF_8);
-  }
-
-  private void handleFirebaseUrl(JsonObject rootObject, Map<String, String> resValues)
-      throws IOException {
-    JsonObject projectInfo = rootObject.getAsJsonObject("project_info");
-    if (projectInfo == null) {
-      throw new GradleException("Missing project_info object");
-    }
-
-    JsonPrimitive firebaseUrl = projectInfo.getAsJsonPrimitive("firebase_url");
-    if (firebaseUrl != null) {
-      resValues.put("firebase_database_url", firebaseUrl.getAsString());
-    }
-  }
-
-  /**
-   * Handle project_info/project_number for @string/gcm_defaultSenderId, and fill the res map with
-   * the read value.
-   *
-   * @param rootObject the root Json object.
-   * @throws IOException
-   */
-  private void handleProjectNumberAndProjectId(JsonObject rootObject, Map<String, String> resValues)
-      throws IOException {
-    JsonObject projectInfo = rootObject.getAsJsonObject("project_info");
-    if (projectInfo == null) {
-      throw new GradleException("Missing project_info object");
-    }
-
-    JsonPrimitive projectNumber = projectInfo.getAsJsonPrimitive("project_number");
-    if (projectNumber == null) {
-      throw new GradleException("Missing project_info/project_number object");
-    }
-
-    resValues.put("gcm_defaultSenderId", projectNumber.getAsString());
-
-    JsonPrimitive projectId = projectInfo.getAsJsonPrimitive("project_id");
-
-    if (projectId == null) {
-      throw new GradleException("Missing project_info/project_id object");
-    }
-    resValues.put("project_id", projectId.getAsString());
-
-    JsonPrimitive bucketName = projectInfo.getAsJsonPrimitive("storage_bucket");
-    if (bucketName != null) {
-      resValues.put("google_storage_bucket", bucketName.getAsString());
-    }
-  }
-
-  private void handleWebClientId(JsonObject clientObject, Map<String, String> resValues) {
-    JsonArray array = clientObject.getAsJsonArray("oauth_client");
-    if (array != null) {
-      final int count = array.size();
-      for (int i = 0; i < count; i++) {
-        JsonElement oauthClientElement = array.get(i);
-        if (oauthClientElement == null || !oauthClientElement.isJsonObject()) {
-          continue;
-        }
-        JsonObject oauthClientObject = oauthClientElement.getAsJsonObject();
-        JsonPrimitive clientType = oauthClientObject.getAsJsonPrimitive("client_type");
-        if (clientType == null) {
-          continue;
-        }
-        String clientTypeStr = clientType.getAsString();
-        if (!OAUTH_CLIENT_TYPE_WEB.equals(clientTypeStr)) {
-          continue;
-        }
-        JsonPrimitive clientId = oauthClientObject.getAsJsonPrimitive("client_id");
-        if (clientId == null) {
-          continue;
-        }
-        resValues.put("default_web_client_id", clientId.getAsString());
-        return;
-      }
-    }
-  }
-
-  /**
-   * Handle a client object for analytics (@xml/global_tracker)
-   *
-   * @param clientObject the client Json object.
-   * @throws IOException
-   */
-  private void handleAnalytics(JsonObject clientObject, Map<String, String> resValues)
-      throws IOException {
-    JsonObject analyticsService = getServiceByName(clientObject, "analytics_service");
-    if (analyticsService == null) return;
-
-    JsonObject analyticsProp = analyticsService.getAsJsonObject("analytics_property");
-    if (analyticsProp == null) return;
-
-    JsonPrimitive trackingId = analyticsProp.getAsJsonPrimitive("tracking_id");
-    if (trackingId == null) return;
-
-    resValues.put("ga_trackingId", trackingId.getAsString());
-
-    File xml = new File(intermediateDir, "xml");
-    if (!xml.exists() && !xml.mkdirs()) {
-      throw new GradleException("Failed to create folder: " + xml);
-    }
-
-    Files.write(
-        getGlobalTrackerContent(trackingId.getAsString()),
-        new File(xml, "global_tracker.xml"),
-        Charsets.UTF_8);
-  }
-
-  /**
-   * Handle a client object for maps (@string/google_maps_key).
-   *
-   * @param clientObject the client Json object.
-   * @throws IOException
-   */
-  private void handleMapsService(JsonObject clientObject, Map<String, String> resValues)
-      throws IOException {
-    JsonObject mapsService = getServiceByName(clientObject, "maps_service");
-    if (mapsService == null) return;
-
-    String apiKey = getAndroidApiKey(clientObject);
-    if (apiKey != null) {
-      resValues.put("google_maps_key", apiKey);
-      return;
-    }
-    throw new GradleException("Missing api_key/current_key object");
-  }
-
-  private void handleGoogleApiKey(JsonObject clientObject, Map<String, String> resValues) {
-    String apiKey = getAndroidApiKey(clientObject);
-    if (apiKey != null) {
-      resValues.put("google_api_key", apiKey);
-      // TODO: remove this once SDK starts to use google_api_key.
-      resValues.put("google_crash_reporting_api_key", apiKey);
-      return;
-    }
-
-    // if google_crash_reporting_api_key is missing.
-    // throw new GradleException("Missing api_key/current_key object");
-    throw new GradleException("Missing api_key/current_key object");
-  }
-
-  private String getAndroidApiKey(JsonObject clientObject) {
-    JsonArray array = clientObject.getAsJsonArray("api_key");
-    if (array != null) {
-      final int count = array.size();
-      for (int i = 0; i < count; i++) {
-        JsonElement apiKeyElement = array.get(i);
-        if (apiKeyElement == null || !apiKeyElement.isJsonObject()) {
-          continue;
-        }
-        JsonObject apiKeyObject = apiKeyElement.getAsJsonObject();
-        JsonPrimitive currentKey = apiKeyObject.getAsJsonPrimitive("current_key");
-        if (currentKey == null) {
-          continue;
-        }
-        return currentKey.getAsString();
-      }
-    }
-    return null;
-  }
-
-  private static void findStringByName(
-      JsonObject jsonObject, String stringName, Map<String, String> resValues) {
-    JsonPrimitive id = jsonObject.getAsJsonPrimitive(stringName);
-    if (id != null) {
-      resValues.put(stringName, id.getAsString());
-    }
-  }
-
-  /**
-   * find an item in the "client" array that match the package name of the app
-   *
-   * @param jsonObject the root json object.
-   * @return a JsonObject representing the client entry or null if no match is found.
-   */
-  private JsonObject getClientForPackageName(JsonObject jsonObject) {
-    JsonArray array = jsonObject.getAsJsonArray("client");
-    if (array != null) {
-      final int count = array.size();
-      for (int i = 0; i < count; i++) {
-        JsonElement clientElement = array.get(i);
-        if (clientElement == null || !clientElement.isJsonObject()) {
-          continue;
+    @TaskAction
+    public void action() throws IOException {
+        if (!quickstartFile.isFile()) {
+            throw new GradleException(
+                    String.format(
+                            "File %s is missing. "
+                                    + "The Google Services Plugin cannot function without it. %n Searched Location: %s",
+                            quickstartFile.getName(), searchedLocation));
         }
 
-        JsonObject clientObject = clientElement.getAsJsonObject();
+        getProject().getLogger().warn("Parsing json file: " + quickstartFile.getPath());
 
-        JsonObject clientInfo = clientObject.getAsJsonObject("client_info");
-        if (clientInfo == null) continue;
-
-        JsonObject androidClientInfo = clientInfo.getAsJsonObject("android_client_info");
-        if (androidClientInfo == null) continue;
-
-        JsonPrimitive clientPackageName = androidClientInfo.getAsJsonPrimitive("package_name");
-        if (clientPackageName == null) continue;
-
-        if (getPackageName().equals(clientPackageName.getAsString())) {
-          return clientObject;
+        // delete content of outputdir.
+        deleteFolder(intermediateDir);
+        if (!intermediateDir.mkdirs()) {
+            throw new GradleException("Failed to create folder: " + intermediateDir);
         }
-      }
-    }
 
-    return null;
-  }
+        JsonElement root = new JsonParser().parse(Files.newReader(quickstartFile, Charsets.UTF_8));
 
-  /** Handle a client object for Google App Id. */
-  private void handleGoogleAppId(JsonObject clientObject, Map<String, String> resValues)
-      throws IOException {
-    JsonObject clientInfo = clientObject.getAsJsonObject("client_info");
-    if (clientInfo == null) {
-      // Should not happen
-      throw new GradleException("Client does not have client info");
-    }
-
-    JsonPrimitive googleAppId = clientInfo.getAsJsonPrimitive("mobilesdk_app_id");
-
-    String googleAppIdStr = googleAppId == null ? null : googleAppId.getAsString();
-    if (Strings.isNullOrEmpty(googleAppIdStr)) {
-      throw new GradleException(
-          "Missing Google App Id. "
-              + "Please follow instructions on https://firebase.google.com/ to get a valid "
-              + "config file that contains a Google App Id");
-    }
-
-    Matcher matcher = GOOGLE_APP_ID_REGEX.matcher(googleAppIdStr);
-    if (!matcher.matches()) {
-      throw new GradleException(
-          "Unexpected format of Google App ID. "
-              + "Please follow instructions on https://firebase.google.com/ to get a config file "
-              + "that contains a valid Google App Id or update the plugin version if you believe "
-              + "your Google App Id ["
-              + googleAppIdStr
-              + "] is correct.");
-    }
-
-    String version = matcher.group(1);
-    if (!GOOGLE_APP_ID_VERSION.equals(version)) {
-      throw new GradleException(
-          "Google App Id Version is incompatible with this plugin. "
-              + "Please update the plugin version.");
-    }
-
-    String platform = matcher.group(3);
-    if (!platform.equals("android")) {
-      throw new GradleException("Expect Google App Id for Android App, but get " + platform);
-    }
-
-    resValues.put("google_app_id", googleAppIdStr);
-  }
-
-  /**
-   * Finds a service by name in the client object. Returns null if the service is not found or if
-   * the service is disabled.
-   *
-   * @param clientObject the json object that represents the client.
-   * @param serviceName the service name
-   * @return the service if found.
-   */
-  private JsonObject getServiceByName(JsonObject clientObject, String serviceName) {
-    JsonObject services = clientObject.getAsJsonObject("services");
-    if (services == null) return null;
-
-    JsonObject service = services.getAsJsonObject(serviceName);
-    if (service == null) return null;
-
-    JsonPrimitive status = service.getAsJsonPrimitive("status");
-    if (status == null) return null;
-
-    String statusStr = status.getAsString();
-
-    if (STATUS_DISABLED.equals(statusStr)) return null;
-    if (!STATUS_ENABLED.equals(statusStr)) {
-      getLogger()
-          .warn(
-              String.format(
-                  "Status with value '%1$s' for service '%2$s' is unknown",
-                  statusStr, serviceName));
-      return null;
-    }
-
-    return service;
-  }
-
-  private static String getGlobalTrackerContent(String ga_trackingId) {
-    return "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
-        + "<resources>\n"
-        + "    <string name=\"ga_trackingId\" translatable=\"false\">"
-        + ga_trackingId
-        + "</string>\n"
-        + "</resources>\n";
-  }
-
-  private static String getValuesContent(
-      Map<String, String> values, Map<String, Map<String, String>> attributes) {
-    StringBuilder sb = new StringBuilder(256);
-
-    sb.append("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" + "<resources>\n");
-
-    for (Map.Entry<String, String> entry : values.entrySet()) {
-      String name = entry.getKey();
-      sb.append("    <string name=\"").append(name).append("\" translatable=\"false\"");
-      if (attributes.containsKey(name)) {
-        for (Map.Entry<String, String> attr : attributes.get(name).entrySet()) {
-          sb.append(" ").append(attr.getKey()).append("=\"").append(attr.getValue()).append("\"");
+        if (!root.isJsonObject()) {
+            throw new GradleException("Malformed root json");
         }
-      }
-      sb.append(">").append(entry.getValue()).append("</string>\n");
-    }
 
-    sb.append("</resources>\n");
+        JsonObject rootObject = root.getAsJsonObject();
 
-    return sb.toString();
-  }
+        Map<String, String> resValues = new TreeMap<>();
+        Map<String, Map<String, String>> resAttributes = new TreeMap<>();
 
-  private static void deleteFolder(final File folder) {
-    if (!folder.exists()) {
-      return;
-    }
-    File[] files = folder.listFiles();
-    if (files != null) {
-      for (final File file : files) {
-        if (file.isDirectory()) {
-          deleteFolder(file);
+        handleProjectNumberAndProjectId(rootObject, resValues);
+        handleFirebaseUrl(rootObject, resValues);
+
+        JsonObject clientObject = getClientForPackageName(rootObject);
+
+        if (clientObject != null) {
+            handleAnalytics(clientObject, resValues);
+            handleMapsService(clientObject, resValues);
+            handleGoogleApiKey(clientObject, resValues);
+            handleGoogleAppId(clientObject, resValues);
+            handleWebClientId(clientObject, resValues);
         } else {
-          if (!file.delete()) {
-            throw new GradleException("Failed to delete: " + file);
-          }
+            throw new GradleException("No matching client found for package name '" + getPackageName() + "'");
         }
-      }
+
+        // write the values file.
+        File values = new File(intermediateDir, "values");
+        if (!values.exists() && !values.mkdirs()) {
+            throw new GradleException("Failed to create folder: " + values);
+        }
+
+        Files.write(
+                getValuesContent(resValues, resAttributes), new File(values, "values.xml"), Charsets.UTF_8);
     }
-    if (!folder.delete()) {
-      throw new GradleException("Failed to delete: " + folder);
+
+    private void handleFirebaseUrl(JsonObject rootObject, Map<String, String> resValues) {
+        JsonObject projectInfo = rootObject.getAsJsonObject("project_info");
+        if (projectInfo == null) {
+            throw new GradleException("Missing project_info object");
+        }
+
+        JsonPrimitive firebaseUrl = projectInfo.getAsJsonPrimitive("firebase_url");
+        if (firebaseUrl != null) {
+            resValues.put("firebase_database_url", firebaseUrl.getAsString());
+        }
     }
-  }
-  
-  private String getPackageName() {
-    if (packageNameXOR1 == null) {
-      return packageNameXOR2.asString();
+
+    /**
+     * Handle project_info/project_number for @string/gcm_defaultSenderId, and fill the res map with
+     * the read value.
+     *
+     * @param rootObject the root Json object.
+     */
+    private void handleProjectNumberAndProjectId(JsonObject rootObject, Map<String, String> resValues) {
+        JsonObject projectInfo = rootObject.getAsJsonObject("project_info");
+        if (projectInfo == null) {
+            throw new GradleException("Missing project_info object");
+        }
+
+        JsonPrimitive projectNumber = projectInfo.getAsJsonPrimitive("project_number");
+        if (projectNumber == null) {
+            throw new GradleException("Missing project_info/project_number object");
+        }
+
+        resValues.put("gcm_defaultSenderId", projectNumber.getAsString());
+
+        JsonPrimitive projectId = projectInfo.getAsJsonPrimitive("project_id");
+
+        if (projectId == null) {
+            throw new GradleException("Missing project_info/project_id object");
+        }
+        resValues.put("project_id", projectId.getAsString());
+
+        JsonPrimitive bucketName = projectInfo.getAsJsonPrimitive("storage_bucket");
+        if (bucketName != null) {
+            resValues.put("google_storage_bucket", bucketName.getAsString());
+        }
     }
-    return packageNameXOR1;
-  }
+
+    private void handleWebClientId(JsonObject clientObject, Map<String, String> resValues) {
+        JsonArray array = clientObject.getAsJsonArray("oauth_client");
+        if (array != null) {
+            final int count = array.size();
+            for (int i = 0; i < count; i++) {
+                JsonElement oauthClientElement = array.get(i);
+                if (oauthClientElement == null || !oauthClientElement.isJsonObject()) {
+                    continue;
+                }
+                JsonObject oauthClientObject = oauthClientElement.getAsJsonObject();
+                JsonPrimitive clientType = oauthClientObject.getAsJsonPrimitive("client_type");
+                if (clientType == null) {
+                    continue;
+                }
+                String clientTypeStr = clientType.getAsString();
+                if (!OAUTH_CLIENT_TYPE_WEB.equals(clientTypeStr)) {
+                    continue;
+                }
+                JsonPrimitive clientId = oauthClientObject.getAsJsonPrimitive("client_id");
+                if (clientId == null) {
+                    continue;
+                }
+                resValues.put("default_web_client_id", clientId.getAsString());
+                return;
+            }
+        }
+    }
+
+    /**
+     * Handle a client object for analytics (@xml/global_tracker)
+     *
+     * @param clientObject the client Json object.
+     * @throws IOException
+     */
+    private void handleAnalytics(JsonObject clientObject, Map<String, String> resValues)
+            throws IOException {
+        JsonObject analyticsService = getServiceByName(clientObject, "analytics_service");
+        if (analyticsService == null) return;
+
+        JsonObject analyticsProp = analyticsService.getAsJsonObject("analytics_property");
+        if (analyticsProp == null) return;
+
+        JsonPrimitive trackingId = analyticsProp.getAsJsonPrimitive("tracking_id");
+        if (trackingId == null) return;
+
+        resValues.put("ga_trackingId", trackingId.getAsString());
+
+        File xml = new File(intermediateDir, "xml");
+        if (!xml.exists() && !xml.mkdirs()) {
+            throw new GradleException("Failed to create folder: " + xml);
+        }
+
+        Files.write(
+                getGlobalTrackerContent(trackingId.getAsString()),
+                new File(xml, "global_tracker.xml"),
+                Charsets.UTF_8);
+    }
+
+    /**
+     * Handle a client object for maps (@string/google_maps_key).
+     *
+     * @param clientObject the client Json object.
+     */
+    private void handleMapsService(JsonObject clientObject, Map<String, String> resValues) {
+        JsonObject mapsService = getServiceByName(clientObject, "maps_service");
+        if (mapsService == null) return;
+
+        String apiKey = getAndroidApiKey(clientObject);
+        if (apiKey != null) {
+            resValues.put("google_maps_key", apiKey);
+            return;
+        }
+        throw new GradleException("Missing api_key/current_key object");
+    }
+
+    private void handleGoogleApiKey(JsonObject clientObject, Map<String, String> resValues) {
+        String apiKey = getAndroidApiKey(clientObject);
+        if (apiKey != null) {
+            resValues.put("google_api_key", apiKey);
+            // TODO: remove this once SDK starts to use google_api_key.
+            resValues.put("google_crash_reporting_api_key", apiKey);
+            return;
+        }
+
+        // if google_crash_reporting_api_key is missing.
+        // throw new GradleException("Missing api_key/current_key object");
+        throw new GradleException("Missing api_key/current_key object");
+    }
+
+    private String getAndroidApiKey(JsonObject clientObject) {
+        JsonArray array = clientObject.getAsJsonArray("api_key");
+        if (array != null) {
+            final int count = array.size();
+            for (int i = 0; i < count; i++) {
+                JsonElement apiKeyElement = array.get(i);
+                if (apiKeyElement == null || !apiKeyElement.isJsonObject()) {
+                    continue;
+                }
+                JsonObject apiKeyObject = apiKeyElement.getAsJsonObject();
+                JsonPrimitive currentKey = apiKeyObject.getAsJsonPrimitive("current_key");
+                if (currentKey == null) {
+                    continue;
+                }
+                return currentKey.getAsString();
+            }
+        }
+        return null;
+    }
+
+    private static void findStringByName(
+            JsonObject jsonObject, String stringName, Map<String, String> resValues) {
+        JsonPrimitive id = jsonObject.getAsJsonPrimitive(stringName);
+        if (id != null) {
+            resValues.put(stringName, id.getAsString());
+        }
+    }
+
+    /**
+     * find an item in the "client" array that match the package name of the app
+     *
+     * @param jsonObject the root json object.
+     * @return a JsonObject representing the client entry or null if no match is found.
+     */
+    private JsonObject getClientForPackageName(JsonObject jsonObject) {
+        JsonArray array = jsonObject.getAsJsonArray("client");
+        if (array != null) {
+            final int count = array.size();
+            for (int i = 0; i < count; i++) {
+                JsonElement clientElement = array.get(i);
+                if (clientElement == null || !clientElement.isJsonObject()) {
+                    continue;
+                }
+
+                JsonObject clientObject = clientElement.getAsJsonObject();
+
+                JsonObject clientInfo = clientObject.getAsJsonObject("client_info");
+                if (clientInfo == null) continue;
+
+                JsonObject androidClientInfo = clientInfo.getAsJsonObject("android_client_info");
+                if (androidClientInfo == null) continue;
+
+                JsonPrimitive clientPackageName = androidClientInfo.getAsJsonPrimitive("package_name");
+                if (clientPackageName == null) continue;
+
+                if (getPackageName().equals(clientPackageName.getAsString())) {
+                    return clientObject;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Handle a client object for Google App Id.
+     */
+    private void handleGoogleAppId(JsonObject clientObject, Map<String, String> resValues) {
+        JsonObject clientInfo = clientObject.getAsJsonObject("client_info");
+        if (clientInfo == null) {
+            // Should not happen
+            throw new GradleException("Client does not have client info");
+        }
+
+        JsonPrimitive googleAppId = clientInfo.getAsJsonPrimitive("mobilesdk_app_id");
+
+        String googleAppIdStr = googleAppId == null ? null : googleAppId.getAsString();
+        if (Strings.isNullOrEmpty(googleAppIdStr)) {
+            throw new GradleException(
+                    "Missing Google App Id. "
+                            + "Please follow instructions on https://firebase.google.com/ to get a valid "
+                            + "config file that contains a Google App Id");
+        }
+
+        Matcher matcher = GOOGLE_APP_ID_REGEX.matcher(googleAppIdStr);
+        if (!matcher.matches()) {
+            throw new GradleException(
+                    "Unexpected format of Google App ID. "
+                            + "Please follow instructions on https://firebase.google.com/ to get a config file "
+                            + "that contains a valid Google App Id or update the plugin version if you believe "
+                            + "your Google App Id ["
+                            + googleAppIdStr
+                            + "] is correct.");
+        }
+
+        String version = matcher.group(1);
+        if (!GOOGLE_APP_ID_VERSION.equals(version)) {
+            throw new GradleException(
+                    "Google App Id Version is incompatible with this plugin. "
+                            + "Please update the plugin version.");
+        }
+
+        String platform = matcher.group(3);
+        if (!platform.equals("android")) {
+            throw new GradleException("Expect Google App Id for Android App, but get " + platform);
+        }
+
+        resValues.put("google_app_id", googleAppIdStr);
+    }
+
+    /**
+     * Finds a service by name in the client object. Returns null if the service is not found or if
+     * the service is disabled.
+     *
+     * @param clientObject the json object that represents the client.
+     * @param serviceName  the service name
+     * @return the service if found.
+     */
+    private JsonObject getServiceByName(JsonObject clientObject, String serviceName) {
+        JsonObject services = clientObject.getAsJsonObject("services");
+        if (services == null) return null;
+
+        JsonObject service = services.getAsJsonObject(serviceName);
+        if (service == null) return null;
+
+        JsonPrimitive status = service.getAsJsonPrimitive("status");
+        if (status == null) return null;
+
+        String statusStr = status.getAsString();
+
+        if (STATUS_DISABLED.equals(statusStr)) return null;
+        if (!STATUS_ENABLED.equals(statusStr)) {
+            getLogger()
+                    .warn(
+                            String.format(
+                                    "Status with value '%1$s' for service '%2$s' is unknown",
+                                    statusStr, serviceName));
+            return null;
+        }
+
+        return service;
+    }
+
+    private static String getGlobalTrackerContent(String ga_trackingId) {
+        return "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+                + "<resources>\n"
+                + "    <string name=\"ga_trackingId\" translatable=\"false\">"
+                + ga_trackingId
+                + "</string>\n"
+                + "</resources>\n";
+    }
+
+    private static String getValuesContent(
+            Map<String, String> values, Map<String, Map<String, String>> attributes) {
+        StringBuilder sb = new StringBuilder(256);
+
+        sb.append("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" + "<resources>\n");
+
+        for (Map.Entry<String, String> entry : values.entrySet()) {
+            String name = entry.getKey();
+            sb.append("    <string name=\"").append(name).append("\" translatable=\"false\"");
+            if (attributes.containsKey(name)) {
+                for (Map.Entry<String, String> attr : attributes.get(name).entrySet()) {
+                    sb.append(" ").append(attr.getKey()).append("=\"").append(attr.getValue()).append("\"");
+                }
+            }
+            sb.append(">").append(entry.getValue()).append("</string>\n");
+        }
+
+        sb.append("</resources>\n");
+
+        return sb.toString();
+    }
+
+    private static void deleteFolder(final File folder) {
+        if (!folder.exists()) {
+            return;
+        }
+        File[] files = folder.listFiles();
+        if (files != null) {
+            for (final File file : files) {
+                if (file.isDirectory()) {
+                    deleteFolder(file);
+                } else {
+                    if (!file.delete()) {
+                        throw new GradleException("Failed to delete: " + file);
+                    }
+                }
+            }
+        }
+        if (!folder.delete()) {
+            throw new GradleException("Failed to delete: " + folder);
+        }
+    }
+
+    private String getPackageName() {
+        if (packageNameXOR1 == null) {
+            return packageNameXOR2.asString();
+        }
+        return packageNameXOR1;
+    }
 }

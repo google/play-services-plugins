@@ -1,11 +1,12 @@
 apply plugin: 'maven-publish'
+apply plugin: 'groovy'
 
 jar {
     from 'LICENSE'
 }
 
 groovydoc {
-    exclude     "**/internal/**"
+    exclude "**/internal/**"
     includePrivate false
 
     docTitle project.ext.pomDesc
@@ -14,12 +15,12 @@ groovydoc {
     overview ""
 }
 
-task javadocJar(type: Jar, dependsOn:groovydoc) {
-    classifier  'javadoc'
-    from        groovydoc.destinationDir
+task javadocJar(type: Jar, dependsOn: groovydoc) {
+    classifier 'javadoc'
+    from groovydoc.destinationDir
 }
 
-task sourcesJar(type: Jar, dependsOn:classes) {
+task sourcesJar(type: Jar, dependsOn: classes) {
     classifier = 'sources'
     from sourceSets.main.allSource
 }

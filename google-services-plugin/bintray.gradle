@@ -44,7 +44,7 @@ publishing.publications.maven(MavenPublication) {
         license.appendNode('distribution', 'repo')
 
         asNode().appendNode('developers')
-            .appendNode('developer')
+                .appendNode('developer')
                 .appendNode('name', 'The Android Open Source Project')
 
         Node scm = asNode().appendNode('scm')
@@ -72,7 +72,7 @@ bintray {
         version {
             name = project.ext.version
             desc = project.ext.pomDesc + ' version ' + project.ext.version
-            released  = new java.util.Date()
+            released = new Date()
         }
     }
 }
@@ -100,7 +100,7 @@ if (project.has('mavenUser') && project.has('mavenPassword')) {
             project.logger.quiet('Uploading to MavenCentral')
         } else {
             project.logger.quiet('MavenSync is disabled. '
-                + 'Upload to MavenCentral is cancelled')
+                    + 'Upload to MavenCentral is cancelled')
         }
     }
 }

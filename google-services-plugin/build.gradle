@@ -1,29 +1,35 @@
 buildscript {
     repositories {
         jcenter()
+        google()
     }
     dependencies {
-        classpath "com.jfrog.bintray.gradle:gradle-bintray-plugin:1.2"
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.6' //1.8.4
     }
 }
 
-project.ext.group = 'com.google.gms'
-project.ext.archivesBaseName = 'google-services'
-project.ext.version = '4.2.0'
-project.ext.pomDesc = 'Gradle plug-in to build Firebase applications.'
-
-apply plugin: 'groovy'
-
 repositories {
-  jcenter()
-  maven { url 'https://maven.google.com' }
+    jcenter()
+    google()
 }
 
+project.ext {
+    group = 'com.google.gms'
+    archivesBaseName = 'google-services'
+    version = '4.2.0'
+    pomDesc = 'Gradle plug-in to build Firebase applications.'
+}
+
+apply plugin: 'groovy'
+apply plugin: 'java'
+
 dependencies {
-    compile gradleApi()
-    compile 'com.google.android.gms:strict-version-matcher-plugin:1.1.0'
-    testCompile 'junit:junit:4.12'
-    testCompile "com.google.truth:truth:0.39"
+    implementation gradleApi()
+    implementation 'com.google.android.gms:strict-version-matcher-plugin:1.1.0'
+    implementation 'com.google.code.gson:gson:2.8.5'
+    implementation 'com.google.guava:guava:27.0.1-jre'
+    testImplementation 'junit:junit:4.13-beta-1'
+    testImplementation 'com.google.truth:truth:0.42'
 }
 
 apply from: 'publish.gradle'
@@ -32,5 +38,5 @@ if (project.has('bintrayUser') && project.has('bintrayKey')) {
     apply from: 'bintray.gradle'
 }
 
-sourceCompatibility = 1.7
-targetCompatibility = 1.7
+sourceCompatibility = "1.8"
+targetCompatibility = "1.8"
