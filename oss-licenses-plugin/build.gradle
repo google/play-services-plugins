@@ -2,11 +2,11 @@ apply plugin: 'groovy'
 apply plugin: 'java'
 
 dependencies {
-    compile gradleApi()
-    compile localGroovy()
-    compile 'com.android.tools.build:gradle:2.3.3'
-    testCompile 'junit:junit:4.12'
-    testCompile 'org.mockito:mockito-core:2.13.0'
+    implementation gradleApi()
+    implementation localGroovy()
+    implementation 'com.android.tools.build:gradle:3.2.1'
+    testImplementation 'junit:junit:4.12'
+    testImplementation 'org.mockito:mockito-core:2.23.4'
 }
 
 group = 'com.google.android.gms'
@@ -15,6 +15,7 @@ version = '0.9.4'
 apply plugin: 'maven'
 
 repositories {
+    google()
     jcenter()
 }
 

@@ -16,7 +16,8 @@ project.ext.pomDesc = 'Gradle plug-in to enforce version ranges for Google Play 
 apply plugin: 'kotlin'
 
 repositories {
-  jcenter()
+    google()
+    jcenter()
 }
 
 dependencies {
@@ -32,6 +33,7 @@ apply from: 'publish.gradle'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
+
 compileKotlin {
     kotlinOptions {
         jvmTarget = "1.8"
