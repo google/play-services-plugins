@@ -1,0 +1,8 @@
+.idea/*
+!.idea/codeStyles
+
+build/
+out/
+strict-version-matcher-plugin.iml
+.gradle
+local.properties
