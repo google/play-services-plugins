@@ -1,0 +1,8 @@
+.idea/*
+!.idea/codeStyles
+
+build/
+out/
+oss-licenses-plugin.iml
+.gradle
+local.properties
