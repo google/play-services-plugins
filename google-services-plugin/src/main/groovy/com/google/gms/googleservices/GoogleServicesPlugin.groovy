@@ -184,7 +184,7 @@ class GoogleServicesPlugin implements Plugin<Project> {
     task.intermediateDir = outputDir
     task.searchedLocation = searchedLocation
 
-    // This is neccesary for backwards compatibility with versions of gradle that do not support
+    // This is necessary for backwards compatibility with versions of gradle that do not support
     // this new API.
     if (variant.respondsTo("applicationIdTextResource")) {
       task.packageNameXOR2 = variant.applicationIdTextResource
@@ -193,13 +193,14 @@ class GoogleServicesPlugin implements Plugin<Project> {
       task.packageNameXOR1 = variant.applicationId
     }
 
-    // This is neccesary for backwards compatibility with versions of gradle that do not support
+    // This is necessary for backwards compatibility with versions of gradle that do not support
     // this new API.
     if (variant.respondsTo("registerGeneratedResFolders")) {
       task.ext.generatedResFolders = project.files(outputDir).builtBy(task)
       variant.registerGeneratedResFolders(task.generatedResFolders)
       variant.mergeResources.dependsOn(task)
     } else {
+      //noinspection GrDeprecatedAPIUsage
       variant.registerResGeneratingTask(task, outputDir)
     }
   }
