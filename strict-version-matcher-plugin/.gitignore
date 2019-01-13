@@ -3,6 +3,6 @@
 
 build/
 out/
-strict-version-matcher-plugin.iml
+*.iml
 .gradle
 local.properties

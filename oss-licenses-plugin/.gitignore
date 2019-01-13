@@ -3,6 +3,6 @@
 
 build/
 out/
-oss-licenses-plugin.iml
+*.iml
 .gradle
 local.properties
