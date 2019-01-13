@@ -49,9 +49,19 @@ class OssLicensesPlugin implements Plugin<Project> {
 
         licenseTask.dependsOn(getDependencies)
 
-        project.android.applicationVariants.all{ BaseVariant variant ->
+        project.android.applicationVariants.all { BaseVariant variant ->
             variant.preBuild.dependsOn(licenseTask)
-            variant.registerResGeneratingTask(licenseTask, resourceOutput)
+
+            // This is necessary for backwards compatibility with versions of gradle that do not support
+            // this new API.
+            if (variant.respondsTo("registerGeneratedResFolders")) {
+                licenseTask.ext.generatedResFolders = project.files(resourceOutput).builtBy(licenseTask)
+                variant.registerGeneratedResFolders(licenseTask.generatedResFolders)
+                variant.mergeResources.dependsOn(licenseTask)
+            } else {
+                //noinspection GrDeprecatedAPIUsage
+                variant.registerResGeneratingTask(licenseTask, resourceOutput)
+            }
         }
 
         def cleanupTask = project.tasks.create("licensesCleanUp",
