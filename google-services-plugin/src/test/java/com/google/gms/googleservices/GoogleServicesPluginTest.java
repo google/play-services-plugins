@@ -16,13 +16,12 @@
 
 package com.google.gms.googleservices;
 
-import static com.google.common.truth.Truth.assertThat;
+import org.junit.Test;
+
 import java.util.ArrayList;
 import java.util.List;
-import java.util.HashMap;
-import java.util.stream.Collectors;
-import org.gradle.api.GradleException;
-import org.junit.Test;
+
+import static com.google.common.truth.Truth.assertThat;
 
 public class GoogleServicesPluginTest {
 
@@ -62,10 +61,10 @@ public class GoogleServicesPluginTest {
             "src/flavor/testRelease");
   }
 
-  // This is neccesary because some of the strings are actually groovy string implementations
+  // This is necessary because some of the strings are actually groovy string implementations
   // which fail equality tests with java strings during testing
   private static List<String> toStringList(List<String> input) {
-    ArrayList<String> strings = new ArrayList<String>(input.size());
+    ArrayList<String> strings = new ArrayList<>(input.size());
     for (Object oldString : input) {
       strings.add(oldString.toString());
     }

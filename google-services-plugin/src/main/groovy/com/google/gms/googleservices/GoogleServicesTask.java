@@ -24,14 +24,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
-
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
-import org.gradle.api.Project;
-import org.gradle.api.artifacts.Configuration;
-import org.gradle.api.artifacts.ConfigurationContainer;
-import org.gradle.api.artifacts.Dependency;
-import org.gradle.api.artifacts.DependencySet;
 import org.gradle.api.resources.TextResource;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputFile;
@@ -41,7 +35,6 @@ import org.gradle.api.tasks.TaskAction;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.regex.Matcher;
@@ -99,8 +92,8 @@ public class GoogleServicesTask extends DefaultTask {
 
     JsonObject rootObject = root.getAsJsonObject();
 
-    Map<String, String> resValues = new TreeMap<String, String>();
-    Map<String, Map<String, String>> resAttributes = new TreeMap<String, Map<String, String>>();
+    Map<String, String> resValues = new TreeMap<>();
+    Map<String, Map<String, String>> resAttributes = new TreeMap<>();
 
     handleProjectNumberAndProjectId(rootObject, resValues);
     handleFirebaseUrl(rootObject, resValues);

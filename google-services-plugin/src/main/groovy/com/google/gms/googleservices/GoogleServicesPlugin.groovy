@@ -16,27 +16,13 @@
 
 package com.google.gms.googleservices
 
-import com.google.android.gms.dependencies.DependencyAnalyzer;
-import com.google.android.gms.dependencies.DependencyInspector;
-import java.util.HashSet
-import java.util.HashMap
-import java.util.SortedSet
-import java.util.TreeSet
-import java.util.regex.Matcher
-import java.util.regex.Pattern
-import org.gradle.BuildListener
-import org.gradle.BuildResult
-import org.gradle.api.artifacts.Configuration
-import org.gradle.api.artifacts.Dependency
-import org.gradle.api.artifacts.DependencyResolutionListener
-import org.gradle.api.artifacts.ProjectDependency
-import org.gradle.api.artifacts.ResolvableDependencies
-import org.gradle.api.initialization.Settings
-import org.gradle.api.internal.artifacts.dependencies.DefaultProjectDependency
-import org.gradle.api.invocation.Gradle
-import org.gradle.api.GradleException
+import com.google.android.gms.dependencies.DependencyAnalyzer
+import com.google.android.gms.dependencies.DependencyInspector
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+
+import java.util.regex.Matcher
+import java.util.regex.Pattern
 
 class GoogleServicesPlugin implements Plugin<Project> {
 
