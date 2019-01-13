@@ -3,7 +3,6 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.1'
         classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.4'
     }
 }
@@ -29,19 +28,11 @@ dependencies {
     testImplementation 'com.google.truth:truth:0.42'
 }
 
-subprojects {
-    tasks.withType(JavaCompile) {
-        options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
-    }
-}
-
 apply from: 'publish.gradle'
 
 if (project.hasProperty('bintrayUser') && project.hasProperty('bintrayKey')) {
     apply from: 'bintray.gradle'
 }
-
-apply plugin: 'com.github.johnrengelman.shadow'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8

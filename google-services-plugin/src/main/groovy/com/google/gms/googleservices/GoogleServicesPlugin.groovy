@@ -209,7 +209,7 @@ class GoogleServicesPlugin implements Plugin<Project> {
 
     // This is neccesary for backwards compatibility with versions of gradle that do not support
     // this new API.
-    if (false || variant.respondsTo("registerGeneratedResFolders")) {
+    if (variant.respondsTo("registerGeneratedResFolders")) {
       task.ext.generatedResFolders = project.files(outputDir).builtBy(task)
       variant.registerGeneratedResFolders(task.generatedResFolders)
       variant.mergeResources.dependsOn(task)
