@@ -200,8 +200,7 @@ class GoogleServicesPlugin implements Plugin<Project> {
 
     // This is neccesary for backwards compatibility with versions of gradle that do not support
     // this new API.
-    if (variant.metaClass.respondsTo(variant, "applicationIdTextResource")
-      || variant.metaClass.hasProperty(variant, "applicationIdTextResource")) {
+    if (variant.respondsTo("applicationIdTextResource")) {
       task.packageNameXOR2 = variant.applicationIdTextResource
       task.dependsOn(variant.applicationIdTextResource)
     } else {
@@ -210,9 +209,9 @@ class GoogleServicesPlugin implements Plugin<Project> {
 
     // This is neccesary for backwards compatibility with versions of gradle that do not support
     // this new API.
-    if (variant.respondsTo(variant, "registerGeneratedResFolders")) {
-      task.ext.generatedResFolders = files(outputDir).builtBy(task)
-      variant.registerGeneratedResFolders(outputDir)
+    if (false || variant.respondsTo("registerGeneratedResFolders")) {
+      task.ext.generatedResFolders = project.files(outputDir).builtBy(task)
+      variant.registerGeneratedResFolders(task.generatedResFolders)
       variant.mergeResources.dependsOn(task)
     } else {
       variant.registerResGeneratingTask(task, outputDir)

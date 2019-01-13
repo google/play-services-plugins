@@ -123,8 +123,8 @@ public class GoogleServicesTask extends DefaultTask {
       throw new GradleException("Failed to create folder: " + values);
     }
 
-    Files.write(
-        getValuesContent(resValues, resAttributes), new File(values, "values.xml"), Charsets.UTF_8);
+    Files.asCharSink(new File(values, "values.xml"), Charsets.UTF_8)
+        .write(getValuesContent(resValues, resAttributes));
   }
 
   private void handleFirebaseUrl(JsonObject rootObject, Map<String, String> resValues)
@@ -226,10 +226,8 @@ public class GoogleServicesTask extends DefaultTask {
       throw new GradleException("Failed to create folder: " + xml);
     }
 
-    Files.write(
-        getGlobalTrackerContent(trackingId.getAsString()),
-        new File(xml, "global_tracker.xml"),
-        Charsets.UTF_8);
+    Files.asCharSink(new File(xml, "global_tracker.xml"), Charsets.UTF_8)
+        .write(getGlobalTrackerContent(trackingId.getAsString()));
   }
 
   /**

@@ -19,7 +19,7 @@ apply plugin: 'com.jfrog.bintray'
 
 def requiredParams = ["bintrayUser", "bintrayKey", "bintrayOrg", "bintrayRepo"]
 for (param in requiredParams) {
-    if (!project.has(param)) {
+    if (!project.hasProperty(param)) {
         throw new GradleException("Missing '-P${param}' required argument")
     }
 }
@@ -77,7 +77,7 @@ bintray {
     }
 }
 
-if (project.has('bintrayGPGPass')) {
+if (project.hasProperty('bintrayGPGPass')) {
 
     bintray.pkg.version.gpg {
         sign = true
@@ -85,7 +85,7 @@ if (project.has('bintrayGPGPass')) {
     }
 }
 
-if (project.has('mavenUser') && project.has('mavenPassword')) {
+if (project.hasProperty('mavenUser') && project.hasProperty('mavenPassword')) {
 
     bintray.pkg.version.mavenCentralSync {
         sync = MAVEN_SYNC

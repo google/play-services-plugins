@@ -3,7 +3,8 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath "com.jfrog.bintray.gradle:gradle-bintray-plugin:1.2"
+        classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.1'
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.4'
     }
 }
 
@@ -15,22 +16,32 @@ project.ext.pomDesc = 'Gradle plug-in to build Firebase applications.'
 apply plugin: 'groovy'
 
 repositories {
+  google()
   jcenter()
-  maven { url 'https://maven.google.com' }
 }
 
 dependencies {
-    compile gradleApi()
-    compile 'com.google.android.gms:strict-version-matcher-plugin:1.1.0'
-    testCompile 'junit:junit:4.12'
-    testCompile "com.google.truth:truth:0.39"
+    implementation gradleApi()
+    implementation 'com.google.android.gms:strict-version-matcher-plugin:1.1.0'
+    implementation 'com.google.code.gson:gson:2.8.5'
+    implementation 'com.google.guava:guava:27.0.1-jre'
+    testImplementation 'junit:junit:4.12'
+    testImplementation 'com.google.truth:truth:0.42'
+}
+
+subprojects {
+    tasks.withType(JavaCompile) {
+        options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
+    }
 }
 
 apply from: 'publish.gradle'
 
-if (project.has('bintrayUser') && project.has('bintrayKey')) {
+if (project.hasProperty('bintrayUser') && project.hasProperty('bintrayKey')) {
     apply from: 'bintray.gradle'
 }
 
-sourceCompatibility = 1.7
-targetCompatibility = 1.7
+apply plugin: 'com.github.johnrengelman.shadow'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
