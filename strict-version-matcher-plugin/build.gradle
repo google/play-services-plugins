@@ -26,7 +26,7 @@ dependencies {
     testImplementation 'junit:junit:4.13-beta-1'
     testImplementation 'com.google.truth:truth:0.42'
     implementation 'com.github.spotbugs:spotbugs:3.1.10'
-    implementation 'com.google.guava:guava:23.6.1-jre'
+    implementation 'com.google.guava:guava:23.6.1-jre' //27.0.1-jre
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
 }
 

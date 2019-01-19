@@ -4,7 +4,9 @@ buildscript {
         google()
     }
     dependencies {
-        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.6' //1.8.4
+        //https://bintray.com/jfrog/jfrog-jars/gradle-bintray-plugin#release
+		classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.6' //1.8.4
+		
     }
 }
 
