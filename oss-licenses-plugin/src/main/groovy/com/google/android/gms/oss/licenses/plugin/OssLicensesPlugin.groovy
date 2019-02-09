@@ -50,7 +50,7 @@ class OssLicensesPlugin implements Plugin<Project> {
         licenseTask.dependsOn(getDependencies)
 
         project.android.applicationVariants.all { BaseVariant variant ->
-            variant.preBuild.dependsOn(licenseTask)
+            variant.preBuildProvider.get().dependsOn(licenseTask)
 
             // This is necessary for backwards compatibility with versions of gradle that do not support
             // this new API.
