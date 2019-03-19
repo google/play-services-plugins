@@ -105,7 +105,8 @@ public class DependencyInspector implements DependencyResolutionListener {
       // * depResult.getFrom() == null represents a direct dep from the
       //   project being evaluated.
       if (depResult.getFrom() == null ||
-          "".equals(depResult.getFrom().getId().getDisplayName())) {
+          "".equals(depResult.getFrom().getId().getDisplayName()) ||
+          "project :".equals(depResult.getFrom().getId().getDisplayName())) {
         // Register the dep from the project directly.
         fromDep = ArtifactVersion.Companion.fromGradleRef(
             GRADLE_PROJECT + ":" + projectName + "-" + taskName + ":0.0.0");
