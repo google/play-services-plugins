@@ -7,16 +7,17 @@ buildscript {
     }
 }
 
-project.ext.group = 'com.google.gms'
+group = 'com.google.gms'
+version = '4.2.0'
 project.ext.archivesBaseName = 'google-services'
-project.ext.version = '4.2.0'
 project.ext.pomDesc = 'Gradle plug-in to build Firebase applications.'
 
 apply plugin: 'groovy'
+apply plugin: 'java-gradle-plugin'
 
 repositories {
-  google()
-  jcenter()
+    google()
+    jcenter()
 }
 
 dependencies {
@@ -26,6 +27,15 @@ dependencies {
     implementation 'com.google.guava:guava:27.0.1-jre'
     testImplementation 'junit:junit:4.12'
     testImplementation 'com.google.truth:truth:0.42'
+}
+
+gradlePlugin {
+    plugins {
+        googleServicesPlugin {
+            id = 'com.google.gms.google-services'
+            implementationClass = 'com.google.gms.googleservices.GoogleServicesPlugin'
+        }
+    }
 }
 
 apply from: 'publish.gradle'

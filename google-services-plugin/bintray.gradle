@@ -29,9 +29,9 @@ def BINTRAY_PUBLISH = project.has('bintrayPublish') ? project.ext.bintrayPublish
 def MAVEN_SYNC = false
 def MAVEN_CLOSE = '0'
 
-def BINTRAY_PROJECT_NAME = "${project.ext.group}.${project.ext.archivesBaseName}"
+def BINTRAY_PROJECT_NAME = "${project.group}.${project.ext.archivesBaseName}"
 
-publishing.publications.maven(MavenPublication) {
+publishing.publications.pluginMaven(MavenPublication) {
 
     pom.withXml {
         asNode().appendNode('description', project.ext.pomDesc)
@@ -59,7 +59,7 @@ bintray {
     key = project.ext.bintrayKey
     dryRun = BINTRAY_DRYRUN
     publish = BINTRAY_PUBLISH
-    publications = ['maven']
+    publications = ['pluginMaven']
 
     pkg {
         repo = project.ext.bintrayRepo
@@ -70,8 +70,8 @@ bintray {
         publicDownloadNumbers = true
         vcsUrl = 'git://android.googlesource.com/platform/tools/base.git'
         version {
-            name = project.ext.version
-            desc = project.ext.pomDesc + ' version ' + project.ext.version
+            name = project.version
+            desc = project.ext.pomDesc + ' version ' + project.version
             released  = new java.util.Date()
         }
     }
