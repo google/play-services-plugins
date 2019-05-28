@@ -52,19 +52,65 @@ public class GoogleServicesTask extends DefaultTask {
       Pattern.compile("(\\d+):(\\d+):(\\p{Alnum}+):(\\p{XDigit}+)");
   private static final String GOOGLE_APP_ID_VERSION = "1";
 
+  private File quickstartFile;
+  private File intermediateDir;
+  private String packageNameXOR1;
+  private TextResource packageNameXOR2;
+  private String searchedLocation;
+
   /**
    * The input is not technically optional but we want to control the error message.
    * Without @Optional, Gradle will complain itself the file is missing.
    */
-  @InputFile @Optional public File quickstartFile;
+  @InputFile @Optional
+  public File getQuickstartFile() {
+    return quickstartFile;
+  }
 
-  @OutputDirectory public File intermediateDir;
+  @OutputDirectory
+  public File getIntermediateDir() {
+    return intermediateDir;
+  }
 
-  @Input public String packageNameXOR1;
-  
-  @Input public TextResource packageNameXOR2;
+  /**
+   * Either packageNameXOR1 or packageNameXOR2 must be present, but both must be marked as @Optional or Gradle
+   * will throw an exception if one is missing.
+   */
+  @Input @Optional
+  public String getPackageNameXOR1() {
+    return packageNameXOR1;
+  }
 
-  @Input public String searchedLocation;
+  @Input @Optional
+  public TextResource getPackageNameXOR2() {
+    return packageNameXOR2;
+  }
+
+  @Input
+  public String getSearchedLocation() {
+    return searchedLocation;
+  }
+
+  public void setQuickstartFile(File quickstartFile) {
+    this.quickstartFile = quickstartFile;
+  }
+
+  public void setIntermediateDir(File intermediateDir) {
+    this.intermediateDir = intermediateDir;
+  }
+
+  public void setPackageNameXOR1(String packageNameXOR1) {
+    this.packageNameXOR1 = packageNameXOR1;
+  }
+
+  public void setPackageNameXOR2(TextResource packageNameXOR2) {
+    this.packageNameXOR2 = packageNameXOR2;
+  }
+
+  public void setSearchedLocation(String searchedLocation) {
+    this.searchedLocation = searchedLocation;
+  }
+
 
   @TaskAction
   public void action() throws IOException {
@@ -74,6 +120,13 @@ public class GoogleServicesTask extends DefaultTask {
               "File %s is missing. "
                   + "The Google Services Plugin cannot function without it. %n Searched Location: %s",
               quickstartFile.getName(), searchedLocation));
+    }
+    if (packageNameXOR1 == null && packageNameXOR2 == null) {
+      throw new GradleException(
+              String.format(
+                      "One of packageNameXOR1 or packageNameXOR2 are required: "
+                              + "packageNameXOR1: %s, packageNameXOR2: %s",
+                      packageNameXOR1, packageNameXOR2));
     }
 
     getProject().getLogger().warn("Parsing json file: " + quickstartFile.getPath());
