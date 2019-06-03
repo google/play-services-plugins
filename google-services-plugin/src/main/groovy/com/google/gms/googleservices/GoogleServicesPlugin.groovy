@@ -75,11 +75,9 @@ class GoogleServicesPlugin implements Plugin<Project> {
     }
   }
 
-  public static GoogleServicesPluginConfig config = new GoogleServicesPluginConfig()
-
   @Override
   void apply(Project project) {
-    config = project.extensions.create('googleServices', GoogleServicesPluginConfig)
+    GoogleServicesPluginConfig config = project.extensions.create('googleServices', GoogleServicesPluginConfig)
 
     project.afterEvaluate {
       if (config.disableVersionCheck) {
