@@ -1,19 +1,13 @@
-buildscript {
-    repositories {
-        jcenter()
-    }
-    dependencies {
-        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.4'
-    }
+plugins {
+    id 'groovy'
+    id 'java-gradle-plugin'
+    id 'com.jfrog.bintray' version '1.8.4' apply false
 }
 
 group = 'com.google.gms'
 version = '4.3.2'
 project.ext.archivesBaseName = 'google-services'
 project.ext.pomDesc = 'Gradle plug-in to build Firebase applications.'
-
-apply plugin: 'groovy'
-apply plugin: 'java-gradle-plugin'
 
 repositories {
     google()
