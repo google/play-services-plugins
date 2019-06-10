@@ -1,5 +1,8 @@
-apply plugin: 'groovy'
-apply plugin: 'java'
+plugins {
+    id 'java'
+    id 'groovy'
+    id 'maven'
+}
 
 dependencies {
     implementation gradleApi()
@@ -11,8 +14,6 @@ dependencies {
 
 group = 'com.google.android.gms'
 version = '0.9.5'
-
-apply plugin: 'maven'
 
 repositories {
     google()
