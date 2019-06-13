@@ -1,14 +1,28 @@
-language: groovy
+language: android
+dist: trusty
+android:
+  components:
+    - android-28
+
+before_install:
+  - mkdir -p $ANDROID_HOME/licenses
+  - echo -e "\n24333f8a63b6825ea9c5514f83c2829b004d1fee" > $ANDROID_HOME/licenses/android-sdk-license
+
 before_cache:
-- rm -f $HOME/.gradle/caches/*
+  - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
+  - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
+
 cache:
   directories:
-  - $HOME/.gradle/caches/
-  - $HOME/.gradle/wrapper/
+    - $HOME/.gradle/caches/
+    - $HOME/.gradle/wrapper/
 
 # Using build matrix support to build the sub-projects
 env:
-  - TEST_DIR=strict-version-matcher-plugin
-  - TEST_DIR=google-services-plugin
+  global:
+    - TERM=dumb
+  matrix:
+    - TEST_DIR=strict-version-matcher-plugin
+    - TEST_DIR=google-services-plugin
 
-script: cd $TEST_DIR && gradle assemble && gradle test
+script: cd $TEST_DIR && ./gradlew assemble test
