@@ -21,43 +21,7 @@ import com.google.android.gms.dependencies.DependencyInspector
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 
-import java.util.regex.Matcher
-import java.util.regex.Pattern
-
 class GoogleServicesPlugin implements Plugin<Project> {
-  public final static String MODULE_GROUP = "com.google.android.gms"
-  public final static String MODULE_GROUP_FIREBASE = "com.google.firebase"
-  public final static String MODULE_CORE = "firebase-core"
-  public final static String MODULE_VERSION = "11.4.2"
-  public final static String MINIMUM_VERSION = "9.0.0"
-
-  // These are the plugin types and the set of associated plugins whose presence should be checked for.
-  private final static enum PluginType{
-    APPLICATION([
-      "android",
-      "com.android.application"
-    ]),
-    LIBRARY([
-      "android-library",
-      "com.android.library"
-    ]),
-    FEATURE([
-      "android-feature",
-      "com.android.feature"
-    ]),
-    MODEL_APPLICATION([
-      "com.android.model.application"
-    ]),
-    MODEL_LIBRARY(["com.android.model.library"])
-    public PluginType(Collection plugins) {
-      this.plugins = plugins
-    }
-    private final Collection plugins
-    public Collection plugins() {
-      return plugins
-    }
-  }
-
   @Override
   void apply(Project project) {
     GoogleServicesPluginConfig config = project.extensions.create('googleServices', GoogleServicesPluginConfig)
@@ -73,66 +37,26 @@ class GoogleServicesPlugin implements Plugin<Project> {
                 " issues at https://github.com/google/play-services-plugins and disable by " +
                 "adding \"googleServices { disableVersionCheck = false }\" to your build.gradle file."));
     }
-    for (PluginType pluginType : PluginType.values()) {
-      for (String plugin : pluginType.plugins()) {
-        if (project.plugins.hasPlugin(plugin)) {
-          setupPlugin(project, pluginType)
-          return
-        }
+
+    // Setup google-services plugin after one of android plugins is applied.
+    project.plugins.withId("com.android.application") {
+      project.android.applicationVariants.all { variant ->
+        handleVariant(project, variant)
       }
     }
-    // If the google-service plugin is applied before any android plugin.
-    // We should warn that google service plugin should be applied at
-    // the bottom of build file.
-    showWarningForPluginLocation(project)
 
-    // Setup google-services plugin after android plugin is applied.
-    project.plugins.withId("android", {
-      setupPlugin(project, PluginType.APPLICATION)
-    })
-    project.plugins.withId("android-library", {
-      setupPlugin(project, PluginType.LIBRARY)
-    })
-    project.plugins.withId("android-feature", {
-      setupPlugin(project, PluginType.FEATURE)
-    })
-  }
+    project.plugins.withId("com.android.library") {
+      project.android.libraryVariants.all { variant ->
+        handleVariant(project, variant)
+      }
+    }
 
-  private void showWarningForPluginLocation(Project project) {
-    project.getLogger().warn(
-        "Warning: Please apply google-services plugin at the bottom of the build file.")
-  }
-
-  private void setupPlugin(Project project, PluginType pluginType) {
-    switch (pluginType) {
-      case PluginType.APPLICATION:
-        project.android.applicationVariants.all { variant ->
-          handleVariant(project, variant)
-        }
-        break
-      case PluginType.LIBRARY:
-        project.android.libraryVariants.all { variant ->
-          handleVariant(project, variant)
-        }
-        break
-      case PluginType.FEATURE:
-        project.android.featureVariants.all { variant ->
-          handleVariant(project, variant)
-        }
-        break
-      case PluginType.MODEL_APPLICATION:
-        project.model.android.applicationVariants.all { variant ->
-          handleVariant(project, variant)
-        }
-        break
-      case PluginType.MODEL_LIBRARY:
-        project.model.android.libraryVariants.all { variant ->
-          handleVariant(project, variant)
-        }
-        break
+    project.plugins.withId("com.android.feature") {
+      project.android.featureVariants.all { variant ->
+        handleVariant(project, variant)
+      }
     }
   }
-
 
   private static void handleVariant(Project project,
       def variant) {
