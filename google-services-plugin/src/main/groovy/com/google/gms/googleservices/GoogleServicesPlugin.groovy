@@ -196,7 +196,7 @@ class GoogleServicesPlugin implements Plugin<Project> {
     if (variant.respondsTo("registerGeneratedResFolders")) {
       task.ext.generatedResFolders = project.files(outputDir).builtBy(task)
       variant.registerGeneratedResFolders(task.generatedResFolders)
-      variant.mergeResources.dependsOn(task)
+      variant.mergeResourcesProvider.configure { dependsOn(task) }
     } else {
       //noinspection GrDeprecatedAPIUsage
       variant.registerResGeneratingTask(task, outputDir)
