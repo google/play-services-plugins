@@ -64,7 +64,13 @@ class OssLicensesPlugin implements Plugin<Project> {
             if (variant.respondsTo("registerGeneratedResFolders")) {
                 licenseTask.ext.generatedResFolders = project.files(resourceOutput).builtBy(licenseTask)
                 variant.registerGeneratedResFolders(licenseTask.generatedResFolders)
-                variant.mergeResources.dependsOn(licenseTask)
+
+                if (variant.respondsTo("mergeResourcesProvider")) {
+                    variant.mergeResourcesProvider.configure { dependsOn(licenseTask) }
+                } else {
+                    //noinspection GrDeprecatedAPIUsage
+                    variant.mergeResources.dependsOn(licenseTask)
+                }
             } else {
                 //noinspection GrDeprecatedAPIUsage
                 variant.registerResGeneratingTask(licenseTask, resourceOutput)
