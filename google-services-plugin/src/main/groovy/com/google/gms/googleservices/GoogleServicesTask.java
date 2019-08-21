@@ -35,7 +35,10 @@ import org.gradle.api.tasks.TaskAction;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -50,7 +53,7 @@ public class GoogleServicesTask extends DefaultTask {
 
   private static final Pattern GOOGLE_APP_ID_REGEX =
       Pattern.compile("(\\d+):(\\d+):(\\p{Alnum}+):(\\p{XDigit}+)");
-  private static final String GOOGLE_APP_ID_VERSION = "1";
+  private static final Set<String> GOOGLE_APP_ID_VERSIONS = new HashSet<>(Arrays.asList("1", "2"));
 
   private File quickstartFile;
   private File intermediateDir;
@@ -404,7 +407,7 @@ public class GoogleServicesTask extends DefaultTask {
     }
 
     String version = matcher.group(1);
-    if (!GOOGLE_APP_ID_VERSION.equals(version)) {
+    if (!GOOGLE_APP_ID_VERSIONS.contains(version)) {
       throw new GradleException(
           "Google App Id Version is incompatible with this plugin. "
               + "Please update the plugin version.");
