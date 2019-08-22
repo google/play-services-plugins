@@ -35,7 +35,10 @@ import org.gradle.api.tasks.TaskAction;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -47,10 +50,6 @@ public class GoogleServicesTask extends DefaultTask {
   private static final String STATUS_ENABLED = "2";
 
   private static final String OAUTH_CLIENT_TYPE_WEB = "3";
-
-  private static final Pattern GOOGLE_APP_ID_REGEX =
-      Pattern.compile("(\\d+):(\\d+):(\\p{Alnum}+):(\\p{XDigit}+)");
-  private static final String GOOGLE_APP_ID_VERSION = "1";
 
   private File quickstartFile;
   private File intermediateDir;
@@ -390,29 +389,6 @@ public class GoogleServicesTask extends DefaultTask {
           "Missing Google App Id. "
               + "Please follow instructions on https://firebase.google.com/ to get a valid "
               + "config file that contains a Google App Id");
-    }
-
-    Matcher matcher = GOOGLE_APP_ID_REGEX.matcher(googleAppIdStr);
-    if (!matcher.matches()) {
-      throw new GradleException(
-          "Unexpected format of Google App ID. "
-              + "Please follow instructions on https://firebase.google.com/ to get a config file "
-              + "that contains a valid Google App Id or update the plugin version if you believe "
-              + "your Google App Id ["
-              + googleAppIdStr
-              + "] is correct.");
-    }
-
-    String version = matcher.group(1);
-    if (!GOOGLE_APP_ID_VERSION.equals(version)) {
-      throw new GradleException(
-          "Google App Id Version is incompatible with this plugin. "
-              + "Please update the plugin version.");
-    }
-
-    String platform = matcher.group(3);
-    if (!platform.equals("android")) {
-      throw new GradleException("Expect Google App Id for Android App, but get " + platform);
     }
 
     resValues.put("google_app_id", googleAppIdStr);
