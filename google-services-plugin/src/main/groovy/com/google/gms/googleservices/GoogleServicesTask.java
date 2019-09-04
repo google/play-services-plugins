@@ -72,10 +72,7 @@ public class GoogleServicesTask extends DefaultTask {
 
   private static final String OAUTH_CLIENT_TYPE_WEB = "3";
 
-  private File quickstartFile;
   private File intermediateDir;
-  private File quickstartFile;
-  private String searchedLocation;
   private String variantDir;
   private String packageNameXOR1;
   private TextResource packageNameXOR2;
