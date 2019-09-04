@@ -35,14 +35,11 @@ import org.gradle.api.tasks.TaskAction;
 
 import java.io.File;
 import java.io.IOException;
-<<<<<<< HEAD
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-=======
 import java.util.Arrays;
 import java.util.HashSet;
->>>>>>> master
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
