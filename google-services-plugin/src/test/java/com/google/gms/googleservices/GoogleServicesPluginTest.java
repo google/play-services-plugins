@@ -27,14 +27,14 @@ public class GoogleServicesPluginTest {
 
   @Test
   public void testNoFlavor() {
-    List<String> output = toStringList(GoogleServicesPlugin.getJsonLocations("release", null));
+    List<String> output = toStringList(GoogleServicesTask.getJsonLocations("release"));
     assertThat(output).contains("src/release");
   }
 
   @Test
   public void testOneFlavor() {
     List<String> output =
-        toStringList(GoogleServicesPlugin.getJsonLocations("flavor/release", null));
+        toStringList(GoogleServicesTask.getJsonLocations("flavor/release"));
     assertThat(output)
         .containsAllOf(
             "src/release",
@@ -47,7 +47,7 @@ public class GoogleServicesPluginTest {
   @Test
   public void testMultipleFlavors() {
     List<String> output =
-        toStringList(GoogleServicesPlugin.getJsonLocations("flavorTest/release", null));
+        toStringList(GoogleServicesTask.getJsonLocations("flavorTest/release"));
     assertThat(output)
         .containsAllOf(
             "src/release",
