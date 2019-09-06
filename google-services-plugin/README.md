@@ -1,6 +1,6 @@
 # Google Services Gradle Plugin
 
-This plugin converts the google-services.json file for Firebase into a set of resources that the Firebase libraries can use. It also references the strict-version-matcher plugin, and will execute those checks as well. 
+This plugin converts the google-services.json file for Firebase into a set of resources that the Firebase libraries can use. It also references the strict-version-matcher plugin, and will execute those checks as well.
 
 ## Usage
 
@@ -21,7 +21,7 @@ Apply the plugin in your app's build.gradle:
 
 ```
 plugins {
-    id 'com.google.gms.google-services' version '4.2.0'
+    id 'com.google.gms.google-services' version '4.3.2'
 }
 ```
 
@@ -31,7 +31,7 @@ Add the following to your buildscript classpath, obtained from Google’s
 [Maven repository](//developer.android.com/studio/build/dependencies#google-maven):
 
 ```
-classpath 'com.google.gms:google-services:4.2.0'
+classpath 'com.google.gms:google-services:4.3.2'
 ```
 
 Apply the plugin in your app's build.gradle:
