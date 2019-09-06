@@ -116,7 +116,10 @@ public class DependencyInspector implements DependencyResolutionListener {
           // TODO(paulrashidi): Figure out if a third level dependency shows depFromString.
           // In a project with other project dependencies the dep
           // string will be "project :module1"
-          String depName = depFromString.split(":")[1];
+          // Sometimes depFromString is just "project:" and in that case we want the name
+          // to just be an empty string.
+          String[] splitDepName = depFromString.split(":");
+          String depName = splitDepName.length > 1 ? splitDepName[1] : "module";
           // Register the dep from another module in the project.
           fromDep = ArtifactVersion.Companion.fromGradleRef(
               GRADLE_PROJECT + ":" + projectName + "-" + taskName + "-" + depName + ":0.0.0");
