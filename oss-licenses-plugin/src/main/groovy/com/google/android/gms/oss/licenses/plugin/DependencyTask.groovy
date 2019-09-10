@@ -45,6 +45,11 @@ class DependencyTask extends DefaultTask {
     private static final String ANDROID_TEST_PREFIX = "androidTest"
     private static final Set<String> TEST_COMPILE = ["testCompile",
                                                      "androidTestCompile"]
+
+    private static final Set<String> PACKAGED_DEPENDENCIES_PREFIXES = ["compile",
+                                                            "implementation",
+                                                            "api"]
+
     @Input
     public ConfigurationContainer configurations
 
@@ -149,13 +154,28 @@ class DependencyTask extends DefaultTask {
         return isTestConfiguration
     }
 
+    /**
+     * Checks if the configuration is for a packaged dependency (rather than e.g. a build or test time dependency)
+     * @param configuration
+     * @return true if the configuration is in the set of @link #BINARY_DEPENDENCIES
+     */
+    protected boolean isPackagedDependency(Configuration configuration) {
+        boolean isPackagedDependency = PACKAGED_DEPENDENCIES_PREFIXES.any {
+            configuration.name.startsWith(it)
+        }
+
+        return isPackagedDependency
+    }
+
     protected Set<ResolvedArtifact> getResolvedArtifacts(
             Configuration configuration) {
         /**
-         * skip the configurations that are either cannot be resolved in
-         * newer version of gradle api or are tests.
+         * skip the configurations that, cannot be resolved in
+         * newer version of gradle api, are tests, or are not packaged dependencies.
          */
-        if (!canBeResolved(configuration) || isTest(configuration)) {
+        if (!canBeResolved(configuration)
+                || isTest(configuration)
+                || !isPackagedDependency(configuration)) {
             return null
         }
 

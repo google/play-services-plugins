@@ -125,6 +125,63 @@ public class DependencyTaskTest {
   }
 
   @Test
+  public void testGetResolvedArtifacts_isNotPackaged() {
+    Set<ResolvedArtifact> artifactSet = (Set<ResolvedArtifact>) mock(Set.class);
+    ResolvedConfiguration resolvedConfiguration = mock(ResolvedConfiguration.class);
+    when(resolvedConfiguration.getResolvedArtifacts()).thenReturn(artifactSet);
+
+    Configuration configuration = mock(Configuration.class);
+    when(configuration.getName()).thenReturn("annotationProcessor");
+    when(configuration.isCanBeResolved()).thenReturn(true);
+    when(configuration.getResolvedConfiguration()).thenReturn(resolvedConfiguration);
+
+    assertThat(dependencyTask.getResolvedArtifacts(configuration), is(nullValue()));
+  }
+
+  @Test
+  public void testGetResolvedArtifacts_isPackagedApi() {
+    Set<ResolvedArtifact> artifactSet = (Set<ResolvedArtifact>) mock(Set.class);
+    ResolvedConfiguration resolvedConfiguration = mock(ResolvedConfiguration.class);
+    when(resolvedConfiguration.getResolvedArtifacts()).thenReturn(artifactSet);
+
+    Configuration configuration = mock(Configuration.class);
+    when(configuration.getName()).thenReturn("api");
+    when(configuration.isCanBeResolved()).thenReturn(true);
+    when(configuration.getResolvedConfiguration()).thenReturn(resolvedConfiguration);
+
+    assertThat(dependencyTask.getResolvedArtifacts(configuration), is(artifactSet));
+  }
+
+  @Test
+  public void testGetResolvedArtifacts_isPackagedImplementation() {
+    Set<ResolvedArtifact> artifactSet = (Set<ResolvedArtifact>) mock(Set.class);
+    ResolvedConfiguration resolvedConfiguration = mock(ResolvedConfiguration.class);
+    when(resolvedConfiguration.getResolvedArtifacts()).thenReturn(artifactSet);
+
+    Configuration configuration = mock(Configuration.class);
+    when(configuration.getName()).thenReturn("implementation");
+    when(configuration.isCanBeResolved()).thenReturn(true);
+    when(configuration.getResolvedConfiguration()).thenReturn(resolvedConfiguration);
+
+    assertThat(dependencyTask.getResolvedArtifacts(configuration), is(artifactSet));
+  }
+
+  @Test
+  public void testGetResolvedArtifacts_isPackagedCompile() {
+    Set<ResolvedArtifact> artifactSet = (Set<ResolvedArtifact>) mock(Set.class);
+    ResolvedConfiguration resolvedConfiguration = mock(ResolvedConfiguration.class);
+    when(resolvedConfiguration.getResolvedArtifacts()).thenReturn(artifactSet);
+
+    Configuration configuration = mock(Configuration.class);
+    when(configuration.getName()).thenReturn("compile");
+    when(configuration.isCanBeResolved()).thenReturn(true);
+    when(configuration.getResolvedConfiguration()).thenReturn(resolvedConfiguration);
+
+    assertThat(dependencyTask.getResolvedArtifacts(configuration), is(artifactSet));
+  }
+
+
+  @Test
   public void testGetResolvedArtifacts_ResolveException() {
     ResolvedConfiguration resolvedConfiguration = mock(ResolvedConfiguration.class);
     when(resolvedConfiguration.getResolvedArtifacts()).thenThrow(ResolveException.class);
