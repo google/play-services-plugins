@@ -11,19 +11,28 @@ interface VersionEvaluator {
  */
 object VersionEvaluators {
 
+  private fun containsVersionRange(version:String):Boolean{
+    return version.contains(',') ||
+           //open range
+           version.endsWith('[') ||
+           version.endsWith(')') ||
+           version.startsWith(']') ||
+           version.endsWith('(')
+  }
+
   fun getEvaluator(versionString: String, enableStrictMatching: Boolean): VersionEvaluator {
-    val hasVersionRange = versionString.indexOf(",") > 0 || versionString.indexOf(")") > 0 ||
-                                   versionString.indexOf("(") > 0
-    return if (versionString.startsWith("[") && versionString.endsWith("]")) {
-      ExactVersionEvaluator(versionString.substring(1, versionString.length - 1))
-    } else if (enableStrictMatching && !hasVersionRange) {
+    val hasVersionRange = containsVersionRange(versionString)
+    return if (hasVersionRange) {
+      //TODO: Support range version
+      AlwaysCompatibleEvaluator()
+    }else if (enableStrictMatching) {
       // TODO: Re-enable SemVer validator.
       // SemVerVersionEvaluator(versionString)
       AlwaysCompatibleEvaluator()
-    } else {
-      AlwaysCompatibleEvaluator()
+    }else{
+      val version = versionString.removePrefix("[").removeSuffix("]")
+      ExactVersionEvaluator(version)
     }
-
   }
 
   class AlwaysCompatibleEvaluator : VersionEvaluator {
