@@ -1,4 +1,8 @@
 language: groovy
+jdk: oraclejdk8
+dist: trusty
+
+# See https://docs.travis-ci.com/user/languages/groovy/#gradle-caching
 before_cache:
 - rm -f $HOME/.gradle/caches/*
 cache:
@@ -10,5 +14,6 @@ cache:
 env:
   - TEST_DIR=strict-version-matcher-plugin
   - TEST_DIR=google-services-plugin
+  - TEST_DIR=oss-licenses-plugin
 
-script: cd $TEST_DIR && gradle assemble && gradle test
+script: cd $TEST_DIR && ./gradlew test
