@@ -158,6 +158,34 @@ public class LicensesTaskTest {
   }
 
   @Test
+  public void testAddLicensesFromPom_withMultiple() throws IOException {
+    File deps1 = new File("dependencies/groupA/deps1.txt");
+    String name1 = "deps1";
+    String group1 = "groupA";
+    licensesTask.addLicensesFromPom(deps1, name1, group1);
+
+    File deps2 = new File("dependencies/groupE/deps5.txt");
+    String name2 = "deps5";
+    String group2 = "groupE";
+    licensesTask.addLicensesFromPom(deps2, name2, group2);
+
+    String content = new String(Files.readAllBytes(licensesTask.licenses.toPath()), UTF_8);
+    String expected =
+        "http://www.opensource.org/licenses/mit-license.php"
+            + LINE_BREAK
+            + "http://www.opensource.org/licenses/mit-license.php"
+            + LINE_BREAK
+            + "https://www.apache.org/licenses/LICENSE-2.0"
+            + LINE_BREAK;
+
+    assertThat(licensesTask.licensesMap.size(), is(3));
+    assertTrue(licensesTask.licensesMap.containsKey("groupA:deps1"));
+    assertTrue(licensesTask.licensesMap.containsKey("groupE:deps5 MIT License"));
+    assertTrue(licensesTask.licensesMap.containsKey("groupE:deps5 Apache License 2.0"));
+    assertEquals(expected, content);
+  }
+
+  @Test
   public void testAddLicensesFromPom_withDuplicate() throws IOException {
     File deps1 = new File("dependencies/groupA/deps1.txt");
     String name1 = "deps1";
