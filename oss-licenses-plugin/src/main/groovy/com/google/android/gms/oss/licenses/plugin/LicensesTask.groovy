@@ -229,7 +229,7 @@ class LicensesTask extends DefaultTask {
         }
     }
 
-    protected File resolvePomFileArtifact(String group, String name, String version) {
+    private File resolvePomFileArtifact(String group, String name, String version) {
         def moduleComponentIdentifier =
                 createModuleComponentIdentifier(group, name, version)
         logger.info("Resolving POM file for $moduleComponentIdentifier licenses.")
