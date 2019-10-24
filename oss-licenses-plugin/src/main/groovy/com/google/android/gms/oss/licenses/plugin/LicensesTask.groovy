@@ -209,7 +209,7 @@ class LicensesTask extends DefaultTask {
             if (rootNode.licenses.size() == 0) continue
 
             String licenseKey = "${group}:${artifactName}"
-            if (rootNode.licenses.size() > 1) {
+            if (rootNode.licenses.license.size() > 1) {
                 rootNode.licenses.license.each { node ->
                     String nodeName = node.name
                     String nodeUrl = node.url
