@@ -89,30 +89,4 @@ public class DependencyAnalyzerTest {
                 ARTIFACT_A_100, ARTIFACT_B_100, ARTIFACT_C_200, ARTIFACT_D_100));
         Assert.assertEquals("Exactly 4 dependencies should be active.", 4, deps.size());
     }
-
-    @Test
-    public void testNonGoogleToDependencies_ShouldBeIgnored() {
-        ArtifactVersion fromVersion = ArtifactVersion.Companion.fromGradleRef("com.google.firebase:artA:1.0.0");
-        ArtifactVersion toVersion = ArtifactVersion.Companion.fromGradleRef("com.google.notfirebase:artB:1.0.0");
-        Dependency dep = Dependency.Companion.fromArtifactVersions(fromVersion, toVersion);
-        DependencyAnalyzer dependencyAnalyzer = new DependencyAnalyzer();
-        dependencyAnalyzer.registerDependency(dep);
-        Assert.assertEquals(
-            "The dependency is ignored.", 
-            0,
-            dependencyAnalyzer.getActiveDependencies(Lists.newArrayList(fromVersion, toVersion)).size());
-    }
-
-    @Test
-    public void testNonGoogleFromDependencies_ShouldNotBeIgnored() {
-        ArtifactVersion fromVersion = ArtifactVersion.Companion.fromGradleRef("com.google.notfirebase:artA:1.0.0");
-        ArtifactVersion toVersion = ArtifactVersion.Companion.fromGradleRef("com.google.firebase:artB:1.0.0");
-        Dependency dep = Dependency.Companion.fromArtifactVersions(fromVersion, toVersion);
-        DependencyAnalyzer dependencyAnalyzer = new DependencyAnalyzer();
-        dependencyAnalyzer.registerDependency(dep);
-        Assert.assertEquals(
-            "The dependency is not ignored.", 
-            1,
-            dependencyAnalyzer.getActiveDependencies(Lists.newArrayList(fromVersion, toVersion)).size());
-    }
 }
