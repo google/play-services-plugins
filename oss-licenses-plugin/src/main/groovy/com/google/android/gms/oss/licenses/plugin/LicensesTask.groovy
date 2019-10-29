@@ -18,13 +18,18 @@ package com.google.android.gms.oss.licenses.plugin
 
 import groovy.json.JsonSlurper
 import org.gradle.api.DefaultTask
-import org.gradle.api.file.FileTree
+import org.gradle.api.artifacts.component.ModuleComponentIdentifier
+import org.gradle.api.artifacts.result.ResolvedArtifactResult
+import org.gradle.api.internal.artifacts.DefaultModuleIdentifier
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
+import org.gradle.internal.component.external.model.DefaultModuleComponentIdentifier
+import org.gradle.maven.MavenModule
+import org.gradle.maven.MavenPomArtifact
+import org.slf4j.LoggerFactory
 
-import java.util.regex.Pattern
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 
@@ -44,7 +49,8 @@ class LicensesTask extends DefaultTask {
     private static final String FIREBASE_GROUP = "com.google.firebase"
     private static final String FAIL_READING_LICENSES_ERROR =
         "Failed to read license text."
-    private static final Pattern FILE_EXTENSION = ~/\.[^\.]+$/
+
+    private static final logger = LoggerFactory.getLogger(LicensesTask.class)
 
     protected int start = 0
     protected Set<String> googleServiceLicenses = []
@@ -79,7 +85,7 @@ class LicensesTask extends DefaultTask {
             if (isGoogleServices(group, name)) {
                 // Add license info for google-play-services itself
                 if (!name.endsWith(LICENSE_ARTIFACT_SURFIX)) {
-                    addLicensesFromPom(artifactLocation, name, group)
+                    addLicensesFromPom(group, name, version)
                 }
                 // Add transitive licenses info for google-play-services. For
                 // post-granular versions, this is located in the artifact
@@ -92,7 +98,7 @@ class LicensesTask extends DefaultTask {
                     addGooglePlayServiceLicenses(artifactLocation)
                 }
             } else {
-                addLicensesFromPom(artifactLocation, name, group)
+                addLicensesFromPom(group, name, version)
             }
         }
 
@@ -107,7 +113,7 @@ class LicensesTask extends DefaultTask {
 
     protected void initLicenseFile() {
         if (licenses == null) {
-            println("not defined licenses")
+            logger.error("License file is undefined")
         }
         licenses.newWriter().withWriter {w ->
             w << ''
@@ -194,32 +200,59 @@ class LicensesTask extends DefaultTask {
         }
     }
 
-    protected void addLicensesFromPom(File artifactFile, String artifactName,
-        String group) {
-        String pomFileName = artifactFile.getName().replaceFirst(FILE_EXTENSION,
-            ".pom")
+    protected void addLicensesFromPom(String group, String name, String version) {
+        def pomFile = resolvePomFileArtifact(group, name, version)
+        addLicensesFromPom(pomFile, group, name)
+    }
 
-        // Search for pom file. When the artifact is cached in gradle cache, the
-        // pom file will be stored in a hashed directory.
-        FileTree tree = project.fileTree(
-            dir: artifactFile.parentFile.parentFile,
-            include: ["**/${pomFileName}", pomFileName])
-        for (File pomFile : tree) {
-            def rootNode = new XmlSlurper().parse(pomFile)
-            if (rootNode.licenses.size() == 0) continue
-
-            String licenseKey = "${group}:${artifactName}"
-            if (rootNode.licenses.license.size() > 1) {
-                rootNode.licenses.license.each { node ->
-                    String nodeName = node.name
-                    String nodeUrl = node.url
-                    appendLicense("${licenseKey} ${nodeName}", nodeUrl.getBytes(UTF_8))
-                }
-            } else {
-                String nodeUrl = rootNode.licenses.license.url
-                appendLicense(licenseKey, nodeUrl.getBytes(UTF_8))
-            }
+    protected void addLicensesFromPom(File pomFile, String group, String name) {
+        if (pomFile == null || !pomFile.exists()) {
+            logger.error("POM file $pomFile does not exist.")
+            return
         }
+
+        def rootNode = new XmlSlurper().parse(pomFile)
+        if (rootNode.licenses.size() == 0) {
+            return
+        }
+
+        String licenseKey = "${group}:${name}"
+        if (rootNode.licenses.license.size() > 1) {
+            rootNode.licenses.license.each { node ->
+                String nodeName = node.name
+                String nodeUrl = node.url
+                appendLicense("${licenseKey} ${nodeName}", nodeUrl.getBytes(UTF_8))
+            }
+        } else {
+            String nodeUrl = rootNode.licenses.license.url
+            appendLicense(licenseKey, nodeUrl.getBytes(UTF_8))
+        }
+    }
+
+    private File resolvePomFileArtifact(String group, String name, String version) {
+        def moduleComponentIdentifier =
+                createModuleComponentIdentifier(group, name, version)
+        logger.info("Resolving POM file for $moduleComponentIdentifier licenses.")
+        def components = getProject().getDependencies()
+                .createArtifactResolutionQuery()
+                .forComponents(moduleComponentIdentifier)
+                .withArtifacts(MavenModule.class, MavenPomArtifact.class)
+                .execute()
+        if (components.resolvedComponents.isEmpty()) {
+            logger.warn("$moduleComponentIdentifier has no POM file.")
+            return null
+        }
+
+        def artifacts = components.resolvedComponents[0].getArtifacts(MavenPomArtifact.class)
+        if (artifacts.isEmpty()) {
+            logger.error("$moduleComponentIdentifier empty POM artifact list.")
+            return null
+        }
+        if (!(artifacts[0] instanceof ResolvedArtifactResult)) {
+            logger.error("$moduleComponentIdentifier unexpected type ${artifacts[0].class}")
+            return null
+        }
+        return ((ResolvedArtifactResult) artifacts[0]).getFile()
     }
 
     protected void appendLicense(String key, byte[] content) {
@@ -243,4 +276,9 @@ class LicensesTask extends DefaultTask {
             licensesMetadata.append(LINE_SEPARATOR)
         }
     }
+
+    private static ModuleComponentIdentifier createModuleComponentIdentifier(String group, String name, String version) {
+        return new DefaultModuleComponentIdentifier(DefaultModuleIdentifier.newId(group, name), version)
+    }
+
 }

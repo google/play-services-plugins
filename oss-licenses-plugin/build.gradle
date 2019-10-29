@@ -4,13 +4,13 @@ apply plugin: 'java'
 dependencies {
     implementation gradleApi()
     implementation localGroovy()
-    implementation 'com.android.tools.build:gradle:3.2.1'
+    implementation 'com.android.tools.build:gradle:3.5.1'
     testImplementation 'junit:junit:4.12'
     testImplementation 'org.mockito:mockito-core:2.23.4'
 }
 
 group = 'com.google.android.gms'
-version = '0.10.0'
+version = '0.10.1'
 
 apply plugin: 'maven'
 
