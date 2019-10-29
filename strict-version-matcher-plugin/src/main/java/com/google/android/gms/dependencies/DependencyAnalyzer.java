@@ -101,6 +101,6 @@ public class DependencyAnalyzer {
     }
   }
   private static boolean isGoogleDependency(Dependency dep) {
-    return GOOGLE_GROUP_IDS.contains(dep.getFromArtifactVersion().getGroupId());
+    return GOOGLE_GROUP_IDS.contains(dep.getToArtifact().getGroupId());
   }
 }
