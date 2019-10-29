@@ -7,6 +7,9 @@ import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Set;
+
+import com.google.common.collect.ImmutableSet; 
 
 /**
  * {Dependency} collector and analyzer for build artifacts.
@@ -25,14 +28,20 @@ import java.util.HashSet;
  * TODO: Support SemVer qualifiers.
  */
 public class DependencyAnalyzer {
+  private static final Set<String> GOOGLE_GROUP_IDS = ImmutableSet.of(
+      "com.google.android.gms",
+      "com.google.firebase");
   private Logger logger = LoggerFactory.getLogger(DependencyAnalyzer.class);
 
   private ArtifactDependencyManager dependencyManager = new ArtifactDependencyManager();
 
   /**
-   * Register a {Dependency}.
+   * Register a {Dependency}, only for google dependencies.
    */
   synchronized void registerDependency(@Nonnull Dependency dependency) {
+    if (!isGoogleDependency(dependency)) {
+      return;
+    }
     dependencyManager.addDependency(dependency);
   }
 
@@ -90,5 +99,8 @@ public class DependencyAnalyzer {
         getNode(terminalPathList, new Node(n, dep), dep.getFromArtifactVersion());
       }
     }
+  }
+  private static boolean isGoogleDependency(Dependency dep) {
+    return GOOGLE_GROUP_IDS.contains(dep.getFromArtifactVersion().getGroupId());
   }
 }
