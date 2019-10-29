@@ -30,7 +30,7 @@ public class DependencyAnalyzer {
   private ArtifactDependencyManager dependencyManager = new ArtifactDependencyManager();
 
   /**
-   * Register a {Dependency}, only for google dependencies.
+   * Register a {Dependency}.
    */
   synchronized void registerDependency(@Nonnull Dependency dependency) {
     dependencyManager.addDependency(dependency);
