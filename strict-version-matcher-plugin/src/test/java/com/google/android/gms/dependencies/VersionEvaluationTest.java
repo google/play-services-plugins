@@ -23,14 +23,14 @@ import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class VersionEvaluationTest {
-	private static final ArtifactVersion NON_GOOGLE_ARTIFACT = ArtifactVersion.Companion.fromGradleRef("com.notgoogle:randomlib:1.0.0");
-	private static final ArtifactVersion NON_GOOGLE_ARTIFACT_HARD_DEP = ArtifactVersion.Companion.fromGradleRef("com.notgoogle:randomlib:[1.0.0]");
-	private static final ArtifactVersion GOOGLE_ARTIFACT = ArtifactVersion.Companion.fromGradleRef("com.google.firebase:randomlib:1.0.0");
-	private static final ArtifactVersion GOOGLE_ARTIFACT_HARD_DEP = ArtifactVersion.Companion.fromGradleRef("com.google.firebase:randomlib:[1.0.0]");
-	private static final Dependency HARD_DEP_ON_GOOGLE = Dependency.Companion.fromArtifactVersions(NON_GOOGLE_ARTIFACT, GOOGLE_ARTIFACT_HARD_DEP);
-	private static final Dependency SOFT_DEP_ON_GOOGLE = Dependency.Companion.fromArtifactVersions(NON_GOOGLE_ARTIFACT, GOOGLE_ARTIFACT);
-	private static final Dependency SOFT_NON_GOOGLE_DEP = Dependency.Companion.fromArtifactVersions(NON_GOOGLE_ARTIFACT, NON_GOOGLE_ARTIFACT);
-	private static final Dependency HARD_NON_GOOGLE_DEP = Dependency.Companion.fromArtifactVersions(NON_GOOGLE_ARTIFACT, NON_GOOGLE_ARTIFACT_HARD_DEP);
+  private static final ArtifactVersion NON_GOOGLE_ARTIFACT = ArtifactVersion.Companion.fromGradleRef("com.notgoogle:randomlib:1.0.0");
+  private static final ArtifactVersion NON_GOOGLE_ARTIFACT_HARD_DEP = ArtifactVersion.Companion.fromGradleRef("com.notgoogle:randomlib:[1.0.0]");
+  private static final ArtifactVersion GOOGLE_ARTIFACT = ArtifactVersion.Companion.fromGradleRef("com.google.firebase:randomlib:1.0.0");
+  private static final ArtifactVersion GOOGLE_ARTIFACT_HARD_DEP = ArtifactVersion.Companion.fromGradleRef("com.google.firebase:randomlib:[1.0.0]");
+  private static final Dependency HARD_DEP_ON_GOOGLE = Dependency.Companion.fromArtifactVersions(NON_GOOGLE_ARTIFACT, GOOGLE_ARTIFACT_HARD_DEP);
+  private static final Dependency SOFT_DEP_ON_GOOGLE = Dependency.Companion.fromArtifactVersions(NON_GOOGLE_ARTIFACT, GOOGLE_ARTIFACT);
+  private static final Dependency SOFT_NON_GOOGLE_DEP = Dependency.Companion.fromArtifactVersions(NON_GOOGLE_ARTIFACT, NON_GOOGLE_ARTIFACT);
+  private static final Dependency HARD_NON_GOOGLE_DEP = Dependency.Companion.fromArtifactVersions(NON_GOOGLE_ARTIFACT, NON_GOOGLE_ARTIFACT_HARD_DEP);
 
 
   @Test
@@ -41,7 +41,7 @@ public class VersionEvaluationTest {
 
   @Test
   public void softDepOnGoogleLibraryAcceptsAny(){
-  	Assert.assertTrue(SOFT_DEP_ON_GOOGLE.isVersionCompatible ("1.0.0"));
+    Assert.assertTrue(SOFT_DEP_ON_GOOGLE.isVersionCompatible ("1.0.0"));
     Assert.assertTrue(SOFT_DEP_ON_GOOGLE.isVersionCompatible ("2.0.0"));
   }
 
