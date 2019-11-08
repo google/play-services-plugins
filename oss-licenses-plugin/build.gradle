@@ -1,5 +1,6 @@
 apply plugin: 'groovy'
 apply plugin: 'java'
+apply plugin: 'java-gradle-plugin'
 
 dependencies {
     implementation gradleApi()
@@ -42,4 +43,8 @@ uploadArchives {
 task packageFiles(type: Zip, dependsOn: 'uploadArchives') {
     def groupDir = rootProject.group.replaceAll('\\.', '/')
     from("../repo/$groupDir/$rootProject.name/$rootProject.version/")
+}
+
+validateTaskProperties {
+    failOnWarning = true
 }
