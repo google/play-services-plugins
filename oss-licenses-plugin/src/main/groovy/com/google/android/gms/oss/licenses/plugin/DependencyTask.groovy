@@ -25,7 +25,6 @@ import org.gradle.api.artifacts.ConfigurationContainer
 import org.gradle.api.artifacts.ResolveException
 import org.gradle.api.artifacts.ResolvedArtifact
 import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 
@@ -53,15 +52,11 @@ class DependencyTask extends DefaultTask {
     @Input
     public ConfigurationContainer configurations
 
-    @OutputDirectory
-    public File outputDir
-
     @OutputFile
     public File outputFile
 
     @TaskAction
     void action() {
-        initOutput()
         updateDependencyArtifacts()
 
         if (outputFile.exists() && checkArtifactSet(outputFile)) {
@@ -184,12 +179,6 @@ class DependencyTask extends DefaultTask {
                     .getResolvedArtifacts()
         } catch(ResolveException exception) {
             return null
-        }
-    }
-
-    private void initOutput() {
-        if (!outputDir.exists()) {
-            outputDir.mkdirs()
         }
     }
 }
