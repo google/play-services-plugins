@@ -40,10 +40,6 @@ class OssLicensesPlugin implements Plugin<Project> {
         licenseTask.licenses = licensesFile
         licenseTask.licensesMetadata = licensesMetadataFile
 
-        licenseTask.inputs.file(generatedJson)
-        licenseTask.outputs.dir(outputDir)
-        licenseTask.outputs.files(licensesFile, licensesMetadataFile)
-
         licenseTask.dependsOn(getDependencies)
 
         project.android.applicationVariants.all { BaseVariant variant ->
