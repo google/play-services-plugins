@@ -76,15 +76,5 @@ class OssLicensesPlugin implements Plugin<Project> {
                 variant.registerResGeneratingTask(licenseTask, resourceOutput)
             }
         }
-
-        def cleanupTask = project.tasks.create("licensesCleanUp",
-                LicensesCleanUpTask)
-        cleanupTask.dependencyFile = generatedJson
-        cleanupTask.dependencyDir = dependencyOutput
-        cleanupTask.licensesFile = licensesFile
-        cleanupTask.metadataFile = licensesMetadataFile
-        cleanupTask.licensesDir = outputDir
-
-        project.tasks.findByName("clean").dependsOn(cleanupTask)
     }
 }
