@@ -16,6 +16,25 @@
 
 package com.google.android.gms.oss.licenses.plugin;
 
+import org.gradle.api.Project;
+import org.gradle.testfixtures.ProjectBuilder;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
+
 import static org.gradle.internal.impldep.org.testng.Assert.fail;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
@@ -27,24 +46,6 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
-import org.gradle.api.Project;
-import org.gradle.testfixtures.ProjectBuilder;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-
 /** Tests for {@link LicensesTask} */
 @RunWith(JUnit4.class)
 public class LicensesTaskTest {
@@ -53,19 +54,19 @@ public class LicensesTaskTest {
   private static final String LINE_BREAK = System.getProperty("line.separator");
   private Project project;
   private LicensesTask licensesTask;
+  private File outputDir;
 
   @Rule public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
   @Before
   public void setUp() throws IOException {
-    File outputDir = temporaryFolder.newFolder();
+    outputDir = temporaryFolder.newFolder();
     File outputLicenses = new File(outputDir, "testLicenses");
     File outputMetadata = new File(outputDir, "testMetadata");
 
     project = ProjectBuilder.builder().withProjectDir(new File(BASE_DIR)).build();
     licensesTask = project.getTasks().create("generateLicenses", LicensesTask.class);
 
-    licensesTask.outputDir = outputDir;
     licensesTask.licenses = outputLicenses;
     licensesTask.licensesMetadata = outputMetadata;
   }
@@ -82,13 +83,6 @@ public class LicensesTaskTest {
       output.closeEntry();
     }
     output.close();
-  }
-
-  @Test
-  public void testInitOutputDir() {
-    licensesTask.initOutputDir();
-
-    assertTrue(licensesTask.outputDir.exists());
   }
 
   @Test
@@ -239,7 +233,7 @@ public class LicensesTaskTest {
 
   @Test
   public void testAddGooglePlayServiceLicenses() throws IOException {
-    File tempOutput = new File(licensesTask.outputDir, "dependencies/groupC");
+    File tempOutput = new File(outputDir, "dependencies/groupC");
     tempOutput.mkdirs();
     createLicenseZip(tempOutput.getPath() + "play-services-foo-license.aar");
     File artifact = new File(tempOutput.getPath() + "play-services-foo-license.aar");
@@ -258,12 +252,12 @@ public class LicensesTaskTest {
 
   @Test
   public void testAddGooglePlayServiceLicenses_withoutDuplicate() throws IOException {
-    File groupC = new File(licensesTask.outputDir, "dependencies/groupC");
+    File groupC = new File(outputDir, "dependencies/groupC");
     groupC.mkdirs();
     createLicenseZip(groupC.getPath() + "/play-services-foo-license.aar");
     File artifactFoo = new File(groupC.getPath() + "/play-services-foo-license.aar");
 
-    File groupD = new File(licensesTask.outputDir, "dependencies/groupD");
+    File groupD = new File(outputDir, "dependencies/groupD");
     groupD.mkdirs();
     createLicenseZip(groupD.getPath() + "/play-services-bar-license.aar");
     File artifactBar = new File(groupD.getPath() + "/play-services-bar-license.aar");
