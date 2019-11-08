@@ -50,10 +50,10 @@ class DependencyTask extends DefaultTask {
                                                             "api"]
 
     @Input
-    public ConfigurationContainer configurations
+    final ConfigurationContainer configurations = project.configurations {}
 
     @OutputFile
-    public File outputFile
+    File outputFile
 
     @TaskAction
     void action() {
