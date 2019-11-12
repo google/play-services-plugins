@@ -14,7 +14,7 @@ object VersionEvaluators {
   fun getEvaluator(versionString: String, enableStrictMatching: Boolean): VersionEvaluator {
     val hasVersionRange = versionString.indexOf(",") > 0 || versionString.indexOf(")") > 0 ||
                                    versionString.indexOf("(") > 0
-    return if (versionString.startsWith("[") && versionString.endsWith("]")) {
+    return if (enableStrictMatching && versionString.startsWith("[") && versionString.endsWith("]")) {
       ExactVersionEvaluator(versionString.substring(1, versionString.length - 1))
     } else if (enableStrictMatching && !hasVersionRange) {
       // TODO: Re-enable SemVer validator.
