@@ -180,6 +180,26 @@ public class DependencyTaskTest {
     assertThat(dependencyTask.getResolvedArtifacts(configuration), is(artifactSet));
   }
 
+  @Test
+  public void testGetResolvedArtifacts_isPackagedInHierachy() {
+    Set<ResolvedArtifact> artifactSet = (Set<ResolvedArtifact>) mock(Set.class);
+    ResolvedConfiguration resolvedConfiguration = mock(ResolvedConfiguration.class);
+    when(resolvedConfiguration.getResolvedArtifacts()).thenReturn(artifactSet);
+
+    Configuration configuration = mock(Configuration.class);
+    when(configuration.getName()).thenReturn("random");
+    when(configuration.isCanBeResolved()).thenReturn(true);
+    when(configuration.getResolvedConfiguration()).thenReturn(resolvedConfiguration);
+
+    Configuration parent = mock(Configuration.class);
+    when(parent.getName()).thenReturn("compile");
+    Set<Configuration> hierarchy = new HashSet<>();
+    hierarchy.add(parent);
+    when(configuration.getHierarchy()).thenReturn(hierarchy);
+
+    assertThat(dependencyTask.getResolvedArtifacts(configuration), is(artifactSet));
+  }
+
 
   @Test
   public void testGetResolvedArtifacts_ResolveException() {
