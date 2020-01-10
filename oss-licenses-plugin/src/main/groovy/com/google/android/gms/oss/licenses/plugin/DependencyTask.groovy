@@ -163,6 +163,12 @@ class DependencyTask extends DefaultTask {
         boolean isPackagedDependency = PACKAGED_DEPENDENCIES_PREFIXES.any {
             configuration.name.startsWith(it)
         }
+        configuration.hierarchy.each {
+            String configurationHierarchyName = it.name
+            isPackagedDependency |=  PACKAGED_DEPENDENCIES_PREFIXES.any {
+                configurationHierarchyName.startsWith(it)
+            }
+        }
 
         return isPackagedDependency
     }
