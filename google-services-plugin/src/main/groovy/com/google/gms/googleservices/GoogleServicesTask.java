@@ -152,7 +152,7 @@ public class GoogleServicesTask extends DefaultTask {
                       packageNameXOR1, packageNameXOR2));
     }
 
-    getProject().getLogger().warn("Parsing json file: " + quickstartFile.getPath());
+    getProject().getLogger().info("Parsing json file: " + quickstartFile.getPath());
 
     // delete content of outputdir.
     deleteFolder(intermediateDir);
