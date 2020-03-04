@@ -71,7 +71,7 @@ class GoogleServicesPlugin implements Plugin<Project> {
         new DependencyInspector(globalDependencies, project.getName(),
             "This error message came from the google-services Gradle plugin, report" +
                 " issues at https://github.com/google/play-services-plugins and disable by " +
-                "adding \"googleServices { disableVersionCheck = false }\" to your build.gradle file."));
+                "adding \"googleServices { disableVersionCheck = true }\" to your build.gradle file."));
     }
     for (PluginType pluginType : PluginType.values()) {
       for (String plugin : pluginType.plugins()) {
