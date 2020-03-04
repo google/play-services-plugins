@@ -202,7 +202,7 @@ class LicensesTask extends DefaultTask {
 
     protected void addLicensesFromPom(String group, String name, String version) {
         def pomFile = resolvePomFileArtifact(group, name, version)
-        addLicensesFromPom(pomFile, group, name)
+        addLicensesFromPom((File) pomFile, group, name)
     }
 
     protected void addLicensesFromPom(File pomFile, String group, String name) {
