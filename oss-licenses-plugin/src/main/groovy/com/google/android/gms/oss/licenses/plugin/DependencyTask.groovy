@@ -47,8 +47,8 @@ class DependencyTask extends DefaultTask {
                                                      "androidTestCompile"]
 
     private static final Set<String> PACKAGED_DEPENDENCIES_PREFIXES = ["compile",
-                                                            "implementation",
-                                                            "api"]
+                                                                       "implementation",
+                                                                       "api"]
 
     @Input
     public ConfigurationContainer configurations
@@ -134,7 +134,7 @@ class DependencyTask extends DefaultTask {
      */
     protected boolean canBeResolved(Configuration configuration) {
         return configuration.metaClass.respondsTo(configuration,
-                "isCanBeResolved")? configuration.isCanBeResolved() : true
+                "isCanBeResolved") ? configuration.isCanBeResolved() : true
     }
 
     /**
@@ -147,7 +147,7 @@ class DependencyTask extends DefaultTask {
     protected boolean isTest(Configuration configuration) {
         boolean isTestConfiguration = (
                 configuration.name.startsWith(TEST_PREFIX) ||
-                configuration.name.startsWith(ANDROID_TEST_PREFIX))
+                        configuration.name.startsWith(ANDROID_TEST_PREFIX))
         configuration.hierarchy.each {
             isTestConfiguration |= TEST_COMPILE.contains(it.name)
         }
@@ -165,7 +165,7 @@ class DependencyTask extends DefaultTask {
         }
         configuration.hierarchy.each {
             String configurationHierarchyName = it.name
-            isPackagedDependency |=  PACKAGED_DEPENDENCIES_PREFIXES.any {
+            isPackagedDependency |= PACKAGED_DEPENDENCIES_PREFIXES.any {
                 configurationHierarchyName.startsWith(it)
             }
         }
@@ -179,6 +179,7 @@ class DependencyTask extends DefaultTask {
          * skip the configurations that, cannot be resolved in
          * newer version of gradle api, are tests, or are not packaged dependencies.
          */
+
         if (!canBeResolved(configuration)
                 || isTest(configuration)
                 || !isPackagedDependency(configuration)) {
