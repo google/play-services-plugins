@@ -10,7 +10,7 @@ dependencies {
 }
 
 group = 'com.google.android.gms'
-version = '0.10.1'
+version = '0.10.2'
 
 apply plugin: 'maven'
 

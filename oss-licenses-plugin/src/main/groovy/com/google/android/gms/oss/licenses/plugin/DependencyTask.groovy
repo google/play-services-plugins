@@ -24,10 +24,13 @@ import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.ConfigurationContainer
 import org.gradle.api.artifacts.ResolveException
 import org.gradle.api.artifacts.ResolvedArtifact
+import org.gradle.api.artifacts.ResolvedDependency
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
+import org.gradle.internal.component.AmbiguousVariantSelectionException
+import org.slf4j.LoggerFactory
 
 /**
  * This task does the following:
@@ -41,14 +44,17 @@ import org.gradle.api.tasks.TaskAction
 class DependencyTask extends DefaultTask {
     protected Set<String> artifactSet = []
     protected Set<ArtifactInfo> artifactInfos = []
+    protected static final String LOCAL_LIBRARY_VERSION = "unspecified"
     private static final String TEST_PREFIX = "test"
     private static final String ANDROID_TEST_PREFIX = "androidTest"
     private static final Set<String> TEST_COMPILE = ["testCompile",
                                                      "androidTestCompile"]
 
     private static final Set<String> PACKAGED_DEPENDENCIES_PREFIXES = ["compile",
-                                                            "implementation",
-                                                            "api"]
+                                                                       "implementation",
+                                                                       "api"]
+
+    private static final logger = LoggerFactory.getLogger(DependencyTask.class)
 
     @Input
     public ConfigurationContainer configurations
@@ -134,7 +140,7 @@ class DependencyTask extends DefaultTask {
      */
     protected boolean canBeResolved(Configuration configuration) {
         return configuration.metaClass.respondsTo(configuration,
-                "isCanBeResolved")? configuration.isCanBeResolved() : true
+                "isCanBeResolved") ? configuration.isCanBeResolved() : true
     }
 
     /**
@@ -147,7 +153,7 @@ class DependencyTask extends DefaultTask {
     protected boolean isTest(Configuration configuration) {
         boolean isTestConfiguration = (
                 configuration.name.startsWith(TEST_PREFIX) ||
-                configuration.name.startsWith(ANDROID_TEST_PREFIX))
+                        configuration.name.startsWith(ANDROID_TEST_PREFIX))
         configuration.hierarchy.each {
             isTestConfiguration |= TEST_COMPILE.contains(it.name)
         }
@@ -165,7 +171,7 @@ class DependencyTask extends DefaultTask {
         }
         configuration.hierarchy.each {
             String configurationHierarchyName = it.name
-            isPackagedDependency |=  PACKAGED_DEPENDENCIES_PREFIXES.any {
+            isPackagedDependency |= PACKAGED_DEPENDENCIES_PREFIXES.any {
                 configurationHierarchyName.startsWith(it)
             }
         }
@@ -179,6 +185,7 @@ class DependencyTask extends DefaultTask {
          * skip the configurations that, cannot be resolved in
          * newer version of gradle api, are tests, or are not packaged dependencies.
          */
+
         if (!canBeResolved(configuration)
                 || isTest(configuration)
                 || !isPackagedDependency(configuration)) {
@@ -186,11 +193,40 @@ class DependencyTask extends DefaultTask {
         }
 
         try {
-            return configuration.getResolvedConfiguration()
-                    .getResolvedArtifacts()
-        } catch(ResolveException exception) {
+            return getResolvedArtifactsFromResolvedDependencies(
+                    configuration.getResolvedConfiguration()
+                            .getLenientConfiguration()
+                            .getFirstLevelModuleDependencies())
+        } catch (ResolveException exception) {
+            logger.warn("Failed to resolve OSS licenses for $configuration.name.", exception)
             return null
         }
+    }
+
+    protected Set<ResolvedArtifact> getResolvedArtifactsFromResolvedDependencies(
+            Set<ResolvedDependency> resolvedDependencies) {
+
+        HashSet<ResolvedArtifact> resolvedArtifacts = new HashSet<>()
+        for (resolvedDependency in resolvedDependencies) {
+            try {
+                if (resolvedDependency.getModuleVersion() == LOCAL_LIBRARY_VERSION) {
+                    /**
+                     * Attempting to getAllModuleArtifacts on a local library project will result
+                     * in AmbiguousVariantSelectionException as there are not enough criteria
+                     * to match a specific variant of the library project. Instead we skip the
+                     * the library project itself and enumerate its dependencies.
+                     */
+                    resolvedArtifacts.addAll(
+                            getResolvedArtifactsFromResolvedDependencies(
+                                    resolvedDependency.getChildren()))
+                } else {
+                    resolvedArtifacts.addAll(resolvedDependency.getAllModuleArtifacts())
+                }
+            } catch (AmbiguousVariantSelectionException exception) {
+                logger.warn("Failed to process $resolvedDependency.name", exception)
+            }
+        }
+        return resolvedArtifacts
     }
 
     private void initOutput() {

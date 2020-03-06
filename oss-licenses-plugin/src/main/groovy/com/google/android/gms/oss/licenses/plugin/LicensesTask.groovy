@@ -207,7 +207,7 @@ class LicensesTask extends DefaultTask {
 
     protected void addLicensesFromPom(File pomFile, String group, String name) {
         if (pomFile == null || !pomFile.exists()) {
-            logger.error("POM file $pomFile does not exist.")
+            logger.error("POM file $pomFile for $group:$name does not exist.")
             return
         }
 
