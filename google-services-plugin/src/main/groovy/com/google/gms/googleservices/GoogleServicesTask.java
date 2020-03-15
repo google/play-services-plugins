@@ -51,21 +51,6 @@ import static java.util.stream.Collectors.toList;
 /** */
 public class GoogleServicesTask extends DefaultTask {
   public final static String JSON_FILE_NAME = "google-services.json";
-  // Some example of things that match this pattern are:
-  // "aBunchOfFlavors/release"
-  // "flavor/debug"
-  // "test"
-  // And here is an example with the capture groups in [square brackets]
-  // [a][BunchOfFlavors]/[release]
-  public final static Pattern VARIANT_PATTERN = Pattern.compile("(?:([^\\p{javaUpperCase}]+)((?:\\p{javaUpperCase}[^\\p{javaUpperCase}]*)*)\\/)?([^\\/]*)");
-  // Some example of things that match this pattern are:
-  // "TestTheFlavor"
-  // "FlavorsOfTheRainbow"
-  // "Test"
-  // And here is an example with the capture groups in [square brackets]
-  // "[Flavors][Of][The][Rainbow]"
-  // Note: Pattern must be applied in a loop, not just once.
-  public final static Pattern FLAVOR_PATTERN = Pattern.compile("(\\p{javaUpperCase}[^\\p{javaUpperCase}]*)");
 
   private static final String STATUS_DISABLED = "1";
   private static final String STATUS_ENABLED = "2";
@@ -73,7 +58,8 @@ public class GoogleServicesTask extends DefaultTask {
   private static final String OAUTH_CLIENT_TYPE_WEB = "3";
 
   private File intermediateDir;
-  private String variantDir;
+  private String buildType;
+  private List<String> productFlavors;
   private String packageNameXOR1;
   private TextResource packageNameXOR2;
 
@@ -83,8 +69,13 @@ public class GoogleServicesTask extends DefaultTask {
   }
 
   @Input
-  public String getVariantDir() {
-    return variantDir;
+  public String getBuildType() {
+    return buildType;
+  }
+
+  @Input
+  public List<String> getProductFlavors() {
+    return productFlavors;
   }
 
   /**
@@ -105,8 +96,12 @@ public class GoogleServicesTask extends DefaultTask {
     this.intermediateDir = intermediateDir;
   }
 
-  public void setVariantDir(String variantDir){
-    this.variantDir = variantDir;
+  public void setBuildType(String buildType) {
+    this.buildType = buildType;
+  }
+
+  public void setProductFlavors(List<String> productFlavors) {
+    this.productFlavors = productFlavors;
   }
 
   public void setPackageNameXOR1(String packageNameXOR1) {
@@ -117,11 +112,10 @@ public class GoogleServicesTask extends DefaultTask {
     this.packageNameXOR2 = packageNameXOR2;
   }
 
-
   @TaskAction
   public void action() throws IOException {
     File quickstartFile = null;
-    List<String> fileLocations = getJsonLocations(variantDir);
+    List<String> fileLocations = getJsonLocations(buildType, productFlavors);
     String searchedLocation = System.lineSeparator();
     for (String location : fileLocations) {
       File jsonFile = getProject().file(location + '/' + JSON_FILE_NAME);
@@ -510,38 +504,14 @@ public class GoogleServicesTask extends DefaultTask {
     return packageNameXOR1;
   }
 
-    private static List<String> splitVariantNames(String variant) {
-    if (variant == null) {
-      return new ArrayList<>();
-    }
-    List<String> flavors = new ArrayList<>();
-    Matcher flavorMatcher = FLAVOR_PATTERN.matcher(variant);
-    while (flavorMatcher.find()) {
-      String match = flavorMatcher.group(1);
-      if (match != null) {
-        flavors.add(match.toLowerCase());
-      }
-    }
-    return flavors;
-  }
-
   private static long countSlashes(String input) {
     return input.codePoints().filter(x -> x == '/').count();
   }
 
-  static List<String> getJsonLocations(String variantDirname) {
-    Matcher variantMatcher = VARIANT_PATTERN.matcher(variantDirname);
+  static List<String> getJsonLocations(String buildType, List<String> flavorNames) {
     List<String> fileLocations = new ArrayList<>();
-    if (!variantMatcher.matches()) {
-      return fileLocations;
-    }
-    List<String> flavorNames = new ArrayList<>();
-    if (variantMatcher.group(1) != null) {
-      flavorNames.add(variantMatcher.group(1).toLowerCase());
-    }
-    flavorNames.addAll(splitVariantNames(variantMatcher.group(2)));
-    String buildType = variantMatcher.group(3);
-    String flavorName = variantMatcher.group(1) + variantMatcher.group(2);
+
+    String flavorName = flavorNames.stream().reduce("", (a,b) -> a + (a.length() == 0 ? b : capitalize(b)));
     fileLocations.add("src/" + flavorName + "/" + buildType);
     fileLocations.add("src/" + buildType + "/" + flavorName);
     fileLocations.add("src/" + flavorName);

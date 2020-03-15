@@ -67,8 +67,8 @@ class GoogleServicesPlugin implements Plugin<Project> {
         return
       }
       DependencyAnalyzer globalDependencies = new DependencyAnalyzer()
-      project.getGradle().addListener(
-        new DependencyInspector(globalDependencies, project.getName(),
+      project.gradle.addListener(
+        new DependencyInspector(globalDependencies, project.name,
             "This error message came from the google-services Gradle plugin, report" +
                 " issues at https://github.com/google/play-services-plugins and disable by " +
                 "adding \"googleServices { disableVersionCheck = true }\" to your build.gradle file."));
@@ -87,19 +87,19 @@ class GoogleServicesPlugin implements Plugin<Project> {
     showWarningForPluginLocation(project)
 
     // Setup google-services plugin after android plugin is applied.
-    project.plugins.withId("android", {
+    project.plugins.withId("android") {
       setupPlugin(project, PluginType.APPLICATION)
-    })
-    project.plugins.withId("android-library", {
+    }
+    project.plugins.withId("android-library") {
       setupPlugin(project, PluginType.LIBRARY)
-    })
-    project.plugins.withId("android-feature", {
+    }
+    project.plugins.withId("android-feature") {
       setupPlugin(project, PluginType.FEATURE)
-    })
+    }
   }
 
   private void showWarningForPluginLocation(Project project) {
-    project.getLogger().warn(
+    project.logger.warn(
         "Warning: Please apply google-services plugin at the bottom of the build file.")
   }
 
@@ -145,7 +145,8 @@ class GoogleServicesPlugin implements Plugin<Project> {
          GoogleServicesTask)
 
     task.setIntermediateDir(outputDir)
-    task.setVariantDir(variant.dirName)
+    task.setBuildType(variant.buildType.name)
+    task.setProductFlavors(variant.productFlavors.collect { it.name })
 
     // This is necessary for backwards compatibility with versions of gradle that do not support
     // this new API.
