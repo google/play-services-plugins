@@ -47,6 +47,8 @@ class OssLicensesPlugin implements Plugin<Project> {
                 def licensesFile = new File(rawResourceDir, "third_party_licenses")
                 def licensesMetadataFile = new File(rawResourceDir,
                         "third_party_license_metadata")
+                def thirdPartyLicensesDir = new File(project.rootProject.projectDir, "third_party_licenses")
+                def thirdPartyLicenses = thirdPartyLicensesDir.exists() ? thirdPartyLicensesDir.listFiles() : []
 
                 def licenseTask = project.tasks.register(
                         "${variant.name}OssLicensesTask",
@@ -55,6 +57,7 @@ class OssLicensesPlugin implements Plugin<Project> {
                     it.rawResourceDir = rawResourceDir
                     it.licenses = licensesFile
                     it.licensesMetadata = licensesMetadataFile
+                    it.thirdPartyLicenses = thirdPartyLicenses
                 }.get()
                 logger.debug("Created task ${licenseTask.name}")
 
