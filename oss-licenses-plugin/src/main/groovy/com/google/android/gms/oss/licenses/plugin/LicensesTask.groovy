@@ -108,7 +108,7 @@ abstract class LicensesTask extends DefaultTask {
             }
         }
 
-        for (filename in thirdPartyLicenses) {
+        for (filename in thirdPartyLicenses.sort{it.getName().toLowerCase()}) {
             addLicensesFromFile(filename)
         }
 
