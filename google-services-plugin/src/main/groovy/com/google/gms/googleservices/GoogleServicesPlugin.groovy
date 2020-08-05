@@ -20,9 +20,16 @@ import com.google.android.gms.dependencies.DependencyAnalyzer
 import com.google.android.gms.dependencies.DependencyInspector
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.model.ObjectFactory
 
 import java.util.regex.Matcher
 import java.util.regex.Pattern
+
+import javax.inject.Inject
+
+interface Injected {
+     @Inject ObjectFactory getObjectFactory() 
+}
 
 class GoogleServicesPlugin implements Plugin<Project> {
   public final static String MODULE_GROUP = "com.google.android.gms"
@@ -67,11 +74,13 @@ class GoogleServicesPlugin implements Plugin<Project> {
         return
       }
       DependencyAnalyzer globalDependencies = new DependencyAnalyzer()
+      /*
       project.getGradle().addListener(
         new DependencyInspector(globalDependencies, project.getName(),
             "This error message came from the google-services Gradle plugin, report" +
                 " issues at https://github.com/google/play-services-plugins and disable by " +
                 "adding \"googleServices { disableVersionCheck = true }\" to your build.gradle file."));
+                */
     }
     for (PluginType pluginType : PluginType.values()) {
       for (String plugin : pluginType.plugins()) {
@@ -146,15 +155,11 @@ class GoogleServicesPlugin implements Plugin<Project> {
 
     task.setIntermediateDir(outputDir)
     task.setVariantDir(variant.dirName)
+    task.setObjectFactory(project.objects.newInstance(Injected).getObjectFactory())
+    task.setPackageName(variant.applicationIdTextResource)
+    
+    task.dependsOn(variant.applicationIdTextResource)
 
-    // This is necessary for backwards compatibility with versions of gradle that do not support
-    // this new API.
-    if (variant.respondsTo("applicationIdTextResource")) {
-      task.setPackageNameXOR2(variant.applicationIdTextResource)
-      task.dependsOn(variant.applicationIdTextResource)
-    } else {
-      task.setPackageNameXOR1(variant.applicationId)
-    }
 
     // This is necessary for backwards compatibility with versions of gradle that do not support
     // this new API.
