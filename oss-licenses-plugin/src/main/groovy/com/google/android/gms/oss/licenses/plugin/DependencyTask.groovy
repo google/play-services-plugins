@@ -25,8 +25,8 @@ import org.gradle.api.artifacts.ConfigurationContainer
 import org.gradle.api.artifacts.ResolveException
 import org.gradle.api.artifacts.ResolvedArtifact
 import org.gradle.api.artifacts.ResolvedDependency
-import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.CacheableTask
+import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 import org.gradle.internal.component.AmbiguousVariantSelectionException
@@ -41,6 +41,7 @@ import org.slf4j.LoggerFactory
  * Finally it generates a json file that contains the information about these
  * artifacts.
  */
+@CacheableTask
 class DependencyTask extends DefaultTask {
     protected Set<String> artifactSet = []
     protected Set<ArtifactInfo> artifactInfos = []
@@ -56,14 +57,15 @@ class DependencyTask extends DefaultTask {
 
     private static final logger = LoggerFactory.getLogger(DependencyTask.class)
 
-    @Input
     public ConfigurationContainer configurations
 
-    @OutputDirectory
-    public File outputDir
+    @InputFiles
+    Set<File> buildFiles
+
+    File outputDir
 
     @OutputFile
-    public File outputFile
+    File outputFile
 
     @TaskAction
     void action() {

@@ -31,6 +31,10 @@ class OssLicensesPlugin implements Plugin<Project> {
         getDependencies.outputDir = dependencyOutput
         getDependencies.outputFile = generatedJson
 
+        def allBuildFiles = new HashSet<File>()
+        project.getRootProject().subprojects.forEach { allBuildFiles.add(it.buildFile) }
+        getDependencies.buildFiles = allBuildFiles
+
         def resourceOutput = new File(dependencyOutput, "/res")
         def outputDir = new File(resourceOutput, "/raw")
         def licensesFile = new File(outputDir, "third_party_licenses")
