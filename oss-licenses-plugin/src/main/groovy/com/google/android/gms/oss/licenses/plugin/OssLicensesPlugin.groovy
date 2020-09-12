@@ -31,6 +31,8 @@ class OssLicensesPlugin implements Plugin<Project> {
         getDependencies.outputDir = dependencyOutput
         getDependencies.outputFile = generatedJson
 
+        // Collect all build.gradle files used in this project (and subprojects) to be used
+        // as input cache key for the DependencyTask, to run the task only if dependencies changed.
         def allBuildFiles = new HashSet<File>()
         project.getRootProject().subprojects.forEach { allBuildFiles.add(it.buildFile) }
         getDependencies.buildFiles = allBuildFiles

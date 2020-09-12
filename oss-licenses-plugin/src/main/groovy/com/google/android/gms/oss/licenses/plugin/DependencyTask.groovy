@@ -59,6 +59,9 @@ class DependencyTask extends DefaultTask {
 
     public ConfigurationContainer configurations
 
+    /**
+     * Collection of all build.gradle files, only used as input cache key.
+     */
     @InputFiles
     Set<File> buildFiles
 
