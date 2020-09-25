@@ -27,6 +27,7 @@ import com.google.gson.JsonPrimitive;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
 import org.gradle.api.model.ObjectFactory;
+import org.gradle.api.provider.Property;
 import org.gradle.api.resources.TextResource;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputFile;
@@ -47,10 +48,13 @@ import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.inject.Inject;
+
+
 import static java.util.stream.Collectors.toList;
 
 /** */
-public class GoogleServicesTask extends DefaultTask {
+public abstract class GoogleServicesTask extends DefaultTask {
   public final static String JSON_FILE_NAME = "google-services.json";
   // Some example of things that match this pattern are:
   // "aBunchOfFlavors/release"
@@ -75,8 +79,12 @@ public class GoogleServicesTask extends DefaultTask {
 
   private File intermediateDir;
   private String variantDir;
-  private TextResource packageName;
   private ObjectFactory objectFactory;
+
+  @Inject
+  public GoogleServicesTask(ObjectFactory objectFactory) {
+    this.objectFactory = objectFactory;
+  }
 
   @OutputDirectory
   public File getIntermediateDir() {
@@ -96,14 +104,8 @@ public class GoogleServicesTask extends DefaultTask {
     this.variantDir = variantDir;
   }
 
-  public void setPackageName(TextResource packageName) {
-    this.packageName = packageName;
-  }
-
-  public void setObjectFactory(ObjectFactory objectFactory) {
-    this.objectFactory = objectFactory;
-  }
-
+  @Input
+  public abstract Property<String> getApplicationId();
 
   @TaskAction
   public void action() throws IOException {
@@ -157,7 +159,7 @@ public class GoogleServicesTask extends DefaultTask {
       handleGoogleAppId(clientObject, resValues);
       handleWebClientId(clientObject, resValues);
     } else {
-      throw new GradleException("No matching client found for package name '" + packageName.asString() + "'");
+      throw new GradleException("No matching client found for package name '" + getApplicationId().get() + "'");
     }
 
     // write the values file.
@@ -361,7 +363,7 @@ public class GoogleServicesTask extends DefaultTask {
         JsonPrimitive clientPackageName = androidClientInfo.getAsJsonPrimitive("package_name");
         if (clientPackageName == null) continue;
 
-        if (packageName.asString().equals(clientPackageName.getAsString())) {
+        if (getApplicationId().get().equals(clientPackageName.getAsString())) {
           return clientObject;
         }
       }
