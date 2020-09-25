@@ -18,11 +18,12 @@ apply plugin: 'java-gradle-plugin'
 repositories {
     google()
     jcenter()
+    mavenLocal()
 }
 
 dependencies {
     implementation gradleApi()
-    implementation 'com.google.android.gms:strict-version-matcher-plugin:1.2.1'
+    implementation 'com.google.android.gms:strict-version-matcher-plugin:1.2.2'
     implementation 'com.google.code.gson:gson:2.8.5'
     implementation 'com.google.guava:guava:27.0.1-jre'
     testImplementation 'junit:junit:4.12'
