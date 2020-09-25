@@ -102,16 +102,16 @@ data class Dependency(val fromArtifactVersion: ArtifactVersion, val toArtifact: 
 class ArtifactDependencyManager {
   /** Synchronized access to the dependencies to ensure elements aren't added while it's being iterated to provide a copy via the getter. */
   private val dependencyLock = Object()
-  @VisibleForTesting internal val dependencies: HashMap<Artifact, ArrayList<Dependency>> = HashMap()
+  @VisibleForTesting internal val dependencies: HashMap<Artifact, HashSet<Dependency>> = HashMap()
 
   fun addDependency(dependency: Dependency) {
     synchronized(dependencyLock) {
-      var depListForArtifact = dependencies.get(dependency.toArtifact)
-      if (depListForArtifact == null) {
-        depListForArtifact = ArrayList()
-        dependencies[dependency.toArtifact] = depListForArtifact
+      var depSetForArtifact = dependencies.get(dependency.toArtifact)
+      if (depSetForArtifact == null) {
+        depSetForArtifact = HashSet()
+        dependencies[dependency.toArtifact] = depSetForArtifact
       }
-      depListForArtifact.add(dependency)
+      depSetForArtifact.add(dependency)
     }
     // TODO: Check for conflicting duplicate adds and fail.
   }
