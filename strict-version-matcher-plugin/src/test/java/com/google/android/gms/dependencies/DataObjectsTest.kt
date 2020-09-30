@@ -1,5 +1,6 @@
 package com.google.android.gms.dependencies
 
+import org.junit.Assert
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.ExpectedException
@@ -26,5 +27,14 @@ class DataObjectsTest {
     // original set of dependencies in a thread-unsafe way.
     manager.addDependency(Dependency(ARTIFACT_A_100, ARTIFACT_B_300.getArtifact(), "9.9.9"))
     iterator.next()
+  }
+
+  @Test
+  fun testAddDependency_sameDependencyTwiceOnlyRegisteredOnce() {
+    val manager = ArtifactDependencyManager()
+    manager.addDependency(Dependency(ARTIFACT_A_100, ARTIFACT_B_100.getArtifact(), ARTIFACT_B_100.version))
+    manager.addDependency(Dependency(ARTIFACT_A_100, ARTIFACT_B_100.getArtifact(), ARTIFACT_B_100.version))
+
+    Assert.assertEquals(1, manager.dependencies[ARTIFACT_B_100.getArtifact()]?.size)
   }
 }
