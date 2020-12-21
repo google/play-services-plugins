@@ -42,11 +42,15 @@ class GoogleServicesPlugin implements Plugin<Project> {
       }
 
       DependencyAnalyzer globalDependencies = new DependencyAnalyzer()
-      project.getGradle().addListener(
-        new DependencyInspector(globalDependencies, project.getName(),
+      DependencyInspector strictVersionDepInspector = new DependencyInspector(globalDependencies, project.getName(),
             "This error message came from the google-services Gradle plugin, report" +
                 " issues at https://github.com/google/play-services-plugins and disable by " +
-                "adding \"googleServices { disableVersionCheck = true }\" to your build.gradle file."))
+                "adding \"googleServices { disableVersionCheck = true }\" to your build.gradle file.");
+      project.getConfigurations().all(config -> {
+        if (config.getName().contains("ompile")) {
+          config.getIncoming().afterResolve(strictVersionDepInspector::afterResolve);
+        }
+      });
                 
                 
     }
