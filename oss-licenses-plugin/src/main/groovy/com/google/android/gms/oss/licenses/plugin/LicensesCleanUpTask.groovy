@@ -17,7 +17,6 @@
 package com.google.android.gms.oss.licenses.plugin
 
 import org.gradle.api.DefaultTask
-import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.TaskAction
 
 /**
@@ -25,20 +24,16 @@ import org.gradle.api.tasks.TaskAction
  * third_party_license_metadata files.
  */
 class LicensesCleanUpTask extends DefaultTask {
-    @Input
-    public File dependencyFile
 
-    @Input
-    public File dependencyDir
+    protected File dependencyFile
 
-    @Input
-    public File licensesFile
+    protected File dependencyDir
 
-    @Input
-    public File metadataFile
+    protected File licensesFile
 
-    @Input
-    public File licensesDir
+    protected File metadataFile
+
+    protected File licensesDir
 
     @TaskAction
     void action() {
