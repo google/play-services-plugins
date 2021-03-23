@@ -86,17 +86,18 @@ class DependencyTask extends DefaultTask {
      * false otherwise
      */
     protected boolean checkArtifactSet(File file) {
+        Set<String> artifacts = new HashSet<>(artifactSet)
         try {
             def previousArtifacts = new JsonSlurper().parse(file)
             for (entry in previousArtifacts) {
                 String key = "${entry.fileLocation}"
-                if (artifactSet.contains(key)) {
-                    artifactSet.remove(key)
+                if (artifacts.contains(key)) {
+                    artifacts.remove(key)
                 } else {
                     return false
                 }
             }
-            return artifactSet.isEmpty()
+            return artifacts.isEmpty()
         } catch (JsonException exception) {
             return false
         }
