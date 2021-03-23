@@ -27,7 +27,7 @@ class OssLicensesPlugin implements Plugin<Project> {
         def dependencyOutput = new File(project.buildDir,
             "generated/third_party_licenses")
         def generatedJson = new File(dependencyOutput, "dependencies.json")
-        getDependencies.configurations = project.getConfigurations()
+        getDependencies.setConfigurations(project.getConfigurations())
         getDependencies.outputDir = dependencyOutput
         getDependencies.outputFile = generatedJson
 
