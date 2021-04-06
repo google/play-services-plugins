@@ -60,7 +60,7 @@ class DependencyTask extends DefaultTask {
 
     private static final logger = LoggerFactory.getLogger(DependencyTask.class)
 
-    private ConfigurationContainer configurations
+    private Project project
 
     @OutputDirectory
     File outputDir
@@ -77,11 +77,15 @@ class DependencyTask extends DefaultTask {
      */
     @Input
     List<String> getDirectDependencies() {
-        return collectDependenciesFromConfigurations(configurations)
+        return collectDependenciesFromConfigurations(
+                project.getConfigurations(),
+                [project] as Set<Project>
+        )
     }
 
     protected List<String> collectDependenciesFromConfigurations(
-            ConfigurationContainer configurationContainer
+            ConfigurationContainer configurationContainer,
+            Set<Project> visitedProjects
     ) {
         Set<String> directDependencies = new HashSet<>()
         Set<Project> libraryProjects = new HashSet<>()
@@ -99,9 +103,15 @@ class DependencyTask extends DefaultTask {
             }
         }
         for (Project libraryProject in libraryProjects) {
+            if (libraryProject in visitedProjects) {
+                continue
+            }
+            visitedProjects.add(libraryProject)
+            logger.info("Visiting dependency ${libraryProject.displayName}")
             directDependencies.addAll(
                     collectDependenciesFromConfigurations(
-                            libraryProject.getConfigurations()
+                            libraryProject.getConfigurations(),
+                            visitedProjects
                     )
             )
         }
@@ -151,7 +161,7 @@ class DependencyTask extends DefaultTask {
     }
 
     protected void updateDependencyArtifacts() {
-        for (Configuration configuration : configurations) {
+        for (Configuration configuration : project.getConfigurations()) {
             Set<ResolvedArtifact> artifacts = getResolvedArtifacts(
                     configuration)
             if (artifacts == null) {
@@ -287,7 +297,7 @@ class DependencyTask extends DefaultTask {
         }
     }
 
-    void setConfigurations(configurations) {
-        this.configurations = configurations
+    void setProject(Project project) {
+        this.project = project
     }
 }
