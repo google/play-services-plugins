@@ -94,7 +94,7 @@ public class DependencyTaskTest {
     Collections.sort(allExpectedIds);
 
     List<String> dependencies = dependencyTask
-        .collectDependenciesFromConfigurations(configurationContainer);
+        .collectDependenciesFromConfigurations(configurationContainer, new HashSet<>());
     Collections.sort(dependencies);
 
     verify(compileConfiguration, times(1)).getAllDependencies();
@@ -142,12 +142,105 @@ public class DependencyTaskTest {
     Collections.sort(allExpectedIds);
 
     List<String> dependencies = dependencyTask
-        .collectDependenciesFromConfigurations(configurationContainer);
+        .collectDependenciesFromConfigurations(configurationContainer, new HashSet<>());
     Collections.sort(dependencies);
 
     verify(compileConfiguration, times(1)).getAllDependencies();
     verify(libraryConfiguration, times(1)).getAllDependencies();
     assertThat(dependencies, is(allExpectedIds));
+  }
+
+  @Test
+  public void collectDependenciesFromConfigurations_libraryDependencyCycle_visitedOnce() {
+    List<String> libraryProjectExpectedIds = Arrays.asList(
+        "com.example:api-thing:1.2.3",
+        "com.example:idk-rpc:4.5.6"
+    );
+    Project libraryProject = mock(Project.class);
+    ProjectDependency libraryProjectDependency = mockDependency(
+        ProjectDependency.class, "this:is:ignored");
+    when(libraryProjectDependency.getDependencyProject()).thenReturn(libraryProject);
+    // Library project self-dependency cycle by including itself as a dependent project.
+    DependencySet libraryDependencySet = mockDependencySet(new HashSet<Dependency>() {{
+      add(libraryProjectDependency);
+      add(mockDependency(ExternalModuleDependency.class, libraryProjectExpectedIds.get(0)));
+      add(mockDependency(ExternalModuleDependency.class, libraryProjectExpectedIds.get(1)));
+    }});
+    Configuration libraryConfiguration = mockConfiguration(
+        "compile",
+        /* canBeResolved = */ true,
+        libraryDependencySet);
+    ConfigurationContainer libraryConfigurationContainer = mock(ConfigurationContainer.class);
+    when(libraryConfigurationContainer.iterator())
+        .thenAnswer(ignored -> Collections.singletonList(libraryConfiguration).iterator());
+    when(libraryProject.getConfigurations()).thenReturn(libraryConfigurationContainer);
+
+    List<String> compileExpectedIds = Arrays.asList(
+        "com.example:real-dependency:1.2.3",
+        "com.example:totally-useful:4.5.6"
+    );
+    DependencySet dependencySet = mockDependencySet(new HashSet<Dependency>() {{
+      add(libraryProjectDependency);
+      add(mockDependency(ExternalModuleDependency.class, compileExpectedIds.get(0)));
+      add(mockDependency(ExternalModuleDependency.class, compileExpectedIds.get(1)));
+    }});
+    Configuration compileConfiguration = mockConfiguration(
+        "compile",
+        /* canBeResolved = */ true,
+        dependencySet);
+    ConfigurationContainer configurationContainer = mock(ConfigurationContainer.class);
+    when(configurationContainer.iterator())
+        .thenReturn(Collections.singletonList(compileConfiguration).iterator());
+    List<String> allExpectedIds = new ArrayList<>(compileExpectedIds);
+    allExpectedIds.addAll(libraryProjectExpectedIds);
+    Collections.sort(allExpectedIds);
+
+    List<String> dependencies = dependencyTask
+        .collectDependenciesFromConfigurations(configurationContainer, new HashSet<>());
+    Collections.sort(dependencies);
+
+    verify(compileConfiguration, times(1)).getAllDependencies();
+    verify(libraryConfiguration, times(1)).getAllDependencies();
+    verify(libraryProject, times(1)).getConfigurations();
+    assertThat(dependencies, is(allExpectedIds));
+  }
+
+  @Test
+  public void collectDependenciesFromConfigurations_appSelfCycle_visitedOnce() {
+    List<String> appExpectedIds = Arrays.asList(
+        "com.example:real-dependency:1.2.3",
+        "com.example:totally-useful:4.5.6"
+    );
+    Project appProject = mock(Project.class);
+    when(appProject.getDisplayName()).thenReturn("YOLO");
+    ProjectDependency appProjectDependency = mockDependency(
+        ProjectDependency.class, "this:is:ignored");
+    when(appProjectDependency.getDependencyProject()).thenReturn(appProject);
+    // App project self-dependency cycle by including itself as a dependent project.
+    DependencySet dependencySet = mockDependencySet(new HashSet<Dependency>() {{
+      add(appProjectDependency);
+      add(mockDependency(ExternalModuleDependency.class, appExpectedIds.get(0)));
+      add(mockDependency(ExternalModuleDependency.class, appExpectedIds.get(1)));
+    }});
+    Configuration compileConfiguration = mockConfiguration(
+        "compile",
+        /* canBeResolved = */ true,
+        dependencySet);
+    ConfigurationContainer configurationContainer = mock(ConfigurationContainer.class);
+    when(configurationContainer.iterator())
+        .thenAnswer(ignored -> Collections.singletonList(compileConfiguration).iterator());
+    when(appProject.getConfigurations()).thenReturn(configurationContainer);
+    Collections.sort(appExpectedIds);
+
+    List<String> dependencies = dependencyTask.collectDependenciesFromConfigurations(
+        configurationContainer,
+        Collections.singleton(appProject)
+    );
+    Collections.sort(dependencies);
+
+    verify(compileConfiguration, times(1)).getAllDependencies();
+    verify(appProject, never()).getConfigurations();
+    assertThat(dependencies, is(appExpectedIds));
   }
 
   @Test
@@ -173,7 +266,7 @@ public class DependencyTaskTest {
         .thenReturn(Arrays.asList(compileConfiguration, testConfiguration).iterator());
 
     List<String> dependencies = dependencyTask
-        .collectDependenciesFromConfigurations(configurationContainer);
+        .collectDependenciesFromConfigurations(configurationContainer, new HashSet<>());
     Collections.sort(dependencies);
 
     verify(compileConfiguration, times(1)).getAllDependencies();
@@ -204,7 +297,7 @@ public class DependencyTaskTest {
         .thenReturn(Arrays.asList(compileConfiguration, unresolvableConfiguration).iterator());
 
     List<String> dependencies = dependencyTask
-        .collectDependenciesFromConfigurations(configurationContainer);
+        .collectDependenciesFromConfigurations(configurationContainer, new HashSet<>());
     Collections.sort(dependencies);
 
     verify(compileConfiguration, times(1)).getAllDependencies();
@@ -228,7 +321,7 @@ public class DependencyTaskTest {
         .thenReturn(Collections.singletonList(configuration).iterator());
 
     List<String> dependencies = dependencyTask
-        .collectDependenciesFromConfigurations(configurationContainer);
+        .collectDependenciesFromConfigurations(configurationContainer, new HashSet<>());
     Collections.sort(dependencies);
 
     verify(configuration, times(1)).getAllDependencies();
@@ -260,7 +353,7 @@ public class DependencyTaskTest {
 
   private DependencySet mockDependencySet(Set<Dependency> dependencies) {
     DependencySet dependencySet = mock(DependencySet.class);
-    when(dependencySet.iterator()).thenReturn(dependencies.iterator());
+    when(dependencySet.iterator()).thenAnswer(ignored -> dependencies.iterator());
     return dependencySet;
   }
 
