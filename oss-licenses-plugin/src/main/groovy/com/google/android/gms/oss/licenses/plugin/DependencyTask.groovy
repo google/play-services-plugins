@@ -20,8 +20,12 @@ import groovy.json.JsonBuilder
 import groovy.json.JsonException
 import groovy.json.JsonSlurper
 import org.gradle.api.DefaultTask
+import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.ConfigurationContainer
+import org.gradle.api.artifacts.Dependency
+import org.gradle.api.artifacts.ExternalModuleDependency
+import org.gradle.api.artifacts.ProjectDependency
 import org.gradle.api.artifacts.ResolveException
 import org.gradle.api.artifacts.ResolvedArtifact
 import org.gradle.api.artifacts.ResolvedDependency
@@ -56,14 +60,67 @@ class DependencyTask extends DefaultTask {
 
     private static final logger = LoggerFactory.getLogger(DependencyTask.class)
 
-    @Input
-    public ConfigurationContainer configurations
+    private Project project
 
     @OutputDirectory
-    public File outputDir
+    File outputDir
 
     @OutputFile
-    public File outputFile
+    File outputFile
+
+    /**
+     * Returns a serializable snapshot of direct dependencies from all relevant
+     * configurations to allow task caching. To improve performance, this does
+     * not resolve transitive dependencies. Direct dependencies should require a
+     * version bump to publish a new POM file with updated transitive
+     * dependencies.
+     */
+    @Input
+    List<String> getDirectDependencies() {
+        return collectDependenciesFromConfigurations(
+                project.getConfigurations(),
+                [project] as Set<Project>
+        )
+    }
+
+    protected List<String> collectDependenciesFromConfigurations(
+            ConfigurationContainer configurationContainer,
+            Set<Project> visitedProjects
+    ) {
+        Set<String> directDependencies = new HashSet<>()
+        Set<Project> libraryProjects = new HashSet<>()
+        for (Configuration configuration in configurationContainer) {
+            if (shouldSkipConfiguration(configuration)) {
+                continue
+            }
+
+            for (Dependency dependency in configuration.allDependencies) {
+                if (dependency instanceof ProjectDependency) {
+                    libraryProjects.add(dependency.getDependencyProject())
+                } else if (dependency instanceof ExternalModuleDependency) {
+                    directDependencies.add(toMavenId(dependency))
+                }
+            }
+        }
+        for (Project libraryProject in libraryProjects) {
+            if (libraryProject in visitedProjects) {
+                continue
+            }
+            visitedProjects.add(libraryProject)
+            logger.info("Visiting dependency ${libraryProject.displayName}")
+            directDependencies.addAll(
+                    collectDependenciesFromConfigurations(
+                            libraryProject.getConfigurations(),
+                            visitedProjects
+                    )
+            )
+        }
+        return directDependencies.sort()
+    }
+
+    protected static String toMavenId(Dependency dependency) {
+        return "${dependency.getGroup()}:${dependency.getName()}:${dependency.getVersion()}"
+    }
 
     @TaskAction
     void action() {
@@ -86,24 +143,25 @@ class DependencyTask extends DefaultTask {
      * false otherwise
      */
     protected boolean checkArtifactSet(File file) {
+        Set<String> artifacts = new HashSet<>(artifactSet)
         try {
             def previousArtifacts = new JsonSlurper().parse(file)
             for (entry in previousArtifacts) {
                 String key = "${entry.fileLocation}"
-                if (artifactSet.contains(key)) {
-                    artifactSet.remove(key)
+                if (artifacts.contains(key)) {
+                    artifacts.remove(key)
                 } else {
                     return false
                 }
             }
-            return artifactSet.isEmpty()
+            return artifacts.isEmpty()
         } catch (JsonException exception) {
             return false
         }
     }
 
     protected void updateDependencyArtifacts() {
-        for (Configuration configuration : configurations) {
+        for (Configuration configuration : project.getConfigurations()) {
             Set<ResolvedArtifact> artifacts = getResolvedArtifacts(
                     configuration)
             if (artifacts == null) {
@@ -181,14 +239,8 @@ class DependencyTask extends DefaultTask {
 
     protected Set<ResolvedArtifact> getResolvedArtifacts(
             Configuration configuration) {
-        /**
-         * skip the configurations that, cannot be resolved in
-         * newer version of gradle api, are tests, or are not packaged dependencies.
-         */
 
-        if (!canBeResolved(configuration)
-                || isTest(configuration)
-                || !isPackagedDependency(configuration)) {
+        if (shouldSkipConfiguration(configuration)) {
             return null
         }
 
@@ -201,6 +253,16 @@ class DependencyTask extends DefaultTask {
             logger.warn("Failed to resolve OSS licenses for $configuration.name.", exception)
             return null
         }
+    }
+
+    /**
+     * Returns true for configurations that cannot be resolved in the newer
+     * version of gradle API, are tests, or are not packaged dependencies.
+     */
+    private boolean shouldSkipConfiguration(Configuration configuration) {
+        (!canBeResolved(configuration)
+                || isTest(configuration)
+                || !isPackagedDependency(configuration))
     }
 
     protected Set<ResolvedArtifact> getResolvedArtifactsFromResolvedDependencies(
@@ -233,5 +295,9 @@ class DependencyTask extends DefaultTask {
         if (!outputDir.exists()) {
             outputDir.mkdirs()
         }
+    }
+
+    void setProject(Project project) {
+        this.project = project
     }
 }
