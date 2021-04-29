@@ -8,7 +8,7 @@ buildscript {
 }
 
 group = 'com.google.gms'
-version = '4.3.4'
+version = '4.3.5'
 project.ext.archivesBaseName = 'google-services'
 project.ext.pomDesc = 'Gradle plug-in to build Firebase applications.'
 

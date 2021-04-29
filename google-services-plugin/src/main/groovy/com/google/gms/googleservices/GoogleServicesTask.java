@@ -487,7 +487,7 @@ public abstract class GoogleServicesTask extends DefaultTask {
     Matcher flavorMatcher = FLAVOR_PATTERN.matcher(variant);
     while (flavorMatcher.find()) {
       String match = flavorMatcher.group(1);
-      if (match != null) {
+      if (match != null && !match.equals("null")) {
         flavors.add(match.toLowerCase());
       }
     }
@@ -509,7 +509,7 @@ public abstract class GoogleServicesTask extends DefaultTask {
           .collect(toList());
     }
     List<String> flavorNames = new ArrayList<>();
-    if (variantMatcher.group(1) != null) {
+    if (variantMatcher.group(1) != null && !variantMatcher.group(1).equals("null")) {
       flavorNames.add(variantMatcher.group(1).toLowerCase());
     }
     flavorNames.addAll(splitVariantNames(variantMatcher.group(2)));
@@ -531,7 +531,7 @@ public abstract class GoogleServicesTask extends DefaultTask {
     fileLocations = fileLocations
         .stream()
         .distinct()
-        .sorted(Comparator.comparing(GoogleServicesTask::countSlashes))
+        .sorted(Comparator.comparing(GoogleServicesTask::countSlashes).reversed())
         .map(location -> location.isEmpty() ? location + JSON_FILE_NAME : location + '/' + JSON_FILE_NAME)
         .collect(toList());
     return fileLocations;
