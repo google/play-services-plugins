@@ -28,7 +28,7 @@ public class GoogleServicesPluginTest {
   @Test
   public void testNoFlavor() {
     List<String> output = toStringList(GoogleServicesTask.getJsonLocations("release"));
-    assertThat(output).contains("src/release");
+    assertThat(output).contains("src/release/google-services.json");
   }
 
   @Test
@@ -37,11 +37,11 @@ public class GoogleServicesPluginTest {
         toStringList(GoogleServicesTask.getJsonLocations("flavor/release"));
     assertThat(output)
         .containsAllOf(
-            "src/release",
-            "src/flavorRelease",
-            "src/flavor",
-            "src/flavor/release",
-            "src/release/flavor");
+            "src/release/google-services.json",
+            "src/flavorRelease/google-services.json",
+            "src/flavor/google-services.json",
+            "src/flavor/release/google-services.json",
+            "src/release/flavor/google-services.json");
   }
 
   @Test
@@ -50,15 +50,15 @@ public class GoogleServicesPluginTest {
         toStringList(GoogleServicesTask.getJsonLocations("flavorTest/release"));
     assertThat(output)
         .containsAllOf(
-            "src/release",
-            "src/flavorRelease",
-            "src/flavor",
-            "src/flavor/release",
-            "src/release/flavorTest",
-            "src/flavorTest",
-            "src/flavorTestRelease",
-            "src/flavor/test/release",
-            "src/flavor/testRelease");
+            "src/release/google-services.json",
+            "src/flavorRelease/google-services.json",
+            "src/flavor/google-services.json",
+            "src/flavor/release/google-services.json",
+            "src/release/flavorTest/google-services.json",
+            "src/flavorTest/google-services.json",
+            "src/flavorTestRelease/google-services.json",
+            "src/flavor/test/release/google-services.json",
+            "src/flavor/testRelease/google-services.json");
   }
 
   // This is necessary because some of the strings are actually groovy string implementations
