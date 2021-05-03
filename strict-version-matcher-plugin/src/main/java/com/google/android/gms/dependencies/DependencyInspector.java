@@ -1,6 +1,7 @@
 package com.google.android.gms.dependencies;
 
 import org.gradle.api.GradleException;
+import org.gradle.api.artifacts.component.ModuleComponentSelector;
 import org.gradle.api.artifacts.DependencyResolutionListener;
 import org.gradle.api.artifacts.ResolvableDependencies;
 import org.gradle.api.artifacts.result.DependencyResult;
@@ -12,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -95,6 +97,7 @@ public class DependencyInspector implements DependencyResolutionListener {
   private void registerDependencies(@Nonnull ResolvableDependencies resolvableDependencies,
                                     @Nonnull String projectName, @Nonnull String taskName) {
     ResolutionResult resolutionResult = resolvableDependencies.getResolutionResult();
+    String depFromString= "";
     // Record all of the dependencies into the tracker.
     for (DependencyResult depResult : resolutionResult.getAllDependencies()) {
       ArtifactVersion fromDep;
@@ -111,7 +114,7 @@ public class DependencyInspector implements DependencyResolutionListener {
         fromDep = ArtifactVersion.Companion.fromGradleRef(
             GRADLE_PROJECT + ":" + projectName + "-" + taskName + ":0.0.0");
       } else {
-        String depFromString = ("" + depResult.getFrom().getId().getDisplayName());
+         depFromString = ("" + depResult.getFrom().getId().getDisplayName());
         if (depFromString.startsWith("project ")) {
           // TODO(paulrashidi): Figure out if a third level dependency shows depFromString.
           // In a project with other project dependencies the dep
@@ -137,7 +140,13 @@ public class DependencyInspector implements DependencyResolutionListener {
         continue;
       }
       ArtifactVersion toDep;
-      String toDepString = "" + depResult.getRequested();
+      String toDepString = depResult.getRequested().toString();
+      if (depResult.getRequested() instanceof ModuleComponentSelector) {
+        ModuleComponentSelector selector = (ModuleComponentSelector) depResult.getRequested();
+        if (!"".equals(selector.getVersionConstraint().getStrictVersion())){
+          toDepString = selector.getGroup() + ":" + selector.getModule() + ":[" + selector.getVersionConstraint().getStrictVersion() + "]";
+        }
+      }
       try {
         toDep = ArtifactVersion.Companion.fromGradleRef(toDepString);
       } catch (IllegalArgumentException iae) {
@@ -163,12 +172,6 @@ public class DependencyInspector implements DependencyResolutionListener {
   @Override
   public void afterResolve(ResolvableDependencies resolvableDependencies) {
     String taskName = resolvableDependencies.getName();
-
-    // Use of Product Flavors can change task names so skip tasks without compile in the name (case
-    // in-sensitive).
-    if (!taskName.contains("ompile")) {
-      return;
-    }
 
     // Phase 1: register all the dependency information from the project globally.
     logger.info("Registered task dependencies: " + projectName + ":" + taskName);

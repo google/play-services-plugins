@@ -20,6 +20,7 @@ import com.google.android.gms.dependencies.DependencyAnalyzer
 import com.google.android.gms.dependencies.DependencyInspector
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.model.ObjectFactory
 
 import java.util.regex.Matcher
 import java.util.regex.Pattern
@@ -31,33 +32,6 @@ class GoogleServicesPlugin implements Plugin<Project> {
   public final static String MODULE_VERSION = "11.4.2"
   public final static String MINIMUM_VERSION = "9.0.0"
 
-  // These are the plugin types and the set of associated plugins whose presence should be checked for.
-  private final static enum PluginType{
-    APPLICATION([
-      "android",
-      "com.android.application"
-    ]),
-    LIBRARY([
-      "android-library",
-      "com.android.library"
-    ]),
-    FEATURE([
-      "android-feature",
-      "com.android.feature"
-    ]),
-    MODEL_APPLICATION([
-      "com.android.model.application"
-    ]),
-    MODEL_LIBRARY(["com.android.model.library"])
-    public PluginType(Collection plugins) {
-      this.plugins = plugins
-    }
-    private final Collection plugins
-    public Collection plugins() {
-      return plugins
-    }
-  }
-
   @Override
   void apply(Project project) {
     GoogleServicesPluginConfig config = project.extensions.create('googleServices', GoogleServicesPluginConfig)
@@ -66,12 +40,19 @@ class GoogleServicesPlugin implements Plugin<Project> {
       if (config.disableVersionCheck) {
         return
       }
+
       DependencyAnalyzer globalDependencies = new DependencyAnalyzer()
-      project.getGradle().addListener(
-        new DependencyInspector(globalDependencies, project.getName(),
+      DependencyInspector strictVersionDepInspector = new DependencyInspector(globalDependencies, project.getName(),
             "This error message came from the google-services Gradle plugin, report" +
                 " issues at https://github.com/google/play-services-plugins and disable by " +
-                "adding \"googleServices { disableVersionCheck = true }\" to your build.gradle file."));
+                "adding \"googleServices { disableVersionCheck = true }\" to your build.gradle file.");
+      project.getConfigurations().all{projectConfig -> 
+        if (projectConfig.getName().contains("ompile")) {
+          projectConfig.getIncoming().afterResolve(strictVersionDepInspector.&afterResolve);
+        }
+      };
+                
+                
     }
     for (PluginType pluginType : PluginType.values()) {
       for (String plugin : pluginType.plugins()) {
@@ -140,40 +121,61 @@ class GoogleServicesPlugin implements Plugin<Project> {
     File outputDir =
         project.file("$project.buildDir/generated/res/google-services/$variant.dirName")
 
-    GoogleServicesTask task = project.tasks
-        .create("process${variant.name.capitalize()}GoogleServices",
-         GoogleServicesTask)
+    project
+      .tasks
+      .create(
+        "process${variant.name.capitalize()}GoogleServices",
+         GoogleServicesTask) { task ->
+          task.setIntermediateDir(outputDir)
+          task.setVariantDir(variant.dirName)
+          task.applicationId.set(variant.applicationId)
 
-    task.setIntermediateDir(outputDir)
-    task.setVariantDir(variant.dirName)
-
-    // This is necessary for backwards compatibility with versions of gradle that do not support
-    // this new API.
-    if (variant.respondsTo("applicationIdTextResource")) {
-      task.setPackageNameXOR2(variant.applicationIdTextResource)
-      task.dependsOn(variant.applicationIdTextResource)
-    } else {
-      task.setPackageNameXOR1(variant.applicationId)
-    }
-
-    // This is necessary for backwards compatibility with versions of gradle that do not support
-    // this new API.
-    if (variant.respondsTo("registerGeneratedResFolders")) {
-      task.ext.generatedResFolders = project.files(outputDir).builtBy(task)
-      variant.registerGeneratedResFolders(task.generatedResFolders)
-      if (variant.respondsTo("getMergeResourcesProvider")) {
-        variant.mergeResourcesProvider.configure { dependsOn(task) }
-      } else {
-        //noinspection GrDeprecatedAPIUsage
-        variant.mergeResources.dependsOn(task)
-      }
-    } else {
-      //noinspection GrDeprecatedAPIUsage
-      variant.registerResGeneratingTask(task, outputDir)
-    }
+          // This is necessary for backwards compatibility with versions of gradle that do not support
+          // this new API.
+          if (variant.respondsTo("registerGeneratedResFolders")) {
+            task.ext.generatedResFolders = project.files(outputDir).builtBy(task)
+            variant.registerGeneratedResFolders(task.generatedResFolders)
+            if (variant.respondsTo("getMergeResourcesProvider")) {
+              variant.mergeResourcesProvider.configure { dependsOn(task) }
+            } else {
+              //noinspection GrDeprecatedAPIUsage
+              variant.mergeResources.dependsOn(task)
+            }
+          } else {
+            //noinspection GrDeprecatedAPIUsage
+            variant.registerResGeneratingTask(task, outputDir)
+          }
+        }
   }
 
   public static class GoogleServicesPluginConfig {
     boolean disableVersionCheck = false
+  }
+
+  // These are the plugin types and the set of associated plugins whose presence should be checked for.
+  private final static enum PluginType{
+    APPLICATION([
+      "android",
+      "com.android.application"
+    ]),
+    LIBRARY([
+      "android-library",
+      "com.android.library"
+    ]),
+    FEATURE([
+      "android-feature",
+      "com.android.feature"
+    ]),
+    MODEL_APPLICATION([
+      "com.android.model.application"
+    ]),
+    MODEL_LIBRARY(["com.android.model.library"])
+    public PluginType(Collection plugins) {
+      this.plugins = plugins
+    }
+    private final Collection plugins
+    public Collection plugins() {
+      return plugins
+    }
   }
 }
