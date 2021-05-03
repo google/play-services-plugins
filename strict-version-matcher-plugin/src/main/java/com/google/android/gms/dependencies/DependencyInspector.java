@@ -40,7 +40,6 @@ public class DependencyInspector implements DependencyResolutionListener {
   private final DependencyAnalyzer dependencyAnalyzer;
   private final String projectName;
   private final String exceptionMessageAddendum;
-  private ArrayList<String> errorList = new ArrayList<>();
 
   /**
    * Attaches a Listener for inspection and analysis.
@@ -148,12 +147,6 @@ public class DependencyInspector implements DependencyResolutionListener {
           toDepString = selector.getGroup() + ":" + selector.getModule() + ":[" + selector.getVersionConstraint().getStrictVersion() + "]";
         }
       }
-      if (toDepString.contains("firebase-messaging")) {
-        errorList.add(depFromString + "-->" + toDepString + "\n");
-        if (errorList.size()>300) {
-          throw new GradleException(errorList.toString());
-        }
-      }
       try {
         toDep = ArtifactVersion.Companion.fromGradleRef(toDepString);
       } catch (IllegalArgumentException iae) {
@@ -214,12 +207,6 @@ public class DependencyInspector implements DependencyResolutionListener {
     // Validate each of the dependencies that should apply.
     for (Dependency dep : activeDeps) {
       ArtifactVersion resolvedVersion = resolvedVersions.get(dep.getToArtifact());
-      if (dep.getToArtifact().toString().contains("firebase-messaging")){
-        errorList.add(dep.toString() + "###" + resolvedVersion.toString() + "\n");
-        if (errorList.size()>26) {
-                  throw new GradleException(errorList.toString());
-        }
-      }
 
       // Check whether dependency is still valid.
       if (!dep.isVersionCompatible(resolvedVersion.getVersion())) {
