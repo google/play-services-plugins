@@ -57,16 +57,16 @@ class LicensesTask extends DefaultTask {
     protected Map<String, String> licensesMap = [:]
 
     @InputFile
-    public File dependenciesJson
+    File dependenciesJson
 
     @OutputDirectory
-    public File outputDir
+    File outputDir
 
     @OutputFile
-    public File licenses
+    File licenses
 
     @OutputFile
-    public File licensesMetadata
+    File licensesMetadata
 
     @TaskAction
     void action() {

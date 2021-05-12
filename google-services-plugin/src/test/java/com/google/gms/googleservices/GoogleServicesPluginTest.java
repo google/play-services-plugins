@@ -19,6 +19,8 @@ package com.google.gms.googleservices;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -27,38 +29,38 @@ public class GoogleServicesPluginTest {
 
   @Test
   public void testNoFlavor() {
-    List<String> output = toStringList(GoogleServicesTask.getJsonLocations("release"));
-    assertThat(output).contains("src/release");
+    List<String> output = toStringList(GoogleServicesTask.getJsonLocations("release", Collections.emptyList()));
+    assertThat(output).contains("src/release/google-services.json");
   }
 
   @Test
   public void testOneFlavor() {
     List<String> output =
-        toStringList(GoogleServicesTask.getJsonLocations("flavor/release"));
+        toStringList(GoogleServicesTask.getJsonLocations("release", Collections.singletonList("flavor")));
     assertThat(output)
         .containsAllOf(
-            "src/release",
-            "src/flavorRelease",
-            "src/flavor",
-            "src/flavor/release",
-            "src/release/flavor");
+            "src/release/google-services.json",
+            "src/flavorRelease/google-services.json",
+            "src/flavor/google-services.json",
+            "src/flavor/release/google-services.json",
+            "src/release/flavor/google-services.json");
   }
 
   @Test
   public void testMultipleFlavors() {
     List<String> output =
-        toStringList(GoogleServicesTask.getJsonLocations("flavorTest/release"));
+        toStringList(GoogleServicesTask.getJsonLocations("release", Arrays.asList("flavor", "test")));
     assertThat(output)
         .containsAllOf(
-            "src/release",
-            "src/flavorRelease",
-            "src/flavor",
-            "src/flavor/release",
-            "src/release/flavorTest",
-            "src/flavorTest",
-            "src/flavorTestRelease",
-            "src/flavor/test/release",
-            "src/flavor/testRelease");
+            "src/release/google-services.json",
+            "src/flavorRelease/google-services.json",
+            "src/flavor/google-services.json",
+            "src/flavor/release/google-services.json",
+            "src/release/flavorTest/google-services.json",
+            "src/flavorTest/google-services.json",
+            "src/flavorTestRelease/google-services.json",
+            "src/flavor/test/release/google-services.json",
+            "src/flavor/testRelease/google-services.json");
   }
 
   // This is necessary because some of the strings are actually groovy string implementations

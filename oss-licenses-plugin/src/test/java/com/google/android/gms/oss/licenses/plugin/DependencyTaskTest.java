@@ -23,18 +23,26 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
+import org.gradle.api.artifacts.ConfigurationContainer;
+import org.gradle.api.artifacts.Dependency;
+import org.gradle.api.artifacts.DependencySet;
+import org.gradle.api.artifacts.ExternalModuleDependency;
 import org.gradle.api.artifacts.LenientConfiguration;
 import org.gradle.api.artifacts.ModuleVersionIdentifier;
+import org.gradle.api.artifacts.ProjectDependency;
 import org.gradle.api.artifacts.ResolveException;
 import org.gradle.api.artifacts.ResolvedArtifact;
 import org.gradle.api.artifacts.ResolvedConfiguration;
@@ -50,6 +58,7 @@ import org.junit.runners.JUnit4;
 /** Tests for {@link DependencyTask} */
 @RunWith(JUnit4.class)
 public class DependencyTaskTest {
+
   private Project project;
   private DependencyTask dependencyTask;
 
@@ -60,10 +69,311 @@ public class DependencyTaskTest {
   }
 
   @Test
+  public void collectDependenciesFromConfigurations_multipleConfigs_combined() {
+    List<String> compileExpectedIds = Arrays.asList(
+        "com.example:real-dependency:1.2.3",
+        "com.example:totally-useful:4.5.6"
+    );
+    Configuration compileConfiguration = mockConfiguration(
+        "compile",
+        /* canBeResolved = */ true,
+        compileExpectedIds);
+    List<String> apiExpectedIds = Arrays.asList(
+        "com.example:api-thing:1.2.3",
+        "com.example:idk-rpc:4.5.6"
+    );
+    Configuration apiConfiguration = mockConfiguration(
+        "api",
+        /* canBeResolved = */ true,
+        apiExpectedIds);
+    ConfigurationContainer configurationContainer = mock(ConfigurationContainer.class);
+    when(configurationContainer.iterator())
+        .thenReturn(Arrays.asList(compileConfiguration, apiConfiguration).iterator());
+    List<String> allExpectedIds = new ArrayList<>(compileExpectedIds);
+    allExpectedIds.addAll(apiExpectedIds);
+    Collections.sort(allExpectedIds);
+
+    List<String> dependencies = dependencyTask
+        .collectDependenciesFromConfigurations(configurationContainer, new HashSet<>());
+    Collections.sort(dependencies);
+
+    verify(compileConfiguration, times(1)).getAllDependencies();
+    verify(apiConfiguration, times(1)).getAllDependencies();
+    assertThat(dependencies, is(allExpectedIds));
+  }
+
+  @Test
+  public void collectDependenciesFromConfigurations_libraryProject_combined() {
+    List<String> libraryProjectExpectedIds = Arrays.asList(
+        "com.example:api-thing:1.2.3",
+        "com.example:idk-rpc:4.5.6"
+    );
+    Configuration libraryConfiguration = mockConfiguration(
+        "compile",
+        /* canBeResolved = */ true,
+        libraryProjectExpectedIds);
+    Project libraryProject = mock(Project.class);
+    ConfigurationContainer libraryConfigurationContainer = mock(ConfigurationContainer.class);
+    when(libraryConfigurationContainer.iterator())
+        .thenReturn(Collections.singletonList(libraryConfiguration).iterator());
+    when(libraryProject.getConfigurations()).thenReturn(libraryConfigurationContainer);
+    ProjectDependency libraryProjectDependency = mockDependency(
+        ProjectDependency.class, "this:is:ignored");
+    when(libraryProjectDependency.getDependencyProject()).thenReturn(libraryProject);
+
+    List<String> compileExpectedIds = Arrays.asList(
+        "com.example:real-dependency:1.2.3",
+        "com.example:totally-useful:4.5.6"
+    );
+    DependencySet dependencySet = mockDependencySet(new HashSet<Dependency>() {{
+      add(libraryProjectDependency);
+      add(mockDependency(ExternalModuleDependency.class, compileExpectedIds.get(0)));
+      add(mockDependency(ExternalModuleDependency.class, compileExpectedIds.get(1)));
+    }});
+    Configuration compileConfiguration = mockConfiguration(
+        "compile",
+        /* canBeResolved = */ true,
+        dependencySet);
+    ConfigurationContainer configurationContainer = mock(ConfigurationContainer.class);
+    when(configurationContainer.iterator())
+        .thenReturn(Collections.singletonList(compileConfiguration).iterator());
+    List<String> allExpectedIds = new ArrayList<>(compileExpectedIds);
+    allExpectedIds.addAll(libraryProjectExpectedIds);
+    Collections.sort(allExpectedIds);
+
+    List<String> dependencies = dependencyTask
+        .collectDependenciesFromConfigurations(configurationContainer, new HashSet<>());
+    Collections.sort(dependencies);
+
+    verify(compileConfiguration, times(1)).getAllDependencies();
+    verify(libraryConfiguration, times(1)).getAllDependencies();
+    assertThat(dependencies, is(allExpectedIds));
+  }
+
+  @Test
+  public void collectDependenciesFromConfigurations_libraryDependencyCycle_visitedOnce() {
+    List<String> libraryProjectExpectedIds = Arrays.asList(
+        "com.example:api-thing:1.2.3",
+        "com.example:idk-rpc:4.5.6"
+    );
+    Project libraryProject = mock(Project.class);
+    ProjectDependency libraryProjectDependency = mockDependency(
+        ProjectDependency.class, "this:is:ignored");
+    when(libraryProjectDependency.getDependencyProject()).thenReturn(libraryProject);
+    // Library project self-dependency cycle by including itself as a dependent project.
+    DependencySet libraryDependencySet = mockDependencySet(new HashSet<Dependency>() {{
+      add(libraryProjectDependency);
+      add(mockDependency(ExternalModuleDependency.class, libraryProjectExpectedIds.get(0)));
+      add(mockDependency(ExternalModuleDependency.class, libraryProjectExpectedIds.get(1)));
+    }});
+    Configuration libraryConfiguration = mockConfiguration(
+        "compile",
+        /* canBeResolved = */ true,
+        libraryDependencySet);
+    ConfigurationContainer libraryConfigurationContainer = mock(ConfigurationContainer.class);
+    when(libraryConfigurationContainer.iterator())
+        .thenAnswer(ignored -> Collections.singletonList(libraryConfiguration).iterator());
+    when(libraryProject.getConfigurations()).thenReturn(libraryConfigurationContainer);
+
+    List<String> compileExpectedIds = Arrays.asList(
+        "com.example:real-dependency:1.2.3",
+        "com.example:totally-useful:4.5.6"
+    );
+    DependencySet dependencySet = mockDependencySet(new HashSet<Dependency>() {{
+      add(libraryProjectDependency);
+      add(mockDependency(ExternalModuleDependency.class, compileExpectedIds.get(0)));
+      add(mockDependency(ExternalModuleDependency.class, compileExpectedIds.get(1)));
+    }});
+    Configuration compileConfiguration = mockConfiguration(
+        "compile",
+        /* canBeResolved = */ true,
+        dependencySet);
+    ConfigurationContainer configurationContainer = mock(ConfigurationContainer.class);
+    when(configurationContainer.iterator())
+        .thenReturn(Collections.singletonList(compileConfiguration).iterator());
+    List<String> allExpectedIds = new ArrayList<>(compileExpectedIds);
+    allExpectedIds.addAll(libraryProjectExpectedIds);
+    Collections.sort(allExpectedIds);
+
+    List<String> dependencies = dependencyTask
+        .collectDependenciesFromConfigurations(configurationContainer, new HashSet<>());
+    Collections.sort(dependencies);
+
+    verify(compileConfiguration, times(1)).getAllDependencies();
+    verify(libraryConfiguration, times(1)).getAllDependencies();
+    verify(libraryProject, times(1)).getConfigurations();
+    assertThat(dependencies, is(allExpectedIds));
+  }
+
+  @Test
+  public void collectDependenciesFromConfigurations_appSelfCycle_visitedOnce() {
+    List<String> appExpectedIds = Arrays.asList(
+        "com.example:real-dependency:1.2.3",
+        "com.example:totally-useful:4.5.6"
+    );
+    Project appProject = mock(Project.class);
+    when(appProject.getDisplayName()).thenReturn("YOLO");
+    ProjectDependency appProjectDependency = mockDependency(
+        ProjectDependency.class, "this:is:ignored");
+    when(appProjectDependency.getDependencyProject()).thenReturn(appProject);
+    // App project self-dependency cycle by including itself as a dependent project.
+    DependencySet dependencySet = mockDependencySet(new HashSet<Dependency>() {{
+      add(appProjectDependency);
+      add(mockDependency(ExternalModuleDependency.class, appExpectedIds.get(0)));
+      add(mockDependency(ExternalModuleDependency.class, appExpectedIds.get(1)));
+    }});
+    Configuration compileConfiguration = mockConfiguration(
+        "compile",
+        /* canBeResolved = */ true,
+        dependencySet);
+    ConfigurationContainer configurationContainer = mock(ConfigurationContainer.class);
+    when(configurationContainer.iterator())
+        .thenAnswer(ignored -> Collections.singletonList(compileConfiguration).iterator());
+    when(appProject.getConfigurations()).thenReturn(configurationContainer);
+    Collections.sort(appExpectedIds);
+
+    List<String> dependencies = dependencyTask.collectDependenciesFromConfigurations(
+        configurationContainer,
+        Collections.singleton(appProject)
+    );
+    Collections.sort(dependencies);
+
+    verify(compileConfiguration, times(1)).getAllDependencies();
+    verify(appProject, never()).getConfigurations();
+    assertThat(dependencies, is(appExpectedIds));
+  }
+
+  @Test
+  public void collectDependenciesFromConfigurations_withTestConfig_ignored() {
+    List<String> expectedIds = Arrays.asList(
+        "com.example:real-dependency:1.2.3",
+        "com.example:totally-useful:4.5.6"
+    );
+    Configuration compileConfiguration = mockConfiguration(
+        "compile",
+        /* canBeResolved = */ true,
+        expectedIds);
+    List<String> unexpectedIds = Arrays.asList(
+        "com.test-only:test-thing:1.2.3",
+        "com.test-only:not-shipped:4.5.6"
+    );
+    Configuration testConfiguration = mockConfiguration(
+        "testCompile",
+        /* canBeResolved = */ true,
+        unexpectedIds);
+    ConfigurationContainer configurationContainer = mock(ConfigurationContainer.class);
+    when(configurationContainer.iterator())
+        .thenReturn(Arrays.asList(compileConfiguration, testConfiguration).iterator());
+
+    List<String> dependencies = dependencyTask
+        .collectDependenciesFromConfigurations(configurationContainer, new HashSet<>());
+    Collections.sort(dependencies);
+
+    verify(compileConfiguration, times(1)).getAllDependencies();
+    verify(testConfiguration, never()).getAllDependencies();
+    assertThat(dependencies, is(expectedIds));
+  }
+
+  @Test
+  public void collectDependenciesFromConfigurations_withUnresolvableConfig_ignored() {
+    List<String> expectedIds = Arrays.asList(
+        "com.example:real-dependency:1.2.3",
+        "com.example:totally-useful:4.5.6"
+    );
+    Configuration compileConfiguration = mockConfiguration(
+        "compile",
+        /* canBeResolved = */ true,
+        expectedIds);
+    List<String> unexpectedIds = Arrays.asList(
+        "com.mystery:unresolvable:1.2.3",
+        "com.enigma:dont-resolve-this:4.5.6"
+    );
+    Configuration unresolvableConfiguration = mockConfiguration(
+        "api",
+        /* canBeResolved = */ false,
+        unexpectedIds);
+    ConfigurationContainer configurationContainer = mock(ConfigurationContainer.class);
+    when(configurationContainer.iterator())
+        .thenReturn(Arrays.asList(compileConfiguration, unresolvableConfiguration).iterator());
+
+    List<String> dependencies = dependencyTask
+        .collectDependenciesFromConfigurations(configurationContainer, new HashSet<>());
+    Collections.sort(dependencies);
+
+    verify(compileConfiguration, times(1)).getAllDependencies();
+    verify(unresolvableConfiguration, never()).getAllDependencies();
+    assertThat(dependencies, is(expectedIds));
+  }
+
+  @Test
+  public void collectDependenciesFromConfigurations_unusableDependencyClass_ignored() {
+    List<String> expectedIds = Collections.singletonList("should.be:alone:4.5.6");
+    DependencySet dependencySet = mockDependencySet(new HashSet<Dependency>() {{
+      add(mockDependency(Dependency.class, "should.be:skipped:1.2.3"));
+      add(mockDependency(ExternalModuleDependency.class, expectedIds.get(0)));
+    }});
+    Configuration configuration = mockConfiguration(
+        "compile",
+        /* canBeResolved = */ true,
+        dependencySet);
+    ConfigurationContainer configurationContainer = mock(ConfigurationContainer.class);
+    when(configurationContainer.iterator())
+        .thenReturn(Collections.singletonList(configuration).iterator());
+
+    List<String> dependencies = dependencyTask
+        .collectDependenciesFromConfigurations(configurationContainer, new HashSet<>());
+    Collections.sort(dependencies);
+
+    verify(configuration, times(1)).getAllDependencies();
+    assertThat(dependencies, is(expectedIds));
+  }
+
+  private Configuration mockConfiguration(String name, boolean canBeResolved,
+      List<String> mavenIds) {
+    DependencySet dependencies = mockDependencySet(mavenIds);
+    return mockConfiguration(name, canBeResolved, dependencies);
+  }
+
+  private Configuration mockConfiguration(String name, boolean canBeResolved,
+      DependencySet dependencies) {
+    Configuration configuration = mock(Configuration.class);
+    when(configuration.getName()).thenReturn(name);
+    when(configuration.isCanBeResolved()).thenReturn(canBeResolved);
+    when(configuration.getAllDependencies()).thenReturn(dependencies);
+    return configuration;
+  }
+
+  private DependencySet mockDependencySet(List<String> mavenIds) {
+    Set<Dependency> dependencies = new HashSet<>();
+    for (String mavenId : mavenIds) {
+      dependencies.add(mockDependency(ExternalModuleDependency.class, mavenId));
+    }
+    return mockDependencySet(dependencies);
+  }
+
+  private DependencySet mockDependencySet(Set<Dependency> dependencies) {
+    DependencySet dependencySet = mock(DependencySet.class);
+    when(dependencySet.iterator()).thenAnswer(ignored -> dependencies.iterator());
+    return dependencySet;
+  }
+
+  private <T extends Dependency> T mockDependency(
+      Class<T> dependencyClass,
+      String mavenId
+  ) {
+    T dependency = mock(dependencyClass);
+    String[] mavenIdFields = mavenId.split(":");
+    when(dependency.getGroup()).thenReturn(mavenIdFields[0]);
+    when(dependency.getName()).thenReturn(mavenIdFields[1]);
+    when(dependency.getVersion()).thenReturn(mavenIdFields[2]);
+    return dependency;
+  }
+
+  @Test
   public void testCheckArtifactSet_missingSet() {
     File dependencies = new File("src/test/resources", "testDependency.json");
     String[] artifactSet =
-        new String[] {"dependencies/groupA/deps1.txt", "dependencies/groupB/abc/deps2.txt"};
+        new String[]{"dependencies/groupA/deps1.txt", "dependencies/groupB/abc/deps2.txt"};
     dependencyTask.artifactSet = new HashSet<>(Arrays.asList(artifactSet));
 
     assertFalse(dependencyTask.checkArtifactSet(dependencies));

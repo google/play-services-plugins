@@ -1,7 +1,9 @@
 buildscript {
-    ext.kotlin_version = '1.3.11'
+    ext.kotlin_version = '1.4.10'
     repositories {
         jcenter()
+        google()
+        mavenLocal()
     }
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
@@ -10,7 +12,7 @@ buildscript {
 
 project.ext.group = 'com.google.android.gms'
 project.ext.archivesBaseName = 'strict-version-matcher-plugin'
-project.ext.version = '1.2.1'
+project.ext.version = '1.2.3'
 project.ext.pomDesc = 'Gradle plug-in to enforce version ranges for Google Play services and Firebase dependencies.'
 
 apply plugin: 'kotlin'

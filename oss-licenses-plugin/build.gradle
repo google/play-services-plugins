@@ -1,6 +1,9 @@
 apply plugin: 'groovy'
 apply plugin: 'java'
 
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
 dependencies {
     implementation gradleApi()
     implementation localGroovy()
@@ -10,7 +13,7 @@ dependencies {
 }
 
 group = 'com.google.android.gms'
-version = '0.10.2'
+version = '0.10.4'
 
 apply plugin: 'maven'
 

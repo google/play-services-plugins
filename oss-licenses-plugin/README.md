@@ -34,7 +34,7 @@ and add the oss-licenses plugin to your dependencies:
       dependencies {
         // ...
         // Add this line:
-        classpath 'com.google.android.gms:oss-licenses-plugin:0.10.2'
+        classpath 'com.google.android.gms:oss-licenses-plugin:0.10.4'
       }
 
 In your app-level `build.gradle`, apply the plugin by adding the following line

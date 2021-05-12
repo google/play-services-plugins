@@ -26,6 +26,8 @@ import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
+import org.gradle.api.model.ObjectFactory;
+import org.gradle.api.provider.Property;
 import org.gradle.api.resources.TextResource;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputFile;
@@ -46,26 +48,13 @@ import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.inject.Inject;
+
 import static java.util.stream.Collectors.toList;
 
 /** */
-public class GoogleServicesTask extends DefaultTask {
+public abstract class GoogleServicesTask extends DefaultTask {
   public final static String JSON_FILE_NAME = "google-services.json";
-  // Some example of things that match this pattern are:
-  // "aBunchOfFlavors/release"
-  // "flavor/debug"
-  // "test"
-  // And here is an example with the capture groups in [square brackets]
-  // [a][BunchOfFlavors]/[release]
-  public final static Pattern VARIANT_PATTERN = Pattern.compile("(?:([^\\p{javaUpperCase}]+)((?:\\p{javaUpperCase}[^\\p{javaUpperCase}]*)*)\\/)?([^\\/]*)");
-  // Some example of things that match this pattern are:
-  // "TestTheFlavor"
-  // "FlavorsOfTheRainbow"
-  // "Test"
-  // And here is an example with the capture groups in [square brackets]
-  // "[Flavors][Of][The][Rainbow]"
-  // Note: Pattern must be applied in a loop, not just once.
-  public final static Pattern FLAVOR_PATTERN = Pattern.compile("(\\p{javaUpperCase}[^\\p{javaUpperCase}]*)");
 
   private static final String STATUS_DISABLED = "1";
   private static final String STATUS_ENABLED = "2";
@@ -73,9 +62,14 @@ public class GoogleServicesTask extends DefaultTask {
   private static final String OAUTH_CLIENT_TYPE_WEB = "3";
 
   private File intermediateDir;
-  private String variantDir;
-  private String packageNameXOR1;
-  private TextResource packageNameXOR2;
+  private String buildType;
+  private List<String> productFlavors;
+  private ObjectFactory objectFactory;
+
+  @Inject
+  public GoogleServicesTask(ObjectFactory objectFactory) {
+    this.objectFactory = objectFactory;
+  }
 
   @OutputDirectory
   public File getIntermediateDir() {
@@ -83,48 +77,36 @@ public class GoogleServicesTask extends DefaultTask {
   }
 
   @Input
-  public String getVariantDir() {
-    return variantDir;
+  public String getBuildType() {
+    return buildType;
   }
 
-  /**
-   * Either packageNameXOR1 or packageNameXOR2 must be present, but both must be marked as @Optional or Gradle
-   * will throw an exception if one is missing.
-   */
-  @Input @Optional
-  public String getPackageNameXOR1() {
-    return packageNameXOR1;
-  }
-
-  @Input @Optional
-  public TextResource getPackageNameXOR2() {
-    return packageNameXOR2;
+  @Input
+  public List<String> getProductFlavors() {
+    return productFlavors;
   }
 
   public void setIntermediateDir(File intermediateDir) {
     this.intermediateDir = intermediateDir;
   }
 
-  public void setVariantDir(String variantDir){
-    this.variantDir = variantDir;
+  public void setBuildType(String buildType) {
+    this.buildType = buildType;
   }
 
-  public void setPackageNameXOR1(String packageNameXOR1) {
-    this.packageNameXOR1 = packageNameXOR1;
+  public void setProductFlavors(List<String> productFlavors) {
+    this.productFlavors = productFlavors;
   }
 
-  public void setPackageNameXOR2(TextResource packageNameXOR2) {
-    this.packageNameXOR2 = packageNameXOR2;
-  }
-
+  @Input
+  public abstract Property<String> getApplicationId();
 
   @TaskAction
   public void action() throws IOException {
     File quickstartFile = null;
-    List<String> fileLocations = getJsonLocations(variantDir);
+    List<String> fileLocations = getJsonLocations(buildType, productFlavors);
     String searchedLocation = System.lineSeparator();
-    for (String location : fileLocations) {
-      File jsonFile = getProject().file(location + '/' + JSON_FILE_NAME);
+    for (File jsonFile : objectFactory.fileCollection().from(fileLocations)) {
       searchedLocation = searchedLocation + jsonFile.getPath() + System.lineSeparator();
       if (jsonFile.isFile()) {
         quickstartFile = jsonFile;
@@ -132,27 +114,15 @@ public class GoogleServicesTask extends DefaultTask {
       }
     }
 
-    if (quickstartFile == null) {
-      quickstartFile = getProject().file(JSON_FILE_NAME);
-      searchedLocation = searchedLocation + quickstartFile.getPath();
-    }
-
-    if (!quickstartFile.isFile()) {
+    if (quickstartFile == null || !quickstartFile.isFile()) {
       throw new GradleException(
           String.format(
               "File %s is missing. "
                   + "The Google Services Plugin cannot function without it. %n Searched Location: %s",
-              quickstartFile.getName(), searchedLocation));
-    }
-    if (packageNameXOR1 == null && packageNameXOR2 == null) {
-      throw new GradleException(
-              String.format(
-                      "One of packageNameXOR1 or packageNameXOR2 are required: "
-                              + "packageNameXOR1: %s, packageNameXOR2: %s",
-                      packageNameXOR1, packageNameXOR2));
+              JSON_FILE_NAME, searchedLocation));
     }
 
-    getProject().getLogger().info("Parsing json file: " + quickstartFile.getPath());
+    getLogger().info("Parsing json file: " + quickstartFile.getPath());
 
     // delete content of outputdir.
     deleteFolder(intermediateDir);
@@ -183,7 +153,7 @@ public class GoogleServicesTask extends DefaultTask {
       handleGoogleAppId(clientObject, resValues);
       handleWebClientId(clientObject, resValues);
     } else {
-      throw new GradleException("No matching client found for package name '" + getPackageName() + "'");
+      throw new GradleException("No matching client found for package name '" + getApplicationId().get() + "'");
     }
 
     // write the values file.
@@ -387,7 +357,7 @@ public class GoogleServicesTask extends DefaultTask {
         JsonPrimitive clientPackageName = androidClientInfo.getAsJsonPrimitive("package_name");
         if (clientPackageName == null) continue;
 
-        if (getPackageName().equals(clientPackageName.getAsString())) {
+        if (getApplicationId().get().equals(clientPackageName.getAsString())) {
           return clientObject;
         }
       }
@@ -502,46 +472,14 @@ public class GoogleServicesTask extends DefaultTask {
       throw new GradleException("Failed to delete: " + folder);
     }
   }
-  
-  private String getPackageName() {
-    if (packageNameXOR1 == null) {
-      return packageNameXOR2.asString();
-    }
-    return packageNameXOR1;
-  }
-
-    private static List<String> splitVariantNames(String variant) {
-    if (variant == null) {
-      return new ArrayList<>();
-    }
-    List<String> flavors = new ArrayList<>();
-    Matcher flavorMatcher = FLAVOR_PATTERN.matcher(variant);
-    while (flavorMatcher.find()) {
-      String match = flavorMatcher.group(1);
-      if (match != null) {
-        flavors.add(match.toLowerCase());
-      }
-    }
-    return flavors;
-  }
 
   private static long countSlashes(String input) {
     return input.codePoints().filter(x -> x == '/').count();
   }
 
-  static List<String> getJsonLocations(String variantDirname) {
-    Matcher variantMatcher = VARIANT_PATTERN.matcher(variantDirname);
+  static List<String> getJsonLocations(String buildType, List<String> flavorNames) {
     List<String> fileLocations = new ArrayList<>();
-    if (!variantMatcher.matches()) {
-      return fileLocations;
-    }
-    List<String> flavorNames = new ArrayList<>();
-    if (variantMatcher.group(1) != null) {
-      flavorNames.add(variantMatcher.group(1).toLowerCase());
-    }
-    flavorNames.addAll(splitVariantNames(variantMatcher.group(2)));
-    String buildType = variantMatcher.group(3);
-    String flavorName = variantMatcher.group(1) + variantMatcher.group(2);
+    String flavorName = flavorNames.stream().reduce("", (a,b) -> a + (a.length() == 0 ? b : capitalize(b)));
     fileLocations.add("src/" + flavorName + "/" + buildType);
     fileLocations.add("src/" + buildType + "/" + flavorName);
     fileLocations.add("src/" + flavorName);
@@ -555,7 +493,12 @@ public class GoogleServicesTask extends DefaultTask {
       fileLocations.add(fileLocation + "/" + buildType);
       fileLocations.add(fileLocation + capitalize(buildType));
     }
-    fileLocations = fileLocations.stream().distinct().sorted(Comparator.comparing(GoogleServicesTask::countSlashes)).collect(toList());
+    fileLocations = fileLocations
+        .stream()
+        .distinct()
+        .sorted(Comparator.comparing(GoogleServicesTask::countSlashes).reversed())
+        .map(location -> location.isEmpty() ? location + JSON_FILE_NAME : location + '/' + JSON_FILE_NAME)
+        .collect(toList());
     return fileLocations;
   }
 
