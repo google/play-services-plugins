@@ -480,6 +480,7 @@ public abstract class GoogleServicesTask extends DefaultTask {
   static List<String> getJsonLocations(String buildType, List<String> flavorNames) {
     List<String> fileLocations = new ArrayList<>();
     String flavorName = flavorNames.stream().reduce("", (a,b) -> a + (a.length() == 0 ? b : capitalize(b)));
+    fileLocations.add("");
     fileLocations.add("src/" + flavorName + "/" + buildType);
     fileLocations.add("src/" + buildType + "/" + flavorName);
     fileLocations.add("src/" + flavorName);
