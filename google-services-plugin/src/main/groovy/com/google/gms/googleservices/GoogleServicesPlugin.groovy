@@ -127,8 +127,9 @@ class GoogleServicesPlugin implements Plugin<Project> {
         "process${variant.name.capitalize()}GoogleServices",
          GoogleServicesTask) { task ->
           task.setIntermediateDir(outputDir)
-          task.setVariantDir(variant.dirName)
           task.applicationId.set(variant.applicationId)
+          task.setBuildType(variant.buildType.name)
+          task.setProductFlavors(variant.productFlavors.collect { it.name })
 
           // This is necessary for backwards compatibility with versions of gradle that do not support
           // this new API.

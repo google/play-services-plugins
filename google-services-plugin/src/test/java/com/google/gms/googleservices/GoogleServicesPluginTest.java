@@ -39,6 +39,7 @@ public class GoogleServicesPluginTest {
         toStringList(GoogleServicesTask.getJsonLocations("release", Collections.singletonList("flavor")));
     assertThat(output)
         .containsAllOf(
+            "google-services.json",
             "src/release/google-services.json",
             "src/flavorRelease/google-services.json",
             "src/flavor/google-services.json",
@@ -52,6 +53,7 @@ public class GoogleServicesPluginTest {
         toStringList(GoogleServicesTask.getJsonLocations("release", Arrays.asList("flavor", "test")));
     assertThat(output)
         .containsAllOf(
+            "google-services.json",
             "src/release/google-services.json",
             "src/flavorRelease/google-services.json",
             "src/flavor/google-services.json",
