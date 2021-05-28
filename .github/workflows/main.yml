@@ -36,3 +36,7 @@ jobs:
       - name: Perform a Gradle build
         run: ./gradlew build
         working-directory: ./${{ matrix.project-dir }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: Package
+          path: build/libs
