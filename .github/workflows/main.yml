@@ -36,7 +36,10 @@ jobs:
       - name: Perform a Gradle build
         run: ./gradlew build
         working-directory: ./${{ matrix.project-dir }}
-      - uses: actions/upload-artifact@v2
+      - name: Upload generated artifacts
+        uses: actions/upload-artifact@v2
         with:
-          name: Package
+          name: Plugin Artifact
           path: build/libs
+          retention-days: 5
+        working-directory: ./${{ matrix.project-dir }}
