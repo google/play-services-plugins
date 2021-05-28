@@ -39,6 +39,6 @@ jobs:
       - name: Upload generated artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: Plugin Artifact
+          name: ${{ matrix.project-dir }}
           path: ./${{ matrix.project-dir }}/build/libs
           retention-days: 5
