@@ -40,6 +40,5 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: Plugin Artifact
-          path: build/libs
+          path: ./${{ matrix.project-dir }}/build/libs
           retention-days: 5
-        working-directory: ./${{ matrix.project-dir }}
