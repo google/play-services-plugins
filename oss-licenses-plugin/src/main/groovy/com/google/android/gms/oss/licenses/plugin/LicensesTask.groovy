@@ -138,6 +138,10 @@ class LicensesTask extends DefaultTask {
     }
 
     protected void addGooglePlayServiceLicenses(File artifactFile) {
+        if (artifactFile.isDirectory()) {
+            return
+        }
+
         ZipFile licensesZip = new ZipFile(artifactFile)
         JsonSlurper jsonSlurper = new JsonSlurper()
 
