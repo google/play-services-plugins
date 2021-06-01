@@ -1,0 +1,43 @@
+# Perform a Gradle `build` which includes `assemble`, `check`, `test`
+# of the projects, and uploads the generated artifacts.
+
+name: Generate releaseble artifacts
+
+# Controls when the action will run.
+on:
+  # Triggers the workflow on push or pull request events but only for the main branch
+  push:
+    branches: [ master ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Runs this job in parallel for each sub-project
+    strategy:
+      matrix:
+        project-dir:
+          - strict-version-matcher-plugin
+          - google-services-plugin
+          - oss-licenses-plugin
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+      # Runs a build which includes `check` and `test` tasks
+      - name: Perform a Gradle build
+        run: ./gradlew build
+        working-directory: ./${{ matrix.project-dir }}
+      - name: Upload generated artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.project-dir }}
+          path: ./${{ matrix.project-dir }}/build/libs
+          retention-days: 5
