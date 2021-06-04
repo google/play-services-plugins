@@ -1,7 +1,7 @@
 # Perform a Gradle `build` which includes `assemble`, `check`, `test`
 # of the projects, and uploads the generated artifacts.
 
-name: Generate releaseble artifacts
+name: Generate releasable artifacts
 
 # Controls when the action will run.
 on:
