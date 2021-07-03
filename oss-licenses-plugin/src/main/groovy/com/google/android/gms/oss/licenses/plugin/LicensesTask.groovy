@@ -55,6 +55,7 @@ class LicensesTask extends DefaultTask {
     protected int start = 0
     protected Set<String> googleServiceLicenses = []
     protected Map<String, String> licensesMap = [:]
+    protected Map<String, String> licenseOffsets = [:]
 
     @InputFile
     File dependenciesJson
@@ -165,7 +166,7 @@ class LicensesTask extends DefaultTask {
                     licensesZip.getInputStream(txtFile),
                     startValue,
                     lengthValue)
-                appendLicense(key, content)
+                appendDependency(key, content)
             }
         }
     }
@@ -216,16 +217,16 @@ class LicensesTask extends DefaultTask {
             return
         }
 
-        String licenseKey = "${group}:${name}"
+        String libraryName = "${group}:${name}"
         if (rootNode.licenses.license.size() > 1) {
-            rootNode.licenses.license.each { node ->
-                String nodeName = node.name
-                String nodeUrl = node.url
-                appendLicense("${licenseKey} ${nodeName}", nodeUrl.getBytes(UTF_8))
+            rootNode.licenses.license.each { license ->
+                String licenseName = license.name
+                String licenseUrl = license.url
+                appendDependency("${libraryName} ${licenseName}", licenseUrl.getBytes(UTF_8))
             }
         } else {
             String nodeUrl = rootNode.licenses.license.url
-            appendLicense(licenseKey, nodeUrl.getBytes(UTF_8))
+            appendDependency(libraryName, nodeUrl.getBytes(UTF_8))
         }
     }
 
@@ -255,14 +256,22 @@ class LicensesTask extends DefaultTask {
         return ((ResolvedArtifactResult) artifacts[0]).getFile()
     }
 
-    protected void appendLicense(String key, byte[] content) {
-        if (licensesMap.containsKey(key)) {
+    protected void appendDependency(String dependency, byte[] license) {
+        String licenseText = new String(license)
+        if (licensesMap.containsKey(dependency)) {
             return
         }
 
-        licensesMap.put(key, "${start}:${content.length}")
-        appendLicenseContent(content)
-        appendLicenseContent(LINE_SEPARATOR)
+        String offsets
+        if (licenseOffsets.containsKey(licenseText)) {
+            offsets = licenseOffsets.get(licenseText)
+        } else {
+            offsets = "${start}:${license.length}"
+            licenseOffsets.put(licenseText, offsets)
+            appendLicenseContent(license)
+            appendLicenseContent(LINE_SEPARATOR)
+        }
+        licensesMap.put(dependency, offsets)
     }
 
     protected void appendLicenseContent(byte[] content) {
@@ -280,5 +289,4 @@ class LicensesTask extends DefaultTask {
     private static ModuleComponentIdentifier createModuleComponentIdentifier(String group, String name, String version) {
         return new DefaultModuleComponentIdentifier(DefaultModuleIdentifier.newId(group, name), version)
     }
-
 }
