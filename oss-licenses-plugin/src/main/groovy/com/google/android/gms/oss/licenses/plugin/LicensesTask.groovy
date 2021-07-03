@@ -216,7 +216,10 @@ class LicensesTask extends DefaultTask {
             return
         }
 
-        String licenseKey = "${group}:${name}"
+        String licenseKey = rootNode.name
+        if (licenseKey == null || licenseKey == "") {
+            licenseKey = "${group}:${name}"
+        }
         if (rootNode.licenses.license.size() > 1) {
             rootNode.licenses.license.each { node ->
                 String nodeName = node.name
