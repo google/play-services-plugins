@@ -123,7 +123,7 @@ class GoogleServicesPlugin implements Plugin<Project> {
 
     project
       .tasks
-      .create(
+      .register(
         "process${variant.name.capitalize()}GoogleServices",
          GoogleServicesTask) { task ->
           task.setIntermediateDir(outputDir)
