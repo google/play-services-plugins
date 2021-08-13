@@ -218,7 +218,7 @@ class LicensesTask extends DefaultTask {
         }
 
         String libraryName = rootNode.name
-        if (libraryName == null || libraryName == "") {
+        if (libraryName == null || libraryName.trim() == "") {
             libraryName = "${group}:${name}"
         }
         if (rootNode.licenses.license.size() > 1) {
@@ -260,7 +260,7 @@ class LicensesTask extends DefaultTask {
     }
 
     protected void appendDependency(String dependency, byte[] license) {
-        String licenseText = new String(license)
+        String licenseText = new String(license, UTF_8)
         if (licensesMap.containsKey(dependency)) {
             return
         }
