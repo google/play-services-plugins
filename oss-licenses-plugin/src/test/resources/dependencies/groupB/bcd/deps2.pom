@@ -1,11 +1,11 @@
 <project>
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>groupA</groupId>
-  <artifactId>groupA-deps1</artifactId>
+  <groupId>groupB</groupId>
+  <artifactId>groupB-deps2</artifactId>
   <version>1</version>
-  <name>groupA deps1</name>
-  <description>groupA deps1</description>
+  <name>groupB deps2</name>
+  <description>groupB deps2</description>
 
   <licenses>
     <license>

@@ -128,7 +128,7 @@ public class LicensesTaskTest {
 
     String content = new String(Files.readAllBytes(licensesTask.getLicenses().toPath()), UTF_8);
     String expected = "http://www.opensource.org/licenses/mit-license.php" + LINE_BREAK;
-    assertTrue(licensesTask.licensesMap.containsKey("groupA:deps1"));
+    assertTrue(licensesTask.licensesMap.containsKey("groupA deps1"));
     assertEquals(expected, content);
   }
 
@@ -152,8 +152,8 @@ public class LicensesTaskTest {
             + LINE_BREAK;
 
     assertThat(licensesTask.licensesMap.size(), is(2));
-    assertTrue(licensesTask.licensesMap.containsKey("groupA:deps1"));
-    assertTrue(licensesTask.licensesMap.containsKey("groupB:deps2"));
+    assertTrue(licensesTask.licensesMap.containsKey("groupA deps1"));
+    assertTrue(licensesTask.licensesMap.containsKey("groupB deps2"));
     assertEquals(expected, content);
   }
 
@@ -173,15 +173,13 @@ public class LicensesTaskTest {
     String expected =
         "http://www.opensource.org/licenses/mit-license.php"
             + LINE_BREAK
-            + "http://www.opensource.org/licenses/mit-license.php"
-            + LINE_BREAK
             + "https://www.apache.org/licenses/LICENSE-2.0"
             + LINE_BREAK;
 
     assertThat(licensesTask.licensesMap.size(), is(3));
-    assertTrue(licensesTask.licensesMap.containsKey("groupA:deps1"));
-    assertTrue(licensesTask.licensesMap.containsKey("groupE:deps5 MIT License"));
-    assertTrue(licensesTask.licensesMap.containsKey("groupE:deps5 Apache License 2.0"));
+    assertTrue(licensesTask.licensesMap.containsKey("groupA deps1"));
+    assertTrue(licensesTask.licensesMap.containsKey("groupE deps5 MIT License"));
+    assertTrue(licensesTask.licensesMap.containsKey("groupE deps5 Apache License 2.0"));
     assertEquals(expected, content);
   }
 
@@ -201,7 +199,7 @@ public class LicensesTaskTest {
     String expected = "http://www.opensource.org/licenses/mit-license.php" + LINE_BREAK;
 
     assertThat(licensesTask.licensesMap.size(), is(1));
-    assertTrue(licensesTask.licensesMap.containsKey("groupA:deps1"));
+    assertTrue(licensesTask.licensesMap.containsKey("groupA deps1"));
     assertEquals(expected, content);
   }
 
@@ -284,7 +282,7 @@ public class LicensesTaskTest {
 
   @Test
   public void testAppendLicense() throws IOException {
-    licensesTask.appendLicense("license1", "test".getBytes(UTF_8));
+    licensesTask.appendDependency("license1", "test".getBytes(UTF_8));
 
     String expected = "test" + LINE_BREAK;
     String content = new String(Files.readAllBytes(licensesTask.getLicenses().toPath()), UTF_8);
