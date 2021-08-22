@@ -180,6 +180,7 @@ public class LicensesTaskTest {
     assertTrue(licensesTask.licensesMap.containsKey("groupA deps1"));
     assertTrue(licensesTask.licensesMap.containsKey("groupE deps5 MIT License"));
     assertTrue(licensesTask.licensesMap.containsKey("groupE deps5 Apache License 2.0"));
+    assertEquals(licensesTask.licensesMap.get("groupA deps1"), licensesTask.licensesMap.get("groupE deps5 MIT License"));
     assertEquals(expected, content);
   }
 
@@ -298,6 +299,31 @@ public class LicensesTaskTest {
 
     String expected = "0:4 license1" + LINE_BREAK + "6:10 license2" + LINE_BREAK;
     String content = new String(Files.readAllBytes(licensesTask.getLicensesMetadata().toPath()), UTF_8);
+    assertEquals(expected, content);
+  }
+
+  @Test
+  public void testDependencyNameDuplicates() throws IOException {
+    File deps6 = getResourceFile("dependencies/groupF/deps6.pom");
+    String name1 = "deps6";
+    String group1 = "groupF";
+    licensesTask.addLicensesFromPom(deps6, group1, name1);
+
+    File deps7 = getResourceFile("dependencies/groupF/deps7.pom");
+    String name2 = "deps7";
+    String group2 = "groupF";
+    licensesTask.addLicensesFromPom(deps7, group2, name2);
+
+    String content = new String(Files.readAllBytes(licensesTask.getLicenses().toPath()), UTF_8);
+    String expected =
+            "http://www.opensource.org/licenses/mit-license.php"
+                    + LINE_BREAK
+                    + "https://www.apache.org/licenses/LICENSE-2.0"
+                    + LINE_BREAK;
+
+    assertThat(licensesTask.licensesMap.size(), is(2));
+    assertTrue(licensesTask.licensesMap.containsKey("groupF deps6"));
+    assertTrue(licensesTask.licensesMap.containsKey("groupF deps7"));
     assertEquals(expected, content);
   }
 }
