@@ -218,18 +218,21 @@ class LicensesTask extends DefaultTask {
         }
 
         String libraryName = rootNode.name
+        String licenseKey = "${group}:${name}"
         if (libraryName == null || libraryName.trim() == "") {
-            libraryName = "${group}:${name}"
+            libraryName = licenseKey
         }
         if (rootNode.licenses.license.size() > 1) {
             rootNode.licenses.license.each { license ->
                 String licenseName = license.name
                 String licenseUrl = license.url
-                appendDependency("${libraryName} ${licenseName}", licenseUrl.getBytes(UTF_8))
+                appendDependency(
+                        new Dependency("${licenseKey} ${licenseName}", libraryName),
+                        licenseUrl.getBytes(UTF_8))
             }
         } else {
             String nodeUrl = rootNode.licenses.license.url
-            appendDependency(libraryName, nodeUrl.getBytes(UTF_8))
+            appendDependency(new Dependency(licenseKey, libraryName), nodeUrl.getBytes(UTF_8))
         }
     }
 
@@ -259,9 +262,13 @@ class LicensesTask extends DefaultTask {
         return ((ResolvedArtifactResult) artifacts[0]).getFile()
     }
 
-    protected void appendDependency(String dependency, byte[] license) {
+    protected void appendDependency(String key, byte[] license) {
+        appendDependency(new Dependency(key, key), license)
+    }
+
+    protected void appendDependency(Dependency dependency, byte[] license) {
         String licenseText = new String(license, UTF_8)
-        if (licensesMap.containsKey(dependency)) {
+        if (licensesMap.containsKey(dependency.key)) {
             return
         }
 
@@ -274,7 +281,7 @@ class LicensesTask extends DefaultTask {
             appendLicenseContent(license)
             appendLicenseContent(LINE_SEPARATOR)
         }
-        licensesMap.put(dependency, offsets)
+        licensesMap.put(dependency.key, dependency.buildLicensesMetadata(offsets))
     }
 
     protected void appendLicenseContent(byte[] content) {
@@ -284,12 +291,26 @@ class LicensesTask extends DefaultTask {
 
     protected void writeMetadata() {
         for (entry in licensesMap) {
-            licensesMetadata.append("$entry.value $entry.key", UTF_8)
+            licensesMetadata.append(entry.value, UTF_8)
             licensesMetadata.append(LINE_SEPARATOR)
         }
     }
 
     private static ModuleComponentIdentifier createModuleComponentIdentifier(String group, String name, String version) {
         return new DefaultModuleComponentIdentifier(DefaultModuleIdentifier.newId(group, name), version)
+    }
+
+    protected static class Dependency {
+        String key
+        String name
+
+        Dependency(String key, String name) {
+            this.key = key
+            this.name = name
+        }
+
+        String buildLicensesMetadata(String offset) {
+            return "$offset $name"
+        }
     }
 }

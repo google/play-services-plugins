@@ -128,7 +128,7 @@ public class LicensesTaskTest {
 
     String content = new String(Files.readAllBytes(licensesTask.getLicenses().toPath()), UTF_8);
     String expected = "http://www.opensource.org/licenses/mit-license.php" + LINE_BREAK;
-    assertTrue(licensesTask.licensesMap.containsKey("groupA deps1"));
+    assertTrue(licensesTask.licensesMap.containsKey("groupA:deps1"));
     assertEquals(expected, content);
   }
 
@@ -152,8 +152,8 @@ public class LicensesTaskTest {
             + LINE_BREAK;
 
     assertThat(licensesTask.licensesMap.size(), is(2));
-    assertTrue(licensesTask.licensesMap.containsKey("groupA deps1"));
-    assertTrue(licensesTask.licensesMap.containsKey("groupB deps2"));
+    assertTrue(licensesTask.licensesMap.containsKey("groupA:deps1"));
+    assertTrue(licensesTask.licensesMap.containsKey("groupB:deps2"));
     assertEquals(expected, content);
   }
 
@@ -177,10 +177,9 @@ public class LicensesTaskTest {
             + LINE_BREAK;
 
     assertThat(licensesTask.licensesMap.size(), is(3));
-    assertTrue(licensesTask.licensesMap.containsKey("groupA deps1"));
-    assertTrue(licensesTask.licensesMap.containsKey("groupE deps5 MIT License"));
-    assertTrue(licensesTask.licensesMap.containsKey("groupE deps5 Apache License 2.0"));
-    assertEquals(licensesTask.licensesMap.get("groupA deps1"), licensesTask.licensesMap.get("groupE deps5 MIT License"));
+    assertTrue(licensesTask.licensesMap.containsKey("groupA:deps1"));
+    assertTrue(licensesTask.licensesMap.containsKey("groupE:deps5 MIT License"));
+    assertTrue(licensesTask.licensesMap.containsKey("groupE:deps5 Apache License 2.0"));
     assertEquals(expected, content);
   }
 
@@ -200,7 +199,7 @@ public class LicensesTaskTest {
     String expected = "http://www.opensource.org/licenses/mit-license.php" + LINE_BREAK;
 
     assertThat(licensesTask.licensesMap.size(), is(1));
-    assertTrue(licensesTask.licensesMap.containsKey("groupA deps1"));
+    assertTrue(licensesTask.licensesMap.containsKey("groupA:deps1"));
     assertEquals(expected, content);
   }
 
@@ -283,7 +282,9 @@ public class LicensesTaskTest {
 
   @Test
   public void testAppendLicense() throws IOException {
-    licensesTask.appendDependency("license1", "test".getBytes(UTF_8));
+    licensesTask.appendDependency(
+            new LicensesTask.Dependency("license1", "license1"),
+            "test".getBytes(UTF_8));
 
     String expected = "test" + LINE_BREAK;
     String content = new String(Files.readAllBytes(licensesTask.getLicenses().toPath()), UTF_8);
@@ -293,17 +294,19 @@ public class LicensesTaskTest {
 
   @Test
   public void testWriteMetadata() throws IOException {
-    licensesTask.licensesMap.put("license1", "0:4");
-    licensesTask.licensesMap.put("license2", "6:10");
+    LicensesTask.Dependency dep1 = new LicensesTask.Dependency("test:foo", "Dependency 1");
+    LicensesTask.Dependency dep2 = new LicensesTask.Dependency("test:bar", "Dependency 2");
+    licensesTask.licensesMap.put(dep1.getKey(), dep1.buildLicensesMetadata("0:4"));
+    licensesTask.licensesMap.put(dep2.getKey(), dep2.buildLicensesMetadata("6:10"));
     licensesTask.writeMetadata();
 
-    String expected = "0:4 license1" + LINE_BREAK + "6:10 license2" + LINE_BREAK;
+    String expected = "0:4 Dependency 1" + LINE_BREAK + "6:10 Dependency 2" + LINE_BREAK;
     String content = new String(Files.readAllBytes(licensesTask.getLicensesMetadata().toPath()), UTF_8);
     assertEquals(expected, content);
   }
 
   @Test
-  public void testDependencyNameDuplicates() throws IOException {
+  public void testDependenciesWithNameDuplicatedNames() throws IOException {
     File deps6 = getResourceFile("dependencies/groupF/deps6.pom");
     String name1 = "deps6";
     String group1 = "groupF";
@@ -314,16 +317,8 @@ public class LicensesTaskTest {
     String group2 = "groupF";
     licensesTask.addLicensesFromPom(deps7, group2, name2);
 
-    String content = new String(Files.readAllBytes(licensesTask.getLicenses().toPath()), UTF_8);
-    String expected =
-            "http://www.opensource.org/licenses/mit-license.php"
-                    + LINE_BREAK
-                    + "https://www.apache.org/licenses/LICENSE-2.0"
-                    + LINE_BREAK;
-
     assertThat(licensesTask.licensesMap.size(), is(2));
-    assertTrue(licensesTask.licensesMap.containsKey("groupF deps6"));
-    assertTrue(licensesTask.licensesMap.containsKey("groupF deps7"));
-    assertEquals(expected, content);
+    assertTrue(licensesTask.licensesMap.containsKey("groupF:deps6"));
+    assertTrue(licensesTask.licensesMap.containsKey("groupF:deps7"));
   }
 }
