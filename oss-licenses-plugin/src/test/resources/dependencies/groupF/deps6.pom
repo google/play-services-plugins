@@ -1,0 +1,16 @@
+<project>
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>groupF</groupId>
+  <artifactId>deps6</artifactId>
+  <version>1</version>
+  <name>Collision Test</name>
+  <description>groupE deps6 description</description>
+
+  <licenses>
+    <license>
+      <name>MIT License</name>
+      <url>http://www.opensource.org/licenses/mit-license.php</url>
+    </license>
+  </licenses>
+</project>

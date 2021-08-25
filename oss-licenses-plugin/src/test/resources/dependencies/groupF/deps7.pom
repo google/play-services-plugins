@@ -1,0 +1,16 @@
+<project>
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>groupF</groupId>
+  <artifactId>deps7</artifactId>
+  <version>1</version>
+  <name>Collision Test</name>
+  <description>groupF deps7 description</description>
+
+  <licenses>
+    <license>
+      <name>Apache License 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+    </license>
+  </licenses>
+</project>
