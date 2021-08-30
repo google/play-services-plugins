@@ -22,6 +22,7 @@ import org.gradle.api.artifacts.component.ModuleComponentIdentifier
 import org.gradle.api.artifacts.result.ResolvedArtifactResult
 import org.gradle.api.internal.artifacts.DefaultModuleIdentifier
 import org.gradle.api.tasks.InputFile
+import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
@@ -59,6 +60,9 @@ class LicensesTask extends DefaultTask {
 
     @InputFile
     File dependenciesJson
+
+    @InputFiles
+    public File[] thirdPartyLicenses
 
     @OutputDirectory
     File outputDir
@@ -101,6 +105,10 @@ class LicensesTask extends DefaultTask {
             } else {
                 addLicensesFromPom(group, name, version)
             }
+        }
+
+        for (filename in thirdPartyLicenses.sort{it.getName().toLowerCase()}) {
+            addLicensesFromFile(filename)
         }
 
         writeMetadata()
@@ -234,6 +242,11 @@ class LicensesTask extends DefaultTask {
             String nodeUrl = rootNode.licenses.license.url
             appendDependency(new Dependency(licenseKey, libraryName), nodeUrl.getBytes(UTF_8))
         }
+    }
+
+    private void addLicensesFromFile(File filename) {
+        String licenseName = filename.getName()
+        appendLicense(licenseName, filename.getBytes())
     }
 
     private File resolvePomFileArtifact(String group, String name, String version) {

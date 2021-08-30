@@ -37,13 +37,17 @@ class OssLicensesPlugin implements Plugin<Project> {
         def licensesMetadataFile = new File(outputDir,
                 "third_party_license_metadata")
         def licenseTask = project.tasks.create("generateLicenses", LicensesTask)
+        def thirdPartyLicensesDir = new File(project.rootProject.projectDir, "third_party_licenses")
+        def thirdPartyLicenses = thirdPartyLicensesDir.exists() ? thirdPartyLicensesDir.listFiles() : []
 
         licenseTask.dependenciesJson = generatedJson
+        licenseTask.thirdPartyLicenses = thirdPartyLicenses
         licenseTask.outputDir = outputDir
         licenseTask.licenses = licensesFile
         licenseTask.licensesMetadata = licensesMetadataFile
 
         licenseTask.inputs.file(generatedJson)
+        licenseTask.inputs.files(thirdPartyLicenses)
         licenseTask.outputs.dir(outputDir)
         licenseTask.outputs.files(licensesFile, licensesMetadataFile)
 
