@@ -276,7 +276,7 @@ abstract class LicensesTask extends DefaultTask {
 
     private void addLicensesFromFile(File filename) {
         String licenseName = filename.getName()
-        appendLicense(licenseName, filename.getBytes())
+        appendDependency(licenseName, filename.getBytes())
     }
 
     protected void appendDependency(String key, byte[] license) {
