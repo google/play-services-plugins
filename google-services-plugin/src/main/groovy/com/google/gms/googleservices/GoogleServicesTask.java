@@ -37,6 +37,7 @@ import org.gradle.api.tasks.TaskAction;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -130,7 +131,9 @@ public abstract class GoogleServicesTask extends DefaultTask {
       throw new GradleException("Failed to create folder: " + intermediateDir);
     }
 
-    JsonElement root = new JsonParser().parse(Files.newReader(quickstartFile, Charsets.UTF_8));
+    Reader jsonReader = Files.newReader(quickstartFile, Charsets.UTF_8);
+    JsonElement root = new JsonParser().parse(jsonReader);
+    jsonReader.close();
 
     if (!root.isJsonObject()) {
       throw new GradleException("Malformed root json");
