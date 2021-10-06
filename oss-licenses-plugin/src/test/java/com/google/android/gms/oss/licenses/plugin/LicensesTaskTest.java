@@ -348,4 +348,19 @@ public class LicensesTaskTest {
     assertEquals(line, LicensesTask.ABSENT_DEPENDENCY_TEXT);
   }
 
+  @Test
+  public void testThirdPartyLicenses() throws IOException {
+    File thirdPartyLicensesDir = new File(BASE_DIR + "/thirdPartyLicenses");
+    File[] thirdPartyLicenses = thirdPartyLicensesDir.listFiles();
+    assert thirdPartyLicenses != null;
+    licensesTask.setThirdPartyLicenses(thirdPartyLicenses);
+    licensesTask.addThirdPartyLicenses();
+
+    String expected = "test" + LINE_BREAK;
+    String content = new String(Files.readAllBytes(thirdPartyLicenses[0].toPath()), UTF_8);
+
+    assertThat(licensesTask.licensesMap.size(), is(1));
+    assertTrue(licensesTask.licensesMap.containsKey("license1"));
+    assertEquals(expected, content);
+  }
 }

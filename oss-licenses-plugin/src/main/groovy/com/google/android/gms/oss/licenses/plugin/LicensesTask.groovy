@@ -108,9 +108,7 @@ abstract class LicensesTask extends DefaultTask {
             }
         }
 
-        for (filename in thirdPartyLicenses.sort{it.getName().toLowerCase()}) {
-            addLicensesFromFile(filename)
-        }
+        addThirdPartyLicenses();
 
         writeMetadata()
     }
@@ -304,6 +302,12 @@ abstract class LicensesTask extends DefaultTask {
     protected void appendLicenseContent(byte[] content) {
         licenses.append(content)
         start += content.length
+    }
+
+    protected void addThirdPartyLicenses() {
+        for (filename in thirdPartyLicenses.sort{it.getName().toLowerCase()}) {
+            addLicensesFromFile(filename)
+        }
     }
 
     protected void writeMetadata() {
