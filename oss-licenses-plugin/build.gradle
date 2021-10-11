@@ -1,5 +1,6 @@
 apply plugin: 'groovy'
 apply plugin: 'java'
+apply plugin: 'java-gradle-plugin'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -13,9 +14,10 @@ dependencies {
 }
 
 group = 'com.google.android.gms'
-version = '0.10.4'
+version = '0.10.4-roku'
 
 apply plugin: 'maven'
+apply plugin: 'maven-publish'
 
 repositories {
     google()

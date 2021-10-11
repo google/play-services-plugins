@@ -22,6 +22,7 @@ import org.gradle.api.artifacts.component.ModuleComponentIdentifier
 import org.gradle.api.artifacts.result.ResolvedArtifactResult
 import org.gradle.api.internal.artifacts.DefaultModuleIdentifier
 import org.gradle.api.tasks.InputFile
+import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
@@ -46,6 +47,7 @@ class LicensesTask extends DefaultTask {
     private static final String GOOGLE_PLAY_SERVICES_GROUP =
         "com.google.android.gms"
     private static final String LICENSE_ARTIFACT_SURFIX = "-license"
+    private static final String CUSTOM_LICENSE = "custom"
     private static final String FIREBASE_GROUP = "com.google.firebase"
     private static final String FAIL_READING_LICENSES_ERROR =
         "Failed to read license text."
@@ -59,6 +61,10 @@ class LicensesTask extends DefaultTask {
 
     @InputFile
     File dependenciesJson
+
+    @InputFile
+    @Optional
+    File customDependenciesJson
 
     @OutputDirectory
     File outputDir
@@ -75,31 +81,45 @@ class LicensesTask extends DefaultTask {
         initLicenseFile()
         initLicensesMetadata()
 
-        def allDependencies = new JsonSlurper().parse(dependenciesJson)
+        def allDependencies
+
+        if (customDependenciesJson != null) {
+            def dependencies = new JsonSlurper().parse(dependenciesJson)
+            def customDependencies = new JsonSlurper().parse(customDependenciesJson)
+            allDependencies = dependencies + customDependencies
+        } else {
+            allDependencies = new JsonSlurper().parse(dependenciesJson)
+        }
+
         for (entry in allDependencies) {
             String group = entry.group
             String name = entry.name
             String fileLocation = entry.fileLocation
             String version = entry.version
-            File artifactLocation = new File(fileLocation)
 
-            if (isGoogleServices(group, name)) {
-                // Add license info for google-play-services itself
-                if (!name.endsWith(LICENSE_ARTIFACT_SURFIX)) {
+            if (entry.fileLocation.equalsIgnoreCase(CUSTOM_LICENSE)) {
+                addCustomLicenses(group, name, version, entry.license)
+            } else {
+                File artifactLocation = new File(fileLocation)
+
+                if (isGoogleServices(group, name)) {
+                    // Add license info for google-play-services itself
+                    if (!name.endsWith(LICENSE_ARTIFACT_SURFIX)) {
+                        addLicensesFromPom(group, name, version)
+                    }
+                    // Add transitive licenses info for google-play-services. For
+                    // post-granular versions, this is located in the artifact
+                    // itself, whereas for pre-granular versions, this information
+                    // is located at the complementary license artifact as a runtime
+                    // dependency.
+                    if (isGranularVersion(version)) {
+                        addGooglePlayServiceLicenses(artifactLocation)
+                    } else if (name.endsWith(LICENSE_ARTIFACT_SURFIX)) {
+                        addGooglePlayServiceLicenses(artifactLocation)
+                    }
+                } else {
                     addLicensesFromPom(group, name, version)
                 }
-                // Add transitive licenses info for google-play-services. For
-                // post-granular versions, this is located in the artifact
-                // itself, whereas for pre-granular versions, this information
-                // is located at the complementary license artifact as a runtime
-                // dependency.
-                if (isGranularVersion(version)) {
-                    addGooglePlayServiceLicenses(artifactLocation)
-                } else if (name.endsWith(LICENSE_ARTIFACT_SURFIX)) {
-                    addGooglePlayServiceLicenses(artifactLocation)
-                }
-            } else {
-                addLicensesFromPom(group, name, version)
             }
         }
 
@@ -260,6 +280,22 @@ class LicensesTask extends DefaultTask {
             return null
         }
         return ((ResolvedArtifactResult) artifacts[0]).getFile()
+    }
+
+    protected void addCustomLicenses(String group, String name, String version, String license) {
+        String libraryName = name
+        String licenseKey = "${group}:${name}"
+        if (libraryName == null || libraryName.trim() == "") {
+            libraryName = licenseKey
+        }
+        String licenseName = "test"
+        if (license.startsWith("http")) {
+            appendDependency(
+                    new Dependency("${licenseKey} ${licenseName}", libraryName),
+                    license.getBytes(UTF_8))
+        } else {
+            appendDependency(new Dependency(licenseKey, libraryName), license.getBytes(UTF_8))
+        }
     }
 
     protected void appendDependency(String key, byte[] license) {
