@@ -19,16 +19,13 @@ package com.google.android.gms.oss.licenses.plugin
 class ArtifactInfo {
     private String group
     private String name
-    private String fileLocation
     private String version
 
     ArtifactInfo(String group,
-            String name,
-            String fileLocation,
-            String version) {
+                 String name,
+                 String version) {
         this.group = group
         this.name = name
-        this.fileLocation = fileLocation
         this.version = version
     }
 
@@ -40,11 +37,27 @@ class ArtifactInfo {
         return name
     }
 
-    String getFileLocation() {
-        return fileLocation
-    }
-
     String getVersion() {
         return version
+    }
+
+    @Override
+    boolean equals(Object obj) {
+        if (obj instanceof ArtifactInfo) {
+            return (group == obj.group
+                    && name == obj.name
+                    && version == obj.version)
+        }
+        return false
+    }
+
+    @Override
+    int hashCode() {
+        return group.hashCode() ^ name.hashCode() ^ version.hashCode()
+    }
+
+    @Override
+    String toString() {
+        return "$group:$name:$version"
     }
 }

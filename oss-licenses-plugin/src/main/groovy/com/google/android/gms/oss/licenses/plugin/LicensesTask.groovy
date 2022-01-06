@@ -18,16 +18,10 @@ package com.google.android.gms.oss.licenses.plugin
 
 import groovy.json.JsonSlurper
 import org.gradle.api.DefaultTask
-import org.gradle.api.artifacts.component.ModuleComponentIdentifier
-import org.gradle.api.artifacts.result.ResolvedArtifactResult
-import org.gradle.api.internal.artifacts.DefaultModuleIdentifier
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
-import org.gradle.internal.component.external.model.DefaultModuleComponentIdentifier
-import org.gradle.maven.MavenModule
-import org.gradle.maven.MavenPomArtifact
 import org.slf4j.LoggerFactory
 
 import java.util.zip.ZipEntry
@@ -44,11 +38,11 @@ class LicensesTask extends DefaultTask {
             .getProperty("line.separator").getBytes(UTF_8)
     private static final int GRANULAR_BASE_VERSION = 14
     private static final String GOOGLE_PLAY_SERVICES_GROUP =
-        "com.google.android.gms"
-    private static final String LICENSE_ARTIFACT_SURFIX = "-license"
+            "com.google.android.gms"
+    private static final String LICENSE_ARTIFACT_SUFFIX = "-license"
     private static final String FIREBASE_GROUP = "com.google.firebase"
     private static final String FAIL_READING_LICENSES_ERROR =
-        "Failed to read license text."
+            "Failed to read license text."
 
     private static final logger = LoggerFactory.getLogger(LicensesTask.class)
 
@@ -56,12 +50,17 @@ class LicensesTask extends DefaultTask {
     protected Set<String> googleServiceLicenses = []
     protected Map<String, String> licensesMap = [:]
     protected Map<String, String> licenseOffsets = [:]
+    protected static final String ABSENT_DEPENDENCY_KEY = "Debug License Info"
+    protected static final String ABSENT_DEPENDENCY_TEXT = ("Licenses are " +
+            "only provided in build variants " +
+            "(e.g. release) where the Android Gradle Plugin " +
+            "generates an app dependency list.")
 
     @InputFile
     File dependenciesJson
 
     @OutputDirectory
-    File outputDir
+    File rawResourceDir
 
     @OutputFile
     File licenses
@@ -75,40 +74,57 @@ class LicensesTask extends DefaultTask {
         initLicenseFile()
         initLicensesMetadata()
 
-        def allDependencies = new JsonSlurper().parse(dependenciesJson)
-        for (entry in allDependencies) {
-            String group = entry.group
-            String name = entry.name
-            String fileLocation = entry.fileLocation
-            String version = entry.version
-            File artifactLocation = new File(fileLocation)
+        def artifactInfoSet = loadDependenciesJson(dependenciesJson)
 
-            if (isGoogleServices(group, name)) {
-                // Add license info for google-play-services itself
-                if (!name.endsWith(LICENSE_ARTIFACT_SURFIX)) {
-                    addLicensesFromPom(group, name, version)
+        if (DependencyUtil.ABSENT_ARTIFACT in artifactInfoSet) {
+            if (artifactInfoSet.size() > 1) {
+                throw new IllegalStateException("artifactInfoSet that contains EMPTY_ARTIFACT should not contain other artifacts.")
+            }
+            addDebugLicense()
+        } else {
+            for (artifactInfo in artifactInfoSet) {
+                if (isGoogleServices(artifactInfo.group)) {
+                    // Add license info for google-play-services itself
+                    if (!artifactInfo.name.endsWith(LICENSE_ARTIFACT_SUFFIX)) {
+                        addLicensesFromPom(artifactInfo)
+                    }
+                    // Add transitive licenses info for google-play-services. For
+                    // post-granular versions, this is located in the artifact
+                    // itself, whereas for pre-granular versions, this information
+                    // is located at the complementary license artifact as a runtime
+                    // dependency.
+                    if (isGranularVersion(artifactInfo.version) || artifactInfo.name.endsWith(LICENSE_ARTIFACT_SUFFIX)) {
+                        addGooglePlayServiceLicenses(artifactInfo)
+                    }
+                } else {
+                    addLicensesFromPom(artifactInfo)
                 }
-                // Add transitive licenses info for google-play-services. For
-                // post-granular versions, this is located in the artifact
-                // itself, whereas for pre-granular versions, this information
-                // is located at the complementary license artifact as a runtime
-                // dependency.
-                if (isGranularVersion(version)) {
-                    addGooglePlayServiceLicenses(artifactLocation)
-                } else if (name.endsWith(LICENSE_ARTIFACT_SURFIX)) {
-                    addGooglePlayServiceLicenses(artifactLocation)
-                }
-            } else {
-                addLicensesFromPom(group, name, version)
             }
         }
 
         writeMetadata()
     }
 
+    private static Set<ArtifactInfo> loadDependenciesJson(File jsonFile) {
+        def allDependencies = new JsonSlurper().parse(jsonFile)
+        def artifactInfoSet = new HashSet<ArtifactInfo>()
+        for (entry in allDependencies) {
+            ArtifactInfo artifactInfo = artifactInfoFromEntry(entry)
+            artifactInfoSet.add(artifactInfo)
+        }
+        artifactInfoSet.asImmutable()
+    }
+
+    private void addDebugLicense() {
+        appendDependency(
+                ABSENT_DEPENDENCY_KEY,
+                ABSENT_DEPENDENCY_TEXT.getBytes(UTF_8)
+        )
+    }
+
     protected void initOutputDir() {
-        if (!outputDir.exists()) {
-            outputDir.mkdirs()
+        if (!rawResourceDir.exists()) {
+            rawResourceDir.mkdirs()
         }
     }
 
@@ -116,31 +132,39 @@ class LicensesTask extends DefaultTask {
         if (licenses == null) {
             logger.error("License file is undefined")
         }
-        licenses.newWriter().withWriter {w ->
+        licenses.newWriter().withWriter { w ->
             w << ''
         }
     }
 
     protected void initLicensesMetadata() {
-        licensesMetadata.newWriter().withWriter {w ->
+        licensesMetadata.newWriter().withWriter { w ->
             w << ''
         }
     }
 
-    protected boolean isGoogleServices(String group, String name) {
+    protected static boolean isGoogleServices(String group) {
         return (GOOGLE_PLAY_SERVICES_GROUP.equalsIgnoreCase(group)
                 || FIREBASE_GROUP.equalsIgnoreCase(group))
     }
 
-    protected boolean isGranularVersion (String version) {
+    protected static boolean isGranularVersion(String version) {
         String[] versions = version.split("\\.")
         return (versions.length > 0
                 && Integer.valueOf(versions[0]) >= GRANULAR_BASE_VERSION)
     }
 
+    protected void addGooglePlayServiceLicenses(ArtifactInfo artifactInfo) {
+        File artifactFile = DependencyUtil.getLibraryFile(getProject(), artifactInfo)
+        if (artifactFile == null) {
+            logger.warn("Unable to find Google Play Services Artifact for $artifactInfo")
+            return
+        }
+        addGooglePlayServiceLicenses(artifactFile)
+    }
+
     protected void addGooglePlayServiceLicenses(File artifactFile) {
         ZipFile licensesZip = new ZipFile(artifactFile)
-        JsonSlurper jsonSlurper = new JsonSlurper()
 
         ZipEntry jsonFile = licensesZip.getEntry("third_party_licenses.json")
         ZipEntry txtFile = licensesZip.getEntry("third_party_licenses.txt")
@@ -149,8 +173,10 @@ class LicensesTask extends DefaultTask {
             return
         }
 
-        Object licensesObj = jsonSlurper.parse(licensesZip.getInputStream(
-            jsonFile))
+        JsonSlurper jsonSlurper = new JsonSlurper()
+        Object licensesObj = licensesZip.getInputStream(jsonFile).withCloseable {
+            jsonSlurper.parse(it)
+        }
         if (licensesObj == null) {
             return
         }
@@ -161,20 +187,22 @@ class LicensesTask extends DefaultTask {
             int lengthValue = entry.value.length
 
             if (!googleServiceLicenses.contains(key)) {
-                googleServiceLicenses.add(key)
-                byte[] content = getBytesFromInputStream(
-                    licensesZip.getInputStream(txtFile),
-                    startValue,
-                    lengthValue)
-                appendDependency(key, content)
+                licensesZip.getInputStream(txtFile).withCloseable {
+                    byte[] content = getBytesFromInputStream(
+                            it,
+                            startValue,
+                            lengthValue)
+                    googleServiceLicenses.add(key)
+                    appendDependency(key, content)
+                }
             }
         }
     }
 
-    protected byte[] getBytesFromInputStream(
-        InputStream stream,
-        long offset,
-        int length) {
+    protected static byte[] getBytesFromInputStream(
+            InputStream stream,
+            long offset,
+            int length) {
         try {
             byte[] buffer = new byte[1024]
             ByteArrayOutputStream textArray = new ByteArrayOutputStream()
@@ -184,12 +212,12 @@ class LicensesTask extends DefaultTask {
             int bytes = 0
 
             while (bytesRemaining > 0
-                && (bytes =
-                stream.read(
-                    buffer,
-                    0,
-                    Math.min(bytesRemaining, buffer.length)))
-                != -1) {
+                    && (bytes =
+                    stream.read(
+                            buffer,
+                            0,
+                            Math.min(bytesRemaining, buffer.length)))
+                    != -1) {
                 textArray.write(buffer, 0, bytes)
                 bytesRemaining -= bytes
             }
@@ -201,9 +229,9 @@ class LicensesTask extends DefaultTask {
         }
     }
 
-    protected void addLicensesFromPom(String group, String name, String version) {
-        def pomFile = resolvePomFileArtifact(group, name, version)
-        addLicensesFromPom((File) pomFile, group, name)
+    protected void addLicensesFromPom(ArtifactInfo artifactInfo) {
+        def pomFile = DependencyUtil.resolvePomFileArtifact(getProject(), artifactInfo)
+        addLicensesFromPom((File) pomFile, artifactInfo.group, artifactInfo.name)
     }
 
     protected void addLicensesFromPom(File pomFile, String group, String name) {
@@ -219,7 +247,7 @@ class LicensesTask extends DefaultTask {
 
         String libraryName = rootNode.name
         String licenseKey = "${group}:${name}"
-        if (libraryName == null || libraryName.trim() == "") {
+        if (libraryName == null || libraryName.isBlank()) {
             libraryName = licenseKey
         }
         if (rootNode.licenses.license.size() > 1) {
@@ -234,32 +262,6 @@ class LicensesTask extends DefaultTask {
             String nodeUrl = rootNode.licenses.license.url
             appendDependency(new Dependency(licenseKey, libraryName), nodeUrl.getBytes(UTF_8))
         }
-    }
-
-    private File resolvePomFileArtifact(String group, String name, String version) {
-        def moduleComponentIdentifier =
-                createModuleComponentIdentifier(group, name, version)
-        logger.info("Resolving POM file for $moduleComponentIdentifier licenses.")
-        def components = getProject().getDependencies()
-                .createArtifactResolutionQuery()
-                .forComponents(moduleComponentIdentifier)
-                .withArtifacts(MavenModule.class, MavenPomArtifact.class)
-                .execute()
-        if (components.resolvedComponents.isEmpty()) {
-            logger.warn("$moduleComponentIdentifier has no POM file.")
-            return null
-        }
-
-        def artifacts = components.resolvedComponents[0].getArtifacts(MavenPomArtifact.class)
-        if (artifacts.isEmpty()) {
-            logger.error("$moduleComponentIdentifier empty POM artifact list.")
-            return null
-        }
-        if (!(artifacts[0] instanceof ResolvedArtifactResult)) {
-            logger.error("$moduleComponentIdentifier unexpected type ${artifacts[0].class}")
-            return null
-        }
-        return ((ResolvedArtifactResult) artifacts[0]).getFile()
     }
 
     protected void appendDependency(String key, byte[] license) {
@@ -296,8 +298,8 @@ class LicensesTask extends DefaultTask {
         }
     }
 
-    private static ModuleComponentIdentifier createModuleComponentIdentifier(String group, String name, String version) {
-        return new DefaultModuleComponentIdentifier(DefaultModuleIdentifier.newId(group, name), version)
+    static ArtifactInfo artifactInfoFromEntry(Object entry) {
+        return new ArtifactInfo(entry.group, entry.name, entry.version)
     }
 
     protected static class Dependency {
