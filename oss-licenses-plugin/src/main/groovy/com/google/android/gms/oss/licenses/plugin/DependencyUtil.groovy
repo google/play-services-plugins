@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory
  */
 class DependencyUtil {
     /**
-     * An artifact that represents the absence of an APG dependency list.
+     * An artifact that represents the absence of an AGP dependency list.
      */
     protected static final ArtifactInfo ABSENT_ARTIFACT =
             new ArtifactInfo("absent", "absent", "absent")
@@ -53,7 +53,8 @@ class DependencyUtil {
 
 
     /**
-     * Returns the POM file associated with the supplied artifactInfo.
+     * Returns the POM file associated with the supplied artifactInfo or null
+     * if none was found.
      */
     static File resolvePomFileArtifact(Project project, ArtifactInfo artifactInfo) {
         def moduleComponentIdentifier =
