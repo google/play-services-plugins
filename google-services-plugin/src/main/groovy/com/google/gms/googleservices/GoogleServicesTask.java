@@ -486,7 +486,6 @@ public abstract class GoogleServicesTask extends DefaultTask {
     fileLocations.add("src/" + flavorName);
     fileLocations.add("src/" + buildType);
     fileLocations.add("src/" + flavorName + capitalize(buildType));
-    fileLocations.add("src/" + buildType);
     String fileLocation = "src";
     for(String flavor : flavorNames) {
       fileLocation += "/" + flavor;
