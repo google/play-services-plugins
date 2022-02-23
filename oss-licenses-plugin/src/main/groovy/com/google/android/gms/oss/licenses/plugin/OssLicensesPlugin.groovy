@@ -37,8 +37,7 @@ class OssLicensesPlugin implements Plugin<Project> {
                 def dependencyTask = project.tasks.register(
                         "${variant.name}OssDependencyTask",
                         DependencyTask.class) {
-                    it.outputDir = baseDir
-                    it.outputFile = dependenciesJson
+                    it.dependenciesJson.set(dependenciesJson)
                     it.libraryDependenciesReport.set(variant.artifacts.get(SingleArtifact.METADATA_LIBRARY_DEPENDENCIES_REPORT.INSTANCE))
                 }.get()
                 logger.debug("Created task ${dependencyTask.name}")
@@ -52,12 +51,11 @@ class OssLicensesPlugin implements Plugin<Project> {
                 def licenseTask = project.tasks.register(
                         "${variant.name}OssLicensesTask",
                         LicensesTask.class) {
-                    it.dependenciesJson = dependenciesJson
+                    it.dependenciesJson.set(dependencyTask.dependenciesJson)
                     it.rawResourceDir = rawResourceDir
                     it.licenses = licensesFile
                     it.licensesMetadata = licensesMetadataFile
                 }.get()
-                licenseTask.dependsOn(dependencyTask)
                 logger.debug("Created task ${licenseTask.name}")
 
                 variantTolicenseTaskMap[variant.name] = licenseTask

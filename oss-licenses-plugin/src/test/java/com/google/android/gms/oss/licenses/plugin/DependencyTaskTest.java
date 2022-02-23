@@ -82,8 +82,7 @@ public class DependencyTaskTest {
   public void testAction_valuesConvertedToJson() throws Exception {
     File outputDir = temporaryFolder.newFolder();
     File outputJson = new File(outputDir, "test.json");
-    dependencyTask.setOutputDir(outputDir);
-    dependencyTask.setOutputFile(outputJson);
+    dependencyTask.getDependenciesJson().set(outputJson);
     ImmutableSet<ArtifactInfo> expectedArtifacts = ImmutableSet.of(
         new ArtifactInfo("org.group.id", "artifactId", "1.0.0"),
         new ArtifactInfo("org.group.other", "other-artifact", "3.2.1")
@@ -101,8 +100,7 @@ public class DependencyTaskTest {
   public void testAction_withNonMavenDeps_nonMavenDepsIgnored() throws Exception {
     File outputDir = temporaryFolder.newFolder();
     File outputJson = new File(outputDir, "test.json");
-    dependencyTask.setOutputDir(outputDir);
-    dependencyTask.setOutputFile(outputJson);
+    dependencyTask.getDependenciesJson().set(outputJson);
     ImmutableSet<ArtifactInfo> expectedArtifacts = ImmutableSet.of(
         new ArtifactInfo("org.group.id", "artifactId", "1.0.0"),
         new ArtifactInfo("org.group.other", "other-artifact", "3.2.1")
@@ -122,8 +120,7 @@ public class DependencyTaskTest {
   public void testAction_depFileAbsent_writesAbsentDep() throws Exception {
     File outputDir = temporaryFolder.newFolder();
     File outputJson = new File(outputDir, "test.json");
-    dependencyTask.setOutputDir(outputDir);
-    dependencyTask.setOutputFile(outputJson);
+    dependencyTask.getDependenciesJson().set(outputJson);
     ImmutableSet<ArtifactInfo> expectedArtifacts = ImmutableSet.of(DependencyUtil.ABSENT_ARTIFACT);
 
     dependencyTask.action();

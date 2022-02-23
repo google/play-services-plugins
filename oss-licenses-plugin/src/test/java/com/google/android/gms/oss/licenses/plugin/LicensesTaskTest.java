@@ -337,7 +337,7 @@ public class LicensesTaskTest {
     try (FileWriter writer = new FileWriter(dependenciesJson)) {
       gson.toJson(artifactInfoArray, writer);
     }
-    licensesTask.setDependenciesJson(dependenciesJson);
+    licensesTask.getDependenciesJson().set(dependenciesJson);
 
     licensesTask.action();
 

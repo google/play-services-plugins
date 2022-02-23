@@ -21,7 +21,6 @@ import groovy.json.JsonBuilder
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.tasks.InputFile
-import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 import org.slf4j.LoggerFactory
@@ -40,11 +39,8 @@ import static com.android.tools.build.libraries.metadata.Library.LibraryOneofCas
 abstract class DependencyTask extends DefaultTask {
     private static final logger = LoggerFactory.getLogger(DependencyTask.class)
 
-    @OutputDirectory
-    File outputDir
-
     @OutputFile
-    File outputFile
+    abstract RegularFileProperty getDependenciesJson()
 
     @InputFile
     @org.gradle.api.tasks.Optional
@@ -54,7 +50,9 @@ abstract class DependencyTask extends DefaultTask {
     void action() {
         def artifactInfoSet = loadArtifactInfo()
 
-        initOutput()
+        File outputFile = dependenciesJson.asFile.get()
+
+        initOutput(outputFile.parentFile)
         outputFile.newWriter().withWriter {
             it.write(new JsonBuilder(artifactInfoSet).toPrettyString())
         }
@@ -93,7 +91,7 @@ abstract class DependencyTask extends DefaultTask {
                 .collect(Collectors.toUnmodifiableSet())
     }
 
-    private void initOutput() {
+    private static void initOutput(File outputDir) {
         if (!outputDir.exists()) {
             outputDir.mkdirs()
         }
