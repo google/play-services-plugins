@@ -1,17 +1,15 @@
 /**
  * Copyright 2018 Google LLC
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License. You may obtain a copy of the License at
  *
- *    https://www.apache.org/licenses/LICENSE-2.0
+ * https://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
  */
 
 package com.google.android.gms.oss.licenses.plugin;
@@ -27,16 +25,23 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.google.gson.Gson;
+import com.google.gson.stream.JsonWriter;
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import org.gradle.api.Project;
+import org.gradle.internal.impldep.com.fasterxml.jackson.core.json.JsonWriteContext;
 import org.gradle.testfixtures.ProjectBuilder;
 import org.junit.Before;
 import org.junit.Rule;
@@ -48,13 +53,14 @@ import org.junit.runners.JUnit4;
 /** Tests for {@link LicensesTask} */
 @RunWith(JUnit4.class)
 public class LicensesTaskTest {
-  private static final Charset UTF_8 = Charset.forName("UTF-8");
+
+  private static final Charset UTF_8 = StandardCharsets.UTF_8;
   private static final String BASE_DIR = "src/test/resources";
   private static final String LINE_BREAK = System.getProperty("line.separator");
+  @Rule
+  public TemporaryFolder temporaryFolder = new TemporaryFolder();
   private Project project;
   private LicensesTask licensesTask;
-
-  @Rule public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
   @Before
   public void setUp() throws IOException {
@@ -65,30 +71,16 @@ public class LicensesTaskTest {
     project = ProjectBuilder.builder().withProjectDir(new File(BASE_DIR)).build();
     licensesTask = project.getTasks().create("generateLicenses", LicensesTask.class);
 
-    licensesTask.setOutputDir(outputDir);
+    licensesTask.setRawResourceDir(outputDir);
     licensesTask.setLicenses(outputLicenses);
     licensesTask.setLicensesMetadata(outputMetadata);
-  }
-
-  private void createLicenseZip(String name) throws IOException {
-    File zipFile = new File(name);
-    ZipOutputStream output = new ZipOutputStream(new FileOutputStream(zipFile));
-    File input = new File(BASE_DIR + "/sampleLicenses");
-    for (File file : input.listFiles()) {
-      ZipEntry entry = new ZipEntry(file.getName());
-      byte[] bytes = Files.readAllBytes(file.toPath());
-      output.putNextEntry(entry);
-      output.write(bytes, 0, bytes.length);
-      output.closeEntry();
-    }
-    output.close();
   }
 
   @Test
   public void testInitOutputDir() {
     licensesTask.initOutputDir();
 
-    assertTrue(licensesTask.getOutputDir().exists());
+    assertTrue(licensesTask.getRawResourceDir().exists());
   }
 
   @Test
@@ -110,13 +102,13 @@ public class LicensesTaskTest {
   @Test
   public void testIsGranularVersion_True() {
     String versionTrue = "14.6.0";
-    assertTrue(licensesTask.isGranularVersion(versionTrue));
+    assertTrue(LicensesTask.isGranularVersion(versionTrue));
   }
 
   @Test
   public void testIsGranularVersion_False() {
     String versionFalse = "11.4.0";
-    assertFalse(licensesTask.isGranularVersion(versionFalse));
+    assertFalse(LicensesTask.isGranularVersion(versionFalse));
   }
 
   @Test
@@ -212,7 +204,7 @@ public class LicensesTaskTest {
     InputStream inputStream = mock(InputStream.class);
     when(inputStream.read(any(byte[].class), anyInt(), anyInt())).thenThrow(new IOException());
     try {
-      licensesTask.getBytesFromInputStream(inputStream, 1, 1);
+      LicensesTask.getBytesFromInputStream(inputStream, 1, 1);
       fail("This test should throw Exception.");
     } catch (RuntimeException e) {
       assertEquals("Failed to read license text.", e.getMessage());
@@ -223,7 +215,7 @@ public class LicensesTaskTest {
   public void testGetBytesFromInputStream_normalText() {
     String test = "test";
     InputStream inputStream = new ByteArrayInputStream(test.getBytes(UTF_8));
-    String content = new String(licensesTask.getBytesFromInputStream(inputStream, 1, 1), UTF_8);
+    String content = new String(LicensesTask.getBytesFromInputStream(inputStream, 1, 1), UTF_8);
     assertEquals("e", content);
   }
 
@@ -231,13 +223,13 @@ public class LicensesTaskTest {
   public void testGetBytesFromInputStream_specialCharacters() {
     String test = "Copyright © 1991-2017 Unicode";
     InputStream inputStream = new ByteArrayInputStream(test.getBytes(UTF_8));
-    String content = new String(licensesTask.getBytesFromInputStream(inputStream, 4, 18), UTF_8);
+    String content = new String(LicensesTask.getBytesFromInputStream(inputStream, 4, 18), UTF_8);
     assertEquals("right © 1991-2017", content);
   }
 
   @Test
   public void testAddGooglePlayServiceLicenses() throws IOException {
-    File tempOutput = new File(licensesTask.getOutputDir(), "dependencies/groupC");
+    File tempOutput = new File(licensesTask.getRawResourceDir(), "dependencies/groupC");
     tempOutput.mkdirs();
     createLicenseZip(tempOutput.getPath() + "play-services-foo-license.aar");
     File artifact = new File(tempOutput.getPath() + "play-services-foo-license.aar");
@@ -256,12 +248,12 @@ public class LicensesTaskTest {
 
   @Test
   public void testAddGooglePlayServiceLicenses_withoutDuplicate() throws IOException {
-    File groupC = new File(licensesTask.getOutputDir(), "dependencies/groupC");
+    File groupC = new File(licensesTask.getRawResourceDir(), "dependencies/groupC");
     groupC.mkdirs();
     createLicenseZip(groupC.getPath() + "/play-services-foo-license.aar");
     File artifactFoo = new File(groupC.getPath() + "/play-services-foo-license.aar");
 
-    File groupD = new File(licensesTask.getOutputDir(), "dependencies/groupD");
+    File groupD = new File(licensesTask.getRawResourceDir(), "dependencies/groupD");
     groupD.mkdirs();
     createLicenseZip(groupD.getPath() + "/play-services-bar-license.aar");
     File artifactBar = new File(groupD.getPath() + "/play-services-bar-license.aar");
@@ -280,11 +272,25 @@ public class LicensesTaskTest {
     assertTrue(licensesTask.licensesMap.containsKey("JSR 305"));
   }
 
+  private void createLicenseZip(String name) throws IOException {
+    File zipFile = new File(name);
+    ZipOutputStream output = new ZipOutputStream(new FileOutputStream(zipFile));
+    File input = new File(BASE_DIR + "/sampleLicenses");
+    for (File file : input.listFiles()) {
+      ZipEntry entry = new ZipEntry(file.getName());
+      byte[] bytes = Files.readAllBytes(file.toPath());
+      output.putNextEntry(entry);
+      output.write(bytes, 0, bytes.length);
+      output.closeEntry();
+    }
+    output.close();
+  }
+
   @Test
   public void testAppendLicense() throws IOException {
     licensesTask.appendDependency(
-            new LicensesTask.Dependency("license1", "license1"),
-            "test".getBytes(UTF_8));
+        new LicensesTask.Dependency("license1", "license1"),
+        "test".getBytes(UTF_8));
 
     String expected = "test" + LINE_BREAK;
     String content = new String(Files.readAllBytes(licensesTask.getLicenses().toPath()), UTF_8);
@@ -301,7 +307,8 @@ public class LicensesTaskTest {
     licensesTask.writeMetadata();
 
     String expected = "0:4 Dependency 1" + LINE_BREAK + "6:10 Dependency 2" + LINE_BREAK;
-    String content = new String(Files.readAllBytes(licensesTask.getLicensesMetadata().toPath()), UTF_8);
+    String content = new String(Files.readAllBytes(licensesTask.getLicensesMetadata().toPath()),
+        UTF_8);
     assertEquals(expected, content);
   }
 
@@ -321,4 +328,24 @@ public class LicensesTaskTest {
     assertTrue(licensesTask.licensesMap.containsKey("groupF:deps6"));
     assertTrue(licensesTask.licensesMap.containsKey("groupF:deps7"));
   }
+
+  @Test
+  public void action_absentDependencies_rendersAbsentData() throws Exception {
+    File dependenciesJson = temporaryFolder.newFile();
+    ArtifactInfo[] artifactInfoArray = new ArtifactInfo[] { DependencyUtil.ABSENT_ARTIFACT };
+    Gson gson = new Gson();
+    try (FileWriter writer = new FileWriter(dependenciesJson)) {
+      gson.toJson(artifactInfoArray, writer);
+    }
+    licensesTask.getDependenciesJson().set(dependenciesJson);
+
+    licensesTask.action();
+
+    String line;
+    try (BufferedReader reader = new BufferedReader(new FileReader(licensesTask.getLicenses()))) {
+      line = reader.readLine();
+    }
+    assertEquals(line, LicensesTask.ABSENT_DEPENDENCY_TEXT);
+  }
+
 }

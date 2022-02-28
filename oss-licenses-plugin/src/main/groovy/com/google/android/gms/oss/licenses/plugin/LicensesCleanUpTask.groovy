@@ -25,7 +25,7 @@ import org.gradle.api.tasks.TaskAction
  */
 class LicensesCleanUpTask extends DefaultTask {
 
-    protected File dependencyFile
+    protected File dependenciesJson
 
     protected File dependencyDir
 
@@ -37,8 +37,8 @@ class LicensesCleanUpTask extends DefaultTask {
 
     @TaskAction
     void action() {
-        if (dependencyFile.exists()) {
-            dependencyFile.delete()
+        if (dependenciesJson.exists()) {
+            dependenciesJson.delete()
         }
 
         if (dependencyDir.isDirectory() && dependencyDir.list().length == 0) {

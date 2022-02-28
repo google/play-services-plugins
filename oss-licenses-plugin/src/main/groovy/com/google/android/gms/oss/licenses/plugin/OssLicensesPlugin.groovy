@@ -16,75 +16,74 @@
 
 package com.google.android.gms.oss.licenses.plugin
 
+import com.android.build.api.artifact.SingleArtifact
 import com.android.build.gradle.api.BaseVariant
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.slf4j.LoggerFactory
 
 class OssLicensesPlugin implements Plugin<Project> {
+
+    private static final logger = LoggerFactory.getLogger(DependencyTask.class)
+
     void apply(Project project) {
-        def getDependencies = project.tasks.create("getDependencies",
-                DependencyTask)
-        def dependencyOutput = new File(project.buildDir,
-            "generated/third_party_licenses")
-        def generatedJson = new File(dependencyOutput, "dependencies.json")
-        getDependencies.setProject(project)
-        getDependencies.outputDir = dependencyOutput
-        getDependencies.outputFile = generatedJson
+        def variantTolicenseTaskMap = new HashMap<String, LicensesTask>()
+        project.androidComponents {
+            onVariants(selector().all(), { variant ->
+                def baseDir = new File(project.buildDir,
+                        "generated/third_party_licenses/${variant.name}")
+                def dependenciesJson = new File(baseDir, "dependencies.json")
 
-        def resourceOutput = new File(dependencyOutput, "/res")
-        def outputDir = new File(resourceOutput, "/raw")
-        def licensesFile = new File(outputDir, "third_party_licenses")
-        def licensesMetadataFile = new File(outputDir,
-                "third_party_license_metadata")
-        def licenseTask = project.tasks.create("generateLicenses", LicensesTask)
+                def dependencyTask = project.tasks.register(
+                        "${variant.name}OssDependencyTask",
+                        DependencyTask.class) {
+                    it.dependenciesJson.set(dependenciesJson)
+                    it.libraryDependenciesReport.set(variant.artifacts.get(SingleArtifact.METADATA_LIBRARY_DEPENDENCIES_REPORT.INSTANCE))
+                }.get()
+                logger.debug("Created task ${dependencyTask.name}")
 
-        licenseTask.dependenciesJson = generatedJson
-        licenseTask.outputDir = outputDir
-        licenseTask.licenses = licensesFile
-        licenseTask.licensesMetadata = licensesMetadataFile
+                def resourceBaseDir = new File(baseDir, "/res")
+                def rawResourceDir = new File(resourceBaseDir, "/raw")
+                def licensesFile = new File(rawResourceDir, "third_party_licenses")
+                def licensesMetadataFile = new File(rawResourceDir,
+                        "third_party_license_metadata")
 
-        licenseTask.inputs.file(generatedJson)
-        licenseTask.outputs.dir(outputDir)
-        licenseTask.outputs.files(licensesFile, licensesMetadataFile)
+                def licenseTask = project.tasks.register(
+                        "${variant.name}OssLicensesTask",
+                        LicensesTask.class) {
+                    it.dependenciesJson.set(dependencyTask.dependenciesJson)
+                    it.rawResourceDir = rawResourceDir
+                    it.licenses = licensesFile
+                    it.licensesMetadata = licensesMetadataFile
+                }.get()
+                logger.debug("Created task ${licenseTask.name}")
 
-        licenseTask.dependsOn(getDependencies)
+                variantTolicenseTaskMap[variant.name] = licenseTask
 
-        project.android.applicationVariants.all { BaseVariant variant ->
-            // This is necessary for backwards compatibility with versions of gradle that do not support
-            // this new API.
-            if (variant.hasProperty("preBuildProvider")) {
-                variant.preBuildProvider.configure { dependsOn(licenseTask) }
-            } else {
-                //noinspection GrDeprecatedAPIUsage
-                variant.preBuild.dependsOn(licenseTask)
-            }
+                def cleanupTask = project.tasks.register(
+                        "${variant.name}OssLicensesCleanUp",
+                        LicensesCleanUpTask.class) {
+                    it.dependenciesJson = dependenciesJson
+                    it.dependencyDir = baseDir
+                    it.licensesFile = licensesFile
+                    it.metadataFile = licensesMetadataFile
+                    it.licensesDir = rawResourceDir
+                }.get()
+                logger.debug("Created task ${cleanupTask.name}")
 
-            // This is necessary for backwards compatibility with versions of gradle that do not support
-            // this new API.
-            if (variant.respondsTo("registerGeneratedResFolders")) {
-                licenseTask.ext.generatedResFolders = project.files(resourceOutput).builtBy(licenseTask)
-                variant.registerGeneratedResFolders(licenseTask.generatedResFolders)
-
-                if (variant.hasProperty("mergeResourcesProvider")) {
-                    variant.mergeResourcesProvider.configure { dependsOn(licenseTask) }
-                } else {
-                    //noinspection GrDeprecatedAPIUsage
-                    variant.mergeResources.dependsOn(licenseTask)
-                }
-            } else {
-                //noinspection GrDeprecatedAPIUsage
-                variant.registerResGeneratingTask(licenseTask, resourceOutput)
-            }
+                project.tasks.findByName("clean").dependsOn(cleanupTask)
+            })
         }
 
-        def cleanupTask = project.tasks.create("licensesCleanUp",
-                LicensesCleanUpTask)
-        cleanupTask.dependencyFile = generatedJson
-        cleanupTask.dependencyDir = dependencyOutput
-        cleanupTask.licensesFile = licensesFile
-        cleanupTask.metadataFile = licensesMetadataFile
-        cleanupTask.licensesDir = outputDir
-
-        project.tasks.findByName("clean").dependsOn(cleanupTask)
+        // TODO: Switch to new Variant API when API is ready and before
+        //  BaseVariant is removed in 8.0
+        project.android.applicationVariants.all { BaseVariant variant ->
+            def licenseTask = variantTolicenseTaskMap[variant.name]
+            if (licenseTask == null) {
+                return
+            }
+            def generatedResFolder = project.files(licenseTask.rawResourceDir.parentFile).builtBy(licenseTask)
+            variant.registerGeneratedResFolders(generatedResFolder)
+        }
     }
 }
