@@ -305,6 +305,9 @@ abstract class LicensesTask extends DefaultTask {
     }
 
     protected void addThirdPartyLicenses() {
+        if (thirdPartyLicenses == null) {
+            return
+        }
         for (filename in thirdPartyLicenses.sort{it.getName().toLowerCase()}) {
             addLicensesFromFile(filename)
         }
