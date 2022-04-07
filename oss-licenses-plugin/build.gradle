@@ -1,5 +1,6 @@
 apply plugin: 'groovy'
 apply plugin: 'java'
+apply plugin: 'java-gradle-plugin'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -19,35 +20,20 @@ dependencies {
 
 group = 'com.google.android.gms'
 version = '0.10.5'
-
-apply plugin: 'maven'
+project.ext.archivesBaseName = 'oss-licenses-plugin'
 
 repositories {
     google()
     mavenCentral()
 }
 
-// upload and build in local
-uploadArchives {
-    repositories {
-        mavenDeployer {
-            repository(url: uri('../repo'))
-            pom.project {
-                licenses {
-                    license {
-                        name 'The Apache Software License, Version 2.0'
-                        url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-                        distribution 'repo'
-                    }
-                }
-
-            }
+gradlePlugin {
+    plugins {
+        ossLicensesPlugin {
+            id = 'com.google.android.gms.oss-licenses-plugin'
+            implementationClass = 'com.google.android.gms.oss.licenses.plugin.OssLicensesPlugin'
         }
     }
 }
 
-// generate zip file for android maven release tool
-task packageFiles(type: Zip, dependsOn: 'uploadArchives') {
-    def groupDir = rootProject.group.replaceAll('\\.', '/')
-    from("../repo/$groupDir/$rootProject.name/$rootProject.version/")
-}
+apply from: 'publish.gradle'
