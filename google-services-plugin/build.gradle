@@ -1,9 +1,6 @@
 buildscript {
     repositories {
-        jcenter()
-    }
-    dependencies {
-        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.4'
+        mavenCentral()
     }
 }
 
@@ -17,7 +14,7 @@ apply plugin: 'java-gradle-plugin'
 
 repositories {
     google()
-    jcenter()
+    mavenCentral()
     mavenLocal()
 }
 
@@ -40,10 +37,6 @@ gradlePlugin {
 }
 
 apply from: 'publish.gradle'
-
-if (project.hasProperty('bintrayUser') && project.hasProperty('bintrayKey')) {
-    apply from: 'bintray.gradle'
-}
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
