@@ -126,27 +126,19 @@ class GoogleServicesPlugin implements Plugin<Project> {
           .register(
             "process${variant.name.capitalize()}GoogleServices",
              GoogleServicesTask) { task ->
-              task.setIntermediateDir(outputDir)
+              task.outputDirectory.set(outputDir)
               task.applicationId.set(variant.applicationId)
               task.setBuildType(variant.buildType.name)
               task.setProductFlavors(variant.productFlavors.collect { it.name })
-
-              // This is necessary for backwards compatibility with versions of gradle that do not support
-              // this new API.
-              if (variant.respondsTo("registerGeneratedResFolders")) {
-                task.ext.generatedResFolders = project.files(outputDir).builtBy(task)
-                variant.registerGeneratedResFolders(task.generatedResFolders)
-              } else {
-                //noinspection GrDeprecatedAPIUsage
-                variant.registerResGeneratingTask(task, outputDir)
-              }
             }
-      if (variant.respondsTo("getMergeResourcesProvider")) {
-        variant.mergeResourcesProvider.configure { dependsOn(processTask) }
-      } else {
-        //noinspection GrDeprecatedAPIUsage
-        variant.mergeResources.dependsOn(processTask)
-      }
+    if (variant.respondsTo("registerGeneratedResFolders")) {
+      variant.registerGeneratedResFolders(
+              project.files(processTask.flatMap {task -> task.outputDirectory})
+      )
+    } else {
+      //noinspection GrDeprecatedAPIUsage Support for AGP 2.2 and below (perhaps we can drop that support?)
+      variant.registerResGeneratingTask(processTask.get(), processTask.get().outputDirectory.get().asFile)
+    }
   }
 
   public static class GoogleServicesPluginConfig {
