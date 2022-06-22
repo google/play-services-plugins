@@ -12,7 +12,7 @@ buildscript {
 
 project.ext.group = 'com.google.android.gms'
 project.ext.archivesBaseName = 'strict-version-matcher-plugin'
-project.ext.version = '1.2.3'
+project.ext.version = '1.2.4'
 project.ext.pomDesc = 'Gradle plug-in to enforce version ranges for Google Play services and Firebase dependencies.'
 
 apply plugin: 'kotlin'
