@@ -26,7 +26,9 @@ import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
+import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.model.ObjectFactory;
+
 import org.gradle.api.provider.Property;
 import org.gradle.api.resources.TextResource;
 import org.gradle.api.tasks.Input;
@@ -61,7 +63,6 @@ public abstract class GoogleServicesTask extends DefaultTask {
 
   private static final String OAUTH_CLIENT_TYPE_WEB = "3";
 
-  private File intermediateDir;
   private String buildType;
   private List<String> productFlavors;
   private ObjectFactory objectFactory;
@@ -72,9 +73,7 @@ public abstract class GoogleServicesTask extends DefaultTask {
   }
 
   @OutputDirectory
-  public File getIntermediateDir() {
-    return intermediateDir;
-  }
+  public abstract DirectoryProperty getOutputDirectory();
 
   @Input
   public String getBuildType() {
@@ -84,10 +83,6 @@ public abstract class GoogleServicesTask extends DefaultTask {
   @Input
   public List<String> getProductFlavors() {
     return productFlavors;
-  }
-
-  public void setIntermediateDir(File intermediateDir) {
-    this.intermediateDir = intermediateDir;
   }
 
   public void setBuildType(String buildType) {
@@ -125,6 +120,7 @@ public abstract class GoogleServicesTask extends DefaultTask {
     getLogger().info("Parsing json file: " + quickstartFile.getPath());
 
     // delete content of outputdir.
+    File intermediateDir = getOutputDirectory().get().getAsFile();
     deleteFolder(intermediateDir);
     if (!intermediateDir.mkdirs()) {
       throw new GradleException("Failed to create folder: " + intermediateDir);
@@ -260,7 +256,7 @@ public abstract class GoogleServicesTask extends DefaultTask {
 
     resValues.put("ga_trackingId", trackingId.getAsString());
 
-    File xml = new File(intermediateDir, "xml");
+    File xml = new File(getOutputDirectory().get().getAsFile(), "xml");
     if (!xml.exists() && !xml.mkdirs()) {
       throw new GradleException("Failed to create folder: " + xml);
     }
