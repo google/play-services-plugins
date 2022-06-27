@@ -34,6 +34,7 @@ import org.gradle.api.resources.TextResource;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputFile;
 import org.gradle.api.tasks.Optional;
+import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.TaskAction;
 
@@ -74,6 +75,12 @@ public abstract class GoogleServicesTask extends DefaultTask {
 
   @OutputDirectory
   public abstract DirectoryProperty getOutputDirectory();
+
+  /** Reintroduced for binary compatiblity with the crashlytics plugin */
+  @Internal
+  public File getIntermediateDir() {
+    return getOutputDirectory().getAsFile().get();
+  }
 
   @Input
   public String getBuildType() {
