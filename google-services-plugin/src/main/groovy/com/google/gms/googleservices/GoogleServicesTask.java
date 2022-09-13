@@ -27,13 +27,12 @@ import com.google.gson.JsonPrimitive;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
 import org.gradle.api.file.DirectoryProperty;
-import org.gradle.api.model.ObjectFactory;
+import org.gradle.api.file.FileCollection;
+import org.gradle.api.file.FileSystemLocation;
 
 import org.gradle.api.provider.Property;
-import org.gradle.api.resources.TextResource;
 import org.gradle.api.tasks.Input;
-import org.gradle.api.tasks.InputFile;
-import org.gradle.api.tasks.Optional;
+import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.TaskAction;
@@ -43,13 +42,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.inject.Inject;
 
@@ -64,13 +58,8 @@ public abstract class GoogleServicesTask extends DefaultTask {
 
   private static final String OAUTH_CLIENT_TYPE_WEB = "3";
 
-  private String buildType;
-  private List<String> productFlavors;
-  private ObjectFactory objectFactory;
-
   @Inject
-  public GoogleServicesTask(ObjectFactory objectFactory) {
-    this.objectFactory = objectFactory;
+  public GoogleServicesTask() {
   }
 
   @OutputDirectory
@@ -82,23 +71,10 @@ public abstract class GoogleServicesTask extends DefaultTask {
     return getOutputDirectory().getAsFile().get();
   }
 
-  @Input
-  public String getBuildType() {
-    return buildType;
-  }
+  @InputFiles
+  final FileCollection googleServicesJsonFiles = getProject().getObjects().fileCollection();
 
-  @Input
-  public List<String> getProductFlavors() {
-    return productFlavors;
-  }
-
-  public void setBuildType(String buildType) {
-    this.buildType = buildType;
-  }
-
-  public void setProductFlavors(List<String> productFlavors) {
-    this.productFlavors = productFlavors;
-  }
+  public FileCollection getGoogleServicesJsonFiles() { return googleServicesJsonFiles; }
 
   @Input
   public abstract Property<String> getApplicationId();
@@ -106,9 +82,9 @@ public abstract class GoogleServicesTask extends DefaultTask {
   @TaskAction
   public void action() throws IOException {
     File quickstartFile = null;
-    List<String> fileLocations = getJsonLocations(buildType, productFlavors);
     String searchedLocation = System.lineSeparator();
-    for (File jsonFile : objectFactory.fileCollection().from(fileLocations)) {
+    for (FileSystemLocation jsonFileLoc : googleServicesJsonFiles.getElements().get()) {
+      File jsonFile = jsonFileLoc.getAsFile();
       searchedLocation = searchedLocation + jsonFile.getPath() + System.lineSeparator();
       if (jsonFile.isFile()) {
         quickstartFile = jsonFile;
