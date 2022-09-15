@@ -22,6 +22,29 @@ play-services-oss-licenses library.
 
 ### Add the Gradle plugin
 
+#### Plugins DSL
+
+Add the following to your project's settings.gradle:
+
+```groovy
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        google()
+    }
+}
+```
+
+Apply the plugin in your app's build.gradle:
+
+```groovy
+plugins {
+    id 'com.google.gms.oss-licenses-plugin' version '0.10.5'
+}
+```
+
+#### Legacy way
+
 In your root-level `build.gradle` make sure you are using the
 [Google Maven repository](https://developer.android.com/studio/build/dependencies#google-maven)
 and add the oss-licenses plugin to your dependencies:
