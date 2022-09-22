@@ -20,6 +20,7 @@ import com.android.build.api.artifact.SingleArtifact
 import com.android.build.gradle.api.BaseVariant
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.Task
 import org.slf4j.LoggerFactory
 
 class OssLicensesPlugin implements Plugin<Project> {
@@ -51,6 +52,7 @@ class OssLicensesPlugin implements Plugin<Project> {
                 def licenseTask = project.tasks.register(
                         "${variant.name}OssLicensesTask",
                         LicensesTask.class) {
+                    markNotCompatibleWithConfigurationCache(it)
                     it.dependenciesJson.set(dependencyTask.dependenciesJson)
                     it.rawResourceDir = rawResourceDir
                     it.licenses = licensesFile
@@ -84,6 +86,18 @@ class OssLicensesPlugin implements Plugin<Project> {
             }
             def generatedResFolder = project.files(licenseTask.rawResourceDir.parentFile).builtBy(licenseTask)
             variant.registerGeneratedResFolders(generatedResFolder)
+        }
+    }
+
+    private static void markNotCompatibleWithConfigurationCache(Task it) {
+        // Configuration cache method incubating in Gradle 7.4
+        if (it.metaClass.respondsTo(it, "notCompatibleWithConfigurationCache", String)) {
+            it.notCompatibleWithConfigurationCache(
+                    "Requires Project instance to resolve POM files during " +
+                            " task execution, but depends on another Task to " +
+                            " create the artifact list. Without the list we " +
+                            " cannot enumerate POM files during configuration."
+            )
         }
     }
 }
