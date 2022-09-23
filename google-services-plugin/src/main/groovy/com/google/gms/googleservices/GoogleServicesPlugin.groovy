@@ -164,7 +164,8 @@ class GoogleServicesPlugin implements Plugin<Project> {
       "com.android.model.application"
     ]),
     MODEL_LIBRARY(["com.android.model.library"])
-    public PluginType(Collection plugins) {
+    
+    PluginType(Collection plugins) {
       this.plugins = plugins
     }
     private final Collection plugins

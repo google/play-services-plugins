@@ -24,6 +24,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
+import org.apache.commons.lang3.StringUtils;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
 import org.gradle.api.file.DirectoryProperty;
@@ -458,20 +459,20 @@ public abstract class GoogleServicesTask extends DefaultTask {
 
   static List<String> getJsonLocations(String buildType, List<String> flavorNames) {
     List<String> fileLocations = new ArrayList<>();
-    String flavorName = flavorNames.stream().reduce("", (a,b) -> a + (a.length() == 0 ? b : capitalize(b)));
+    String flavorName = flavorNames.stream().reduce("", (a, b) -> a + (a.length() == 0 ? b : StringUtils.capitalize(b)));
     fileLocations.add("");
     fileLocations.add("src/" + flavorName + "/" + buildType);
     fileLocations.add("src/" + buildType + "/" + flavorName);
     fileLocations.add("src/" + flavorName);
     fileLocations.add("src/" + buildType);
-    fileLocations.add("src/" + flavorName + capitalize(buildType));
+    fileLocations.add("src/" + flavorName + StringUtils.capitalize(buildType));
     fileLocations.add("src/" + buildType);
     String fileLocation = "src";
     for(String flavor : flavorNames) {
       fileLocation += "/" + flavor;
       fileLocations.add(fileLocation);
       fileLocations.add(fileLocation + "/" + buildType);
-      fileLocations.add(fileLocation + capitalize(buildType));
+      fileLocations.add(fileLocation + StringUtils.capitalize(buildType));
     }
     fileLocations = fileLocations
         .stream()
@@ -480,10 +481,5 @@ public abstract class GoogleServicesTask extends DefaultTask {
         .map(location -> location.isEmpty() ? location + JSON_FILE_NAME : location + '/' + JSON_FILE_NAME)
         .collect(toList());
     return fileLocations;
-  }
-
-  public static String capitalize(String s) {
-      if (s.length() == 0) return s;
-      return s.substring(0, 1).toUpperCase() + s.substring(1).toLowerCase();
   }
 }
