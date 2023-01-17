@@ -20,10 +20,6 @@ import com.google.android.gms.dependencies.DependencyAnalyzer
 import com.google.android.gms.dependencies.DependencyInspector
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.model.ObjectFactory
-
-import java.util.regex.Matcher
-import java.util.regex.Pattern
 
 class GoogleServicesPlugin implements Plugin<Project> {
   public final static String MODULE_GROUP = "com.google.android.gms"
@@ -121,15 +117,20 @@ class GoogleServicesPlugin implements Plugin<Project> {
     File outputDir =
         project.file("$project.buildDir/generated/res/google-services/$variant.dirName")
 
+    def googleServicesFiles =
+            GoogleServicesTask.getJsonLocations(
+                    variant.buildType.name,
+                    variant.productFlavors.collect { it.name })
+
     def processTask = project
           .tasks
           .register(
             "process${variant.name.capitalize()}GoogleServices",
-             GoogleServicesTask) { task ->
-              task.outputDirectory.set(outputDir)
-              task.applicationId.set(variant.applicationId)
-              task.setBuildType(variant.buildType.name)
-              task.setProductFlavors(variant.productFlavors.collect { it.name })
+             GoogleServicesTask) {
+              outputDirectory.set(outputDir)
+              applicationId.set(variant.applicationId)
+              // from maintains the ordering of the sorted file collection.
+              googleServicesJsonFiles.from(googleServicesFiles)
             }
     if (variant.respondsTo("registerGeneratedResFolders")) {
       variant.registerGeneratedResFolders(
