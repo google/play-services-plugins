@@ -37,7 +37,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: ${{ matrix.project-dir }}
-          path: ./${{ matrix.project-dir }}/libs
+          path: ./${{ matrix.project-dir }}/build/libs
           retention-days: 5
 
   # This workflow contains a single job called "build"
