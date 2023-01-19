@@ -23,6 +23,7 @@ jobs:
     strategy:
       matrix:
         project-dir:
+          - google-services-plugin
           - strict-version-matcher-plugin
           - oss-licenses-plugin
 
@@ -31,13 +32,13 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
       # Runs a build which includes `check` and `test` tasks
-      - name: Perform a Gradle build for oss-licenses and strict-version-matcher
+      - name: Perform a Gradle build
+        if: ${{ matrix.project-dir == 'google-services-plugin' }}
+        run: ./gradlew publish
+        working-directory: ./${{ matrix.project-dir }}
+      - if: ${{ matrix.project-dir != 'google-services-plugin' }}
         run: ./gradlew build
         working-directory: ./${{ matrix.project-dir }}
-      - name: Build google services plugin
-        run: |
-          cd play-services-plugins
-          ./gradlew publish
       - name: Upload generated artifacts
         uses: actions/upload-artifact@v2
         with:
