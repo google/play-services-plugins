@@ -33,11 +33,11 @@ jobs:
       - uses: actions/checkout@v2
       # Runs a build which includes `check` and `test` tasks
       - name: Perform a Gradle build
-        run: ./gradlew build
+        run: ./gradlew publish
         working-directory: ./${{ matrix.project-dir }}
       - name: Upload generated artifacts
         uses: actions/upload-artifact@v2
         with:
           name: ${{ matrix.project-dir }}
-          path: ./${{ matrix.project-dir }}/build/libs
+          path: ./${{ matrix.project-dir }}/build/repo
           retention-days: 5
