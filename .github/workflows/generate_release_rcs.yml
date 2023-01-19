@@ -48,10 +48,10 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Perform a Gradle build
-        run: ./gradlew publish
+        run: cd google-services-plugin && ./gradlew publish
       - name: Upload generated artifacts
         uses: actions/upload-artifact@v2
         with:
           name: google-services-plugin
-          path: build/repo
+          path: google-services-plugin/build/repo
           retention-days: 5
