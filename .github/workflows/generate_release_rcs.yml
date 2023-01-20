@@ -24,7 +24,6 @@ jobs:
       matrix:
         project-dir:
           - strict-version-matcher-plugin
-          - google-services-plugin
           - oss-licenses-plugin
 
     # Steps represent a sequence of tasks that will be executed as part of the job
@@ -32,12 +31,25 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
       # Runs a build which includes `check` and `test` tasks
-      - name: Perform a Gradle build
-        run: ./gradlew build
+      - run: ./gradlew build
         working-directory: ./${{ matrix.project-dir }}
       - name: Upload generated artifacts
         uses: actions/upload-artifact@v2
         with:
           name: ${{ matrix.project-dir }}
           path: ./${{ matrix.project-dir }}/build/libs
+          retention-days: 5
+
+  # This workflow contains a single job called "build"
+  build-google-services:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Perform a Gradle build
+        run: cd google-services-plugin && ./gradlew publish
+      - name: Upload generated artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: google-services-plugin
+          path: google-services-plugin/build/repo
           retention-days: 5
