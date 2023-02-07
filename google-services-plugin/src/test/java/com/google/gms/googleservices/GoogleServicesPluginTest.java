@@ -64,6 +64,24 @@ public class GoogleServicesPluginTest {
             "src/flavor/test/release/google-services.json",
             "src/flavor/testRelease/google-services.json");
   }
+  
+  @Test
+  public void testMultipleFlavorsWithCamelCase() {
+    List<String> output =
+        toStringList(GoogleServicesTask.getJsonLocations("release", Arrays.asList("flavor", "testTest")));
+    assertThat(output)
+        .containsAllOf(
+            "google-services.json",
+            "src/release/google-services.json",
+            "src/flavorRelease/google-services.json",
+            "src/flavor/google-services.json",
+            "src/flavor/release/google-services.json",
+            "src/release/flavorTestTest/google-services.json",
+            "src/flavorTestTest/google-services.json",
+            "src/flavorTestTestRelease/google-services.json",
+            "src/flavor/testTest/release/google-services.json",
+            "src/flavor/testTestRelease/google-services.json");
+  }
 
   // This is necessary because some of the strings are actually groovy string implementations
   // which fail equality tests with java strings during testing
