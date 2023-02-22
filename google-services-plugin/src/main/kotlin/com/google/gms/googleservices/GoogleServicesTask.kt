@@ -15,6 +15,7 @@
  */
 package com.google.gms.googleservices
 
+import com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import org.gradle.api.DefaultTask
@@ -51,10 +52,14 @@ abstract class GoogleServicesTask : DefaultTask() {
     @get:Input
     abstract val applicationId: Property<String>
 
+    @get:Input
+    abstract val missingGoogleServicesStrategy: Property<MissingGoogleServicesStrategy>
+
     @Throws(GradleException::class)
     @TaskAction
     fun action() {
-        val jsonFiles = googleServicesJsonFiles.get().map { it.file(JSON_FILE_NAME).asFile }
+        val jsonFiles = googleServicesJsonFiles.get()
+            .map { it.file(JSON_FILE_NAME).asFile }
             .filter { it.isFile }
         if (jsonFiles.size > 1) {
             throw GradleException(
@@ -66,13 +71,20 @@ abstract class GoogleServicesTask : DefaultTask() {
         }
 
         if (jsonFiles.isEmpty()) {
-            throw GradleException(
-                """
+            val message = """
                 File $JSON_FILE_NAME is missing. 
                 The Google Services Plugin cannot function without it. 
                 Searched locations: ${googleServicesJsonFiles.get().joinToString { it.asFile.path }}
                 """.trimIndent()
-            )
+
+            when (missingGoogleServicesStrategy.get()) {
+                MissingGoogleServicesStrategy.ERROR -> throw GradleException(message)
+                MissingGoogleServicesStrategy.WARN -> logger.warn(message)
+                MissingGoogleServicesStrategy.IGNORE -> {
+                    // ignore
+                }
+            }
+            return
         }
 
         val quickstartFile = jsonFiles.single()

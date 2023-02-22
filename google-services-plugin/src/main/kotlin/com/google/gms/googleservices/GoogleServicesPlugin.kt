@@ -89,6 +89,10 @@ class GoogleServicesPlugin : Plugin<Project> {
             "process${variant.name.capitalize()}GoogleServices",
             GoogleServicesTask::class.java
         ) {
+            it.missingGoogleServicesStrategy.set(
+                project.extensions.getByType(GoogleServicesPluginConfig::class.java)
+                    .missingGoogleServicesStrategy
+            )
             it.googleServicesJsonFiles.set(variant.sources.getByName(SOURCE_TYPE).all)
             it.applicationId.set(variant.applicationId)
         }
@@ -128,11 +132,22 @@ class GoogleServicesPlugin : Plugin<Project> {
         const val SOURCE_TYPE = "google-services"
     }
 
+
+    enum class MissingGoogleServicesStrategy {
+        IGNORE, WARN, ERROR
+    }
+
     open class GoogleServicesPluginConfig {
         /**
          * Disables checking of Google Play Services dependencies compatibility.
          */
         var disableVersionCheck = false
+
+        /**
+         * Choose the behavior when google-services.json is missing.
+         * Defaults to ERROR, other possible values are: WARN, IGNORE.
+         */
+        var missingGoogleServicesStrategy = MissingGoogleServicesStrategy.ERROR
     }
 }
 

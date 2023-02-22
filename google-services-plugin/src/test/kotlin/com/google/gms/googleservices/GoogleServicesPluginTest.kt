@@ -101,7 +101,7 @@ class GoogleServicesPluginTest {
     }
 
     @Test
-    fun `missing Google Services file`() {
+    fun `missing Google Services file - error`() {
         val projectName = "project1"
 
         copyProjectToTemp(projectName)
@@ -114,6 +114,49 @@ class GoogleServicesPluginTest {
         )
         Assert.assertTrue(buildResult.output.contains("File google-services.json is missing"))
     }
+
+    @Test
+    fun `missing Google Services file - warn`() {
+        val projectName = "project1"
+
+        copyProjectToTemp(projectName)
+        tempFolder.root.resolve("app/src/main/google-services/google-services.json").delete()
+        val buildFile = tempFolder.root.resolve("app/build.gradle.kts")
+        buildFile.writeText(buildFile.readText().replace(
+            "MissingGoogleServicesStrategy.ERROR",
+            "MissingGoogleServicesStrategy.WARN"
+        ))
+        val buildResult = runBuild()
+
+        Assert.assertEquals(
+            TaskOutcome.SUCCESS,
+            buildResult.task(":app:processFreeOneDebugGoogleServices")?.outcome
+        )
+        Assert.assertTrue(buildResult.output.contains("File google-services.json is missing"))
+    }
+
+    @Test
+    fun `missing Google Services file - ignore`() {
+        val projectName = "project1"
+
+        copyProjectToTemp(projectName)
+        tempFolder.root.resolve("app/src/main/google-services/google-services.json").delete()
+        val buildFile = tempFolder.root.resolve("app/build.gradle.kts")
+        buildFile.writeText(buildFile.readText().replace(
+            "MissingGoogleServicesStrategy.ERROR",
+            "MissingGoogleServicesStrategy.IGNORE"
+        ))
+
+        val buildResult = runBuild()
+
+        Assert.assertEquals(
+            TaskOutcome.SUCCESS,
+            buildResult.task(":app:processFreeOneDebugGoogleServices")?.outcome
+        )
+        Assert.assertFalse(buildResult.output.contains("File google-services.json is missing"))
+    }
+
+
 
     @Test
     fun `flavor specific google-services,json`() {
