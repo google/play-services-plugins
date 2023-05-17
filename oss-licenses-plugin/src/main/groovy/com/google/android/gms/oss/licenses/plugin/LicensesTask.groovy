@@ -107,14 +107,14 @@ abstract class LicensesTask extends DefaultTask {
         writeMetadata()
     }
 
-    private static Set<ArtifactInfo> loadDependenciesJson(File jsonFile) {
+    private static List<ArtifactInfo> loadDependenciesJson(File jsonFile) {
         def allDependencies = new JsonSlurper().parse(jsonFile)
         def artifactInfoSet = new HashSet<ArtifactInfo>()
         for (entry in allDependencies) {
             ArtifactInfo artifactInfo = artifactInfoFromEntry(entry)
             artifactInfoSet.add(artifactInfo)
         }
-        artifactInfoSet.asImmutable()
+        artifactInfoSet.toList().asImmutable()
     }
 
     private void addDebugLicense() {

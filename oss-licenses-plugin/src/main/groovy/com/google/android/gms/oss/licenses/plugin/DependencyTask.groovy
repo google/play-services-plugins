@@ -76,7 +76,7 @@ abstract class DependencyTask extends DefaultTask {
         } as AppDependencies
     }
 
-    private static Set<ArtifactInfo> convertDependenciesToArtifactInfo(
+    private static List<ArtifactInfo> convertDependenciesToArtifactInfo(
             AppDependencies appDependencies
     ) {
         return appDependencies.libraryList.stream()
@@ -88,7 +88,8 @@ abstract class DependencyTask extends DefaultTask {
                             library.mavenLibrary.version
                     )
                 }
-                .collect(Collectors.toUnmodifiableSet())
+                .sorted(Comparator.comparing { it.toString() })
+                .collect(Collectors.toUnmodifiableList())
     }
 
     private static void initOutput(File outputDir) {

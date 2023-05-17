@@ -29,6 +29,9 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.Type;
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.gradle.api.Project;
 import org.gradle.testfixtures.ProjectBuilder;
 import org.junit.Before;
@@ -84,8 +87,8 @@ public class DependencyTaskTest {
     File outputJson = new File(outputDir, "test.json");
     dependencyTask.getDependenciesJson().set(outputJson);
     ImmutableSet<ArtifactInfo> expectedArtifacts = ImmutableSet.of(
-        new ArtifactInfo("org.group.id", "artifactId", "1.0.0"),
-        new ArtifactInfo("org.group.other", "other-artifact", "3.2.1")
+        new ArtifactInfo("org.group.other", "other-artifact", "3.2.1"),
+        new ArtifactInfo("org.group.id", "artifactId", "1.0.0")
     );
     AppDependencies appDependencies = createAppDependencies(expectedArtifacts);
     File protoFile = writeAppDependencies(appDependencies, temporaryFolder.newFile());
@@ -102,8 +105,8 @@ public class DependencyTaskTest {
     File outputJson = new File(outputDir, "test.json");
     dependencyTask.getDependenciesJson().set(outputJson);
     ImmutableSet<ArtifactInfo> expectedArtifacts = ImmutableSet.of(
-        new ArtifactInfo("org.group.id", "artifactId", "1.0.0"),
-        new ArtifactInfo("org.group.other", "other-artifact", "3.2.1")
+        new ArtifactInfo("org.group.other", "other-artifact", "3.2.1"),
+        new ArtifactInfo("org.group.id", "artifactId", "1.0.0")
     );
     AppDependencies appDependencies = createAppDependencies(expectedArtifacts).toBuilder()
         .addLibrary(Library.getDefaultInstance()) // There aren't any other library types supported.
@@ -131,11 +134,15 @@ public class DependencyTaskTest {
   private void verifyExpectedDependencies(ImmutableSet<ArtifactInfo> expectedArtifacts,
       File outputJson) throws Exception {
     Gson gson = new Gson();
+    List<ArtifactInfo> expectedArtifactsSorted = expectedArtifacts
+            .stream()
+            .sorted(Comparator.comparing(ArtifactInfo::toString))
+            .collect(Collectors.toUnmodifiableList());
     try (FileReader reader = new FileReader(outputJson)) {
       Type collectionOfArtifactInfo = new TypeToken<Collection<ArtifactInfo>>() {
       }.getType();
       Collection<ArtifactInfo> jsonArtifacts = gson.fromJson(reader, collectionOfArtifactInfo);
-      assertThat(jsonArtifacts).containsExactlyElementsIn(expectedArtifacts);
+      assertThat(jsonArtifacts).containsExactlyElementsIn(expectedArtifactsSorted).inOrder();
     }
   }
 
