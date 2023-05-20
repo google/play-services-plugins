@@ -25,6 +25,7 @@ import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 import org.slf4j.LoggerFactory
 
+import java.util.stream.Collectors
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 
@@ -114,7 +115,9 @@ abstract class LicensesTask extends DefaultTask {
             ArtifactInfo artifactInfo = artifactInfoFromEntry(entry)
             artifactInfoSet.add(artifactInfo)
         }
-        artifactInfoSet.toList().asImmutable()
+        artifactInfoSet.stream()
+                .sorted(Comparator.comparing { it.toString() })
+                .collect(Collectors.toUnmodifiableList())
     }
 
     private void addDebugLicense() {
