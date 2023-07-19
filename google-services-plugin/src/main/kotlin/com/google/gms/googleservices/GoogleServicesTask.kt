@@ -59,16 +59,10 @@ abstract class GoogleServicesTask : DefaultTask() {
     @TaskAction
     fun action() {
         val jsonFiles = googleServicesJsonFiles.get()
-            .map { it.file(JSON_FILE_NAME).asFile }
+            .mapNotNull { it.file(JSON_FILE_NAME).asFile }
             .filter { it.isFile }
-        if (jsonFiles.size > 1) {
-            throw GradleException(
-                """
-                More than one $JSON_FILE_NAME found: ${jsonFiles.joinToString { it.path }}. 
-                Please remove the ambiguity by making sure there is one file for each variant.
-                """.trimIndent()
-            )
-        }
+            .sortedByDescending { file -> file.absolutePath.count { it == '/' } }
+
 
         if (jsonFiles.isEmpty()) {
             val message = """
@@ -87,7 +81,7 @@ abstract class GoogleServicesTask : DefaultTask() {
             return
         }
 
-        val quickstartFile = jsonFiles.single()
+        val quickstartFile = jsonFiles.first()
         logger.info("Parsing json file: " + quickstartFile.path)
 
         // delete content of outputdir.
