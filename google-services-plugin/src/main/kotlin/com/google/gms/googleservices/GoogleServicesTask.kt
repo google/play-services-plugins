@@ -47,7 +47,7 @@ abstract class GoogleServicesTask : DefaultTask() {
 
     @get:PathSensitive(PathSensitivity.RELATIVE)
     @get:InputFiles
-    abstract val googleServicesJsonFiles: Property<Collection<Directory>>
+    abstract val googleServicesJsonFiles: Property<Collection<File>>
 
     @get:Input
     abstract val applicationId: Property<String>
@@ -59,16 +59,15 @@ abstract class GoogleServicesTask : DefaultTask() {
     @TaskAction
     fun action() {
         val jsonFiles = googleServicesJsonFiles.get()
-            .mapNotNull { it.file(JSON_FILE_NAME).asFile }
             .filter { it.isFile }
-            .sortedByDescending { file -> file.absolutePath.count { it == '/' } }
-
 
         if (jsonFiles.isEmpty()) {
             val message = """
                 File $JSON_FILE_NAME is missing. 
                 The Google Services Plugin cannot function without it. 
-                Searched locations: ${googleServicesJsonFiles.get().joinToString { it.asFile.path }}
+                Searched locations: ${
+                googleServicesJsonFiles.get().joinToString { it.absolutePath }
+            }
                 """.trimIndent()
 
             when (missingGoogleServicesStrategy.get()) {

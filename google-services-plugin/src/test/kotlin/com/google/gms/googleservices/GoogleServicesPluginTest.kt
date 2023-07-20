@@ -16,13 +16,14 @@
 
 package com.google.gms.googleservices;
 
+import java.io.File
 import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
 import org.junit.Assert
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
-import java.io.File
+
 
 class GoogleServicesPluginTest {
 
@@ -105,7 +106,7 @@ class GoogleServicesPluginTest {
         val projectName = "project1"
 
         copyProjectToTemp(projectName)
-        tempFolder.root.resolve("app/src/main/google-services/google-services.json").delete()
+        tempFolder.root.resolve("app/google-services.json").delete()
         val buildResult = runBuild(expectFailure = true)
 
         Assert.assertEquals(
@@ -120,12 +121,14 @@ class GoogleServicesPluginTest {
         val projectName = "project1"
 
         copyProjectToTemp(projectName)
-        tempFolder.root.resolve("app/src/main/google-services/google-services.json").delete()
+        tempFolder.root.resolve("app/google-services.json").delete()
         val buildFile = tempFolder.root.resolve("app/build.gradle.kts")
-        buildFile.writeText(buildFile.readText().replace(
-            "MissingGoogleServicesStrategy.ERROR",
-            "MissingGoogleServicesStrategy.WARN"
-        ))
+        buildFile.writeText(
+            buildFile.readText().replace(
+                "MissingGoogleServicesStrategy.ERROR",
+                "MissingGoogleServicesStrategy.WARN"
+            )
+        )
         val buildResult = runBuild()
 
         Assert.assertEquals(
@@ -140,12 +143,14 @@ class GoogleServicesPluginTest {
         val projectName = "project1"
 
         copyProjectToTemp(projectName)
-        tempFolder.root.resolve("app/src/main/google-services/google-services.json").delete()
+        tempFolder.root.resolve("app/google-services.json").delete()
         val buildFile = tempFolder.root.resolve("app/build.gradle.kts")
-        buildFile.writeText(buildFile.readText().replace(
-            "MissingGoogleServicesStrategy.ERROR",
-            "MissingGoogleServicesStrategy.IGNORE"
-        ))
+        buildFile.writeText(
+            buildFile.readText().replace(
+                "MissingGoogleServicesStrategy.ERROR",
+                "MissingGoogleServicesStrategy.IGNORE"
+            )
+        )
 
         val buildResult = runBuild()
 
@@ -155,7 +160,6 @@ class GoogleServicesPluginTest {
         )
         Assert.assertFalse(buildResult.output.contains("File google-services.json is missing"))
     }
-
 
 
     @Test
@@ -173,19 +177,80 @@ class GoogleServicesPluginTest {
     }
 
     @Test
-    fun `ambiguous google-services,json`() {
-        val projectName = "project3"
+    fun testNoFlavor() {
+        val output: List<String> =
+            GoogleServicesPlugin.getJsonLocations("release", emptyList())
+        Assert.assertTrue(output.contains("src/release/google-services.json"))
+    }
 
-        copyProjectToTemp(projectName)
-        tempFolder.root.resolve("app/src/free/google-services/google-services.json")
-            .copyTo(tempFolder.root.resolve("app/src/main/google-services/google-services.json"))
-        val buildResult = runBuild(expectFailure = true)
-
-        Assert.assertEquals(
-            TaskOutcome.FAILED,
-            buildResult.task(":app:processFreeOneDebugGoogleServices")?.outcome
+    @Test
+    fun testOneFlavor() {
+        val output: List<String> =
+            GoogleServicesPlugin.getJsonLocations("release", listOf("flavor"))
+        Assert.assertTrue(
+            output.containsAll(
+                listOf(
+                    "google-services.json",
+                    "src/release/google-services.json",
+                    "src/flavorRelease/google-services.json",
+                    "src/flavor/google-services.json",
+                    "src/flavor/release/google-services.json",
+                    "src/release/flavor/google-services.json"
+                )
+            )
         )
-        Assert.assertTrue(buildResult.output.contains("More than one google-services.json found"))
+    }
+
+    @Test
+    fun testMultipleFlavors() {
+        val output: List<String> =
+            GoogleServicesPlugin.getJsonLocations(
+                "release",
+                listOf("flavor", "test")
+            )
+
+        Assert.assertTrue(
+            output.containsAll(
+                listOf(
+                    "google-services.json",
+                    "src/release/google-services.json",
+                    "src/flavorRelease/google-services.json",
+                    "src/flavor/google-services.json",
+                    "src/flavor/release/google-services.json",
+                    "src/release/flavorTest/google-services.json",
+                    "src/flavorTest/google-services.json",
+                    "src/flavorTestRelease/google-services.json",
+                    "src/flavor/test/release/google-services.json",
+                    "src/flavor/testRelease/google-services.json"
+                )
+            )
+        )
+    }
+
+    @Test
+    fun testMultipleFlavorsWithCamelCase() {
+        val output: List<String> =
+            GoogleServicesPlugin.getJsonLocations(
+                "release",
+                listOf("flavor", "testTest")
+            )
+
+        Assert.assertTrue(
+            output.containsAll(
+                listOf(
+                    "google-services.json",
+                    "src/release/google-services.json",
+                    "src/flavorRelease/google-services.json",
+                    "src/flavor/google-services.json",
+                    "src/flavor/release/google-services.json",
+                    "src/release/flavorTestTest/google-services.json",
+                    "src/flavorTestTest/google-services.json",
+                    "src/flavorTestTestRelease/google-services.json",
+                    "src/flavor/testTest/release/google-services.json",
+                    "src/flavor/testTestRelease/google-services.json"
+                )
+            )
+        )
     }
 
 //    /* Uncomment, edit project paths and run this test to regenerate the

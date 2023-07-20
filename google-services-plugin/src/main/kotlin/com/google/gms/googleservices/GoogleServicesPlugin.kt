@@ -21,9 +21,12 @@ import com.android.build.api.variant.GeneratesApk
 import com.android.build.api.variant.Variant
 import com.google.android.gms.dependencies.DependencyAnalyzer
 import com.google.android.gms.dependencies.DependencyInspector
+import java.io.File
+import java.util.*
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import java.util.Locale
+import org.gradle.configurationcache.extensions.capitalized
+
 
 class GoogleServicesPlugin : Plugin<Project> {
 
@@ -93,7 +96,13 @@ class GoogleServicesPlugin : Plugin<Project> {
                 project.extensions.getByType(GoogleServicesPluginConfig::class.java)
                     .missingGoogleServicesStrategy
             )
-            it.googleServicesJsonFiles.set(variant.sources.getByName(SOURCE_TYPE).all)
+            it.googleServicesJsonFiles.set(
+                getJsonFiles(
+                    variant.buildType.orEmpty(),
+                    variant.productFlavors.map { it.second },
+                    project.projectDir
+                )
+            )
             it.applicationId.set(variant.applicationId)
         }
 
@@ -130,6 +139,36 @@ class GoogleServicesPlugin : Plugin<Project> {
         const val MODULE_VERSION = "11.4.2"
         const val MINIMUM_VERSION = "9.0.0"
         const val SOURCE_TYPE = "google-services"
+        const val JSON_FILE_NAME = "google-services.json"
+
+        fun getJsonFiles(buildType: String, flavorNames: List<String>, root: File): List<File> {
+            return getJsonLocations(buildType, flavorNames).map { root.resolve(it) }
+        }
+
+        fun getJsonLocations(buildType: String, flavorNames: List<String>): List<String> {
+            var fileLocations: MutableList<String> = ArrayList()
+            val flavorName = flavorNames.stream().reduce("") { a, b ->
+                a + if (a.isEmpty()) b else b.capitalized()
+            }
+            fileLocations.add("")
+            fileLocations.add("src/$flavorName/$buildType")
+            fileLocations.add("src/$buildType/$flavorName")
+            fileLocations.add("src/$flavorName")
+            fileLocations.add("src/$buildType")
+            fileLocations.add("src/" + flavorName + buildType.capitalized())
+            fileLocations.add("src/$buildType")
+            var fileLocation = "src"
+            for (flavor in flavorNames) {
+                fileLocation += "/$flavor"
+                fileLocations.add(fileLocation)
+                fileLocations.add("$fileLocation/$buildType")
+                fileLocations.add(fileLocation + buildType.capitalized())
+            }
+            return fileLocations
+                .distinct()
+                .sortedByDescending { path -> path.count { it == '/' } }
+                .map { location: String -> if (location.isEmpty()) location + JSON_FILE_NAME else "$location/$JSON_FILE_NAME" }
+        }
     }
 
 
