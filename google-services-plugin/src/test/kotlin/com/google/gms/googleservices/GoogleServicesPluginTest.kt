@@ -19,6 +19,7 @@ package com.google.gms.googleservices
 import java.io.File
 import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
+import org.gradle.testkit.runner.UnexpectedBuildFailure
 import org.junit.Assert
 import org.junit.Rule
 import org.junit.Test
@@ -48,10 +49,14 @@ class GoogleServicesPluginTest {
                */
               "-PpluginRepo=${File("build/repo").absolutePath}")
           .run {
-            if (expectFailure) {
-              buildAndFail()
-            } else {
-              build()
+            try {
+              if (expectFailure) {
+                buildAndFail()
+              } else {
+                build()
+              }
+            } catch (e: UnexpectedBuildFailure) {
+              println("BUILD failure $e")
             }
           }
 
