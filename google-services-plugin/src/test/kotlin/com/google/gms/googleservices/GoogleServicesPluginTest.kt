@@ -49,10 +49,15 @@ class GoogleServicesPluginTest {
                */
               "-PpluginRepo=${File("build/repo").absolutePath}")
           .run {
-            if (expectFailure) {
-              buildAndFail()
-            } else {
-              build()
+            try {
+              if (expectFailure) {
+                return@run buildAndFail()
+              } else {
+                return@run build()
+              }
+            } catch (e: UnexpectedBuildFailure) {
+              println("BUILD Failure $e")
+              throw java.lang.RuntimeException()
             }
           }
 
@@ -89,17 +94,13 @@ class GoogleServicesPluginTest {
     val projectName = "project1"
 
     copyProjectToTemp(projectName + "-agp730")
-    try {
-      val buildResult = runBuild()
+    val buildResult = runBuild()
 
-      Assert.assertEquals(TaskOutcome.SUCCESS, buildResult.task(":app:assembleDebug")?.outcome)
+    Assert.assertEquals(TaskOutcome.SUCCESS, buildResult.task(":app:assembleDebug")?.outcome)
 
-      val actualResults = tempFolder.root.resolve("app/build/RES/")
-      val expectedResults = getExpectedResults(projectName)
-      compareResults(actualResults, expectedResults)
-    } catch (e: UnexpectedBuildFailure) {
-      println("BUILD Failure $e")
-    }
+    val actualResults = tempFolder.root.resolve("app/build/RES/")
+    val expectedResults = getExpectedResults(projectName)
+    compareResults(actualResults, expectedResults)
   }
 
   @Test
