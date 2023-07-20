@@ -49,15 +49,11 @@ class GoogleServicesPluginTest {
                */
               "-PpluginRepo=${File("build/repo").absolutePath}")
           .run {
-            try {
               if (expectFailure) {
-                return@run buildAndFail()
+                buildAndFail()
               } else {
-                return@run build()
+                build()
               }
-            } catch (e: UnexpectedBuildFailure) {
-              throw java.lang.RuntimeException(e.toString())
-            }
           }
 
   private fun compareResults(actualResults: File, expectedResults: File) {
