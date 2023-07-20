@@ -56,8 +56,7 @@ class GoogleServicesPluginTest {
                 return@run build()
               }
             } catch (e: UnexpectedBuildFailure) {
-              println("BUILD Failure $e")
-              throw java.lang.RuntimeException()
+              throw java.lang.RuntimeException(e.toString())
             }
           }
 
