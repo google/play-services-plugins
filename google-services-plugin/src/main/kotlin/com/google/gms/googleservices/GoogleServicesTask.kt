@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 The Android Open Source Project
+ * Copyright (C) 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -90,7 +90,7 @@ abstract class GoogleServicesTask : DefaultTask() {
 
     val root = JsonParser().parse(quickstartFile.bufferedReader(Charsets.UTF_8))
     if (!root.isJsonObject) {
-      throw GradleException("Malformed root json")
+      throw GradleException("Malformed root json at ${quickstartFile.absolutePath}")
     }
     val rootObject = root.asJsonObject
     val resValues: MutableMap<String, String?> =

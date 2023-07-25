@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 The Android Open Source Project
+ * Copyright (C) 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,11 +44,11 @@ class GoogleServicesPlugin : Plugin<Project> {
               "This error message came from the google-services Gradle plugin, report" +
                   " issues at https://github.com/google/play-services-plugins and disable by " +
                   "adding \"googleServices { disableVersionCheck = true }\" to your build.gradle file.")
-      project.configurations.all { projectConfig ->
-        if (projectConfig.name.contains("ompile")) {
-          projectConfig.incoming.afterResolve(strictVersionDepInspector::afterResolve)
-        }
-      }
+      project.configurations
+          .filter { it.name.contains("ompile") }
+          .forEach { projectConfig ->
+            projectConfig.incoming.afterResolve(strictVersionDepInspector::afterResolve)
+          }
     }
 
     var pluginApplied = false

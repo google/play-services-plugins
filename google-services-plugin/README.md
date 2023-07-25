@@ -36,10 +36,10 @@ plugins {
 
 #### `google-services.json` location
 
-Place the `google-services.json` file for your project in the `src/main/google-services/` directory.
+Place the `google-services.json` file for your project in the `app/` directory.
 
 Alternatively, you can use variant specific source-sets, for example: 
-`src/debug/google-services/google-services.json`.
+`debug/google-services.json`.
 
 #### Compatible Android plugins
 
