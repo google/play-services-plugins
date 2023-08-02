@@ -99,17 +99,15 @@ abstract class GoogleServicesTask : DefaultTask() {
         TreeMap() // TreeMap to preserve order with previous plugin versions
     handleProjectNumberAndProjectId(rootObject, resValues)
     handleFirebaseUrl(rootObject, resValues)
-    val clientObject = getClientForPackageName(rootObject)
-    if (clientObject != null) {
-      clientObject.handleAnalytics(resValues)
-      clientObject.handleMapsService(resValues)
-      clientObject.handleGoogleApiKey(resValues)
-      clientObject.handleGoogleAppId(resValues)
-      clientObject.handleWebClientId(resValues)
-    } else {
-      throw GradleException(
-          "No matching client found for package name '${applicationId.get()}' in ${quickstartFile.path}")
+    getClientForPackageName(rootObject)?.apply {
+      handleAnalytics(resValues)
+      handleMapsService(resValues)
+      handleGoogleApiKey(resValues)
+      handleGoogleAppId(resValues)
+      handleWebClientId(resValues)
     }
+        ?: throw GradleException(
+            "No matching client found for package name '${applicationId.get()}' in ${quickstartFile.path}")
 
     // write the values file.
     val values = File(intermediateDir, "values")
