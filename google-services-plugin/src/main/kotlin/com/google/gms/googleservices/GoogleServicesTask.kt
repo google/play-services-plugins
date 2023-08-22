@@ -30,6 +30,7 @@ import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
@@ -52,6 +53,9 @@ abstract class GoogleServicesTask : DefaultTask() {
   @get:Input abstract val applicationId: Property<String>
 
   @get:Input abstract val missingGoogleServicesStrategy: Property<MissingGoogleServicesStrategy>
+
+  @get:OutputFile
+  abstract val gmpAppId: Property<File>
 
   @Throws(GradleException::class)
   @TaskAction
@@ -230,6 +234,7 @@ abstract class GoogleServicesTask : DefaultTask() {
               "config file that contains a Google App Id")
     }
     resValues["google_app_id"] = googleAppIdStr
+    gmpAppId.get().writeText(googleAppIdStr, Charsets.UTF_8)
   }
 
   fun FirebaseClientData.handleWebClientId(resValues: MutableMap<String, String?>) {

@@ -92,6 +92,7 @@ class GoogleServicesPlugin : Plugin<Project> {
                       variant.productFlavors.map { it.second },
                       project.projectDir))
               it.applicationId.set(variant.applicationId)
+            it.gmpAppId.set(project.buildDir.resolve("gmpAppId.txt"))
             }
 
     // TODO: add an AGP version check to this block
