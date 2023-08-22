@@ -54,8 +54,7 @@ abstract class GoogleServicesTask : DefaultTask() {
 
   @get:Input abstract val missingGoogleServicesStrategy: Property<MissingGoogleServicesStrategy>
 
-  @get:OutputFile
-  abstract val gmpAppId: Property<File>
+  @get:OutputFile abstract val gmpAppId: Property<File>
 
   @Throws(GradleException::class)
   @TaskAction
