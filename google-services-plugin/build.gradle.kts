@@ -20,7 +20,7 @@ plugins {
 }
 
 group = "com.google.gms"
-version = "5.0.0"
+version = "4.4.0"
 
 dependencies {
     compileOnly(gradleApi())
