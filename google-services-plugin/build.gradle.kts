@@ -23,8 +23,7 @@ group = "com.google.gms"
 version = "4.4.0"
 
 dependencies {
-    compileOnly(gradleApi())
-    implementation("com.android.tools.build:gradle-api:7.3.0")
+    compileOnly("com.android.tools.build:gradle-api:7.3.0")
     implementation("com.google.android.gms:strict-version-matcher-plugin:1.2.4")
     implementation("com.google.code.gson:gson:2.8.5")
     implementation("com.google.guava:guava:27.0.1-jre")
