@@ -25,6 +25,7 @@ import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 import org.slf4j.LoggerFactory
 
+import java.util.stream.Collectors
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 
@@ -107,14 +108,16 @@ abstract class LicensesTask extends DefaultTask {
         writeMetadata()
     }
 
-    private static Set<ArtifactInfo> loadDependenciesJson(File jsonFile) {
+    private static List<ArtifactInfo> loadDependenciesJson(File jsonFile) {
         def allDependencies = new JsonSlurper().parse(jsonFile)
         def artifactInfoSet = new HashSet<ArtifactInfo>()
         for (entry in allDependencies) {
             ArtifactInfo artifactInfo = artifactInfoFromEntry(entry)
             artifactInfoSet.add(artifactInfo)
         }
-        artifactInfoSet.asImmutable()
+        artifactInfoSet.stream()
+                .sorted(Comparator.comparing { it.toString() })
+                .collect(Collectors.toUnmodifiableList())
     }
 
     private void addDebugLicense() {
