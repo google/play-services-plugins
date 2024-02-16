@@ -21,7 +21,7 @@ Apply the plugin in your app's build.gradle.kts:
 
 ```
 plugins {
-    id("com.google.gms.google-services") version "5.0.0" 
+    id("com.google.gms.google-services") version "5.0.0"
 }
 ```
 
