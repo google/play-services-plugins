@@ -21,18 +21,18 @@ Apply the plugin in your app's build.gradle.kts:
 
 ```
 plugins {
-    id("com.google.gms.google-services" version "5.0.0"
+    id("com.google.gms.google-services" version "4.4.1"
 }
 ```
 
 Or in build.gradle:
 ```
 plugins {
-    id 'com.google.gms.google-services' version '5.0.0'
+    id 'com.google.gms.google-services' version '4.4.1'
 }
 ```
 
-### New in version 5.0.0 
+### New in version 4.4.0 
 
 #### `google-services.json` location
 
@@ -82,7 +82,7 @@ Add the following to your buildscript classpath, obtained from Google’s
 [Maven repository](//developer.android.com/studio/build/dependencies#google-maven):
 
 ```
-classpath 'com.google.gms:google-services:5.0.0'
+classpath 'com.google.gms:google-services:4.4.1'
 ```
 
 Apply the plugin in your app's build.gradle:
