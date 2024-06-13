@@ -76,7 +76,10 @@ publishing {
     publications {
         create<MavenPublication>("pluginMaven") {
             artifactId = "google-services"
-
+        }
+    }
+    afterEvaluate {
+        publications.withType(MavenPublication::class.java) {
             pom {
                 licenses {
                     license {
