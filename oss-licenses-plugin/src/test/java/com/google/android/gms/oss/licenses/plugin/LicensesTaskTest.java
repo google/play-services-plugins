@@ -287,6 +287,15 @@ public class LicensesTaskTest {
   }
 
   @Test
+  public void testAddGooglePlayServiceLicenses_artifactLocationIsDirectory() throws IOException {
+    try {
+      licensesTask.addGooglePlayServiceLicenses(licensesTask.getOutputDir());
+    } catch (Exception e) {
+      fail("This test should not throw an Exception.");
+    }
+  }
+
+  @Test
   public void testAppendLicense() throws IOException {
     licensesTask.appendDependency(
         new LicensesTask.Dependency("license1", "license1"),

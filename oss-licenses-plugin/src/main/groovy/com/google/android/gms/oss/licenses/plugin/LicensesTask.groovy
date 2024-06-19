@@ -166,6 +166,10 @@ abstract class LicensesTask extends DefaultTask {
     }
 
     protected void addGooglePlayServiceLicenses(File artifactFile) {
+        if (artifactFile.isDirectory()) {
+            return
+        }
+
         ZipFile licensesZip = new ZipFile(artifactFile)
 
         ZipEntry jsonFile = licensesZip.getEntry("third_party_licenses.json")
