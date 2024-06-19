@@ -20,6 +20,7 @@ import groovy.json.JsonSlurper
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.tasks.InputFile
+import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
@@ -59,6 +60,9 @@ abstract class LicensesTask extends DefaultTask {
 
     @InputFile
     abstract RegularFileProperty getDependenciesJson()
+
+    @InputFiles
+    File[] thirdPartyLicenses
 
     @OutputDirectory
     File rawResourceDir
@@ -103,6 +107,8 @@ abstract class LicensesTask extends DefaultTask {
                 }
             }
         }
+
+        addThirdPartyLicenses();
 
         writeMetadata()
     }
@@ -266,6 +272,11 @@ abstract class LicensesTask extends DefaultTask {
         }
     }
 
+    private void addLicensesFromFile(File filename) {
+        String licenseName = filename.getName()
+        appendDependency(licenseName, filename.getBytes())
+    }
+
     protected void appendDependency(String key, byte[] license) {
         appendDependency(new Dependency(key, key), license)
     }
@@ -291,6 +302,15 @@ abstract class LicensesTask extends DefaultTask {
     protected void appendLicenseContent(byte[] content) {
         licenses.append(content)
         start += content.length
+    }
+
+    protected void addThirdPartyLicenses() {
+        if (thirdPartyLicenses == null) {
+            return
+        }
+        for (filename in thirdPartyLicenses.sort{it.getName().toLowerCase()}) {
+            addLicensesFromFile(filename)
+        }
     }
 
     protected void writeMetadata() {
