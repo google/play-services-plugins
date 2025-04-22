@@ -20,7 +20,7 @@ dependencies {
 group = 'com.google.android.gms'
 version = '0.10.6'
 
-apply plugin: 'maven'
+apply plugin: 'maven-publish'
 
 repositories {
     google()
@@ -28,19 +28,24 @@ repositories {
 }
 
 // upload and build in local
-uploadArchives {
+publishing {
     repositories {
-        mavenDeployer {
-            repository(url: uri('../repo'))
-            pom.project {
+        maven {
+            url = uri('../repo')
+        }
+    }
+
+    publications {
+        library(MavenPublication) {
+            from components.java
+            pom {
                 licenses {
                     license {
-                        name 'The Apache Software License, Version 2.0'
-                        url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-                        distribution 'repo'
+                        name = 'The Apache Software License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                        distribution = 'repo'
                     }
                 }
-
             }
         }
     }
