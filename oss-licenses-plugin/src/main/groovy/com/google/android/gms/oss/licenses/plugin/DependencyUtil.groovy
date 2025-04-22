@@ -23,7 +23,7 @@ import org.gradle.api.artifacts.ResolvedDependency
 import org.gradle.api.artifacts.component.ModuleComponentIdentifier
 import org.gradle.api.artifacts.result.ResolvedArtifactResult
 import org.gradle.api.internal.artifacts.DefaultModuleIdentifier
-import org.gradle.internal.component.AmbiguousVariantSelectionException
+import org.gradle.internal.component.resolution.failure.exception.ArtifactSelectionException
 import org.gradle.internal.component.external.model.DefaultModuleComponentIdentifier
 import org.gradle.maven.MavenModule
 import org.gradle.maven.MavenPomArtifact
@@ -123,7 +123,7 @@ class DependencyUtil {
                 if (resolvedDependency.getModuleVersion() == LOCAL_LIBRARY_VERSION) {
                     /**
                      * Attempting to getAllModuleArtifacts on a local library project will result
-                     * in AmbiguousVariantSelectionException as there are not enough criteria
+                     * in ArtifactSelectionException as there are not enough criteria
                      * to match a specific variant of the library project. Instead we skip the
                      * the library project itself and enumerate its dependencies.
                      */
@@ -146,7 +146,7 @@ class DependencyUtil {
                         }
                     }
                 }
-            } catch (AmbiguousVariantSelectionException exception) {
+            } catch (ArtifactSelectionException exception) {
                 logger.info("Failed to process ${resolvedDependency.name}", exception)
             }
         }
