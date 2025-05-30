@@ -260,9 +260,12 @@ abstract class LicensesTask extends DefaultTask {
                         new Dependency("${licenseKey} ${licenseName}", libraryName),
                         licenseUrl.getBytes(UTF_8))
             }
-        } else {
+        } else if (!rootNode.licenses.license.url?.isEmpty()) {
             String nodeUrl = rootNode.licenses.license.url
             appendDependency(new Dependency(licenseKey, libraryName), nodeUrl.getBytes(UTF_8))
+        } else {
+            String licenseName = rootNode.licenses.license.name
+            appendDependency(new Dependency(licenseKey, libraryName), licenseName.getBytes(UTF_8))
         }
     }
 
