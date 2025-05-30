@@ -25,7 +25,6 @@ import java.io.File
 import java.util.*
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.configurationcache.extensions.capitalized
 
 class GoogleServicesPlugin : Plugin<Project> {
 
