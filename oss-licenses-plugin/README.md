@@ -12,8 +12,8 @@ third_party_licenses.json and third_party_licenses.txt files in the distributed
 
 The plugin will generate two text files based on the gathered licenses info:
 
-  * third_party_licenses
-  * third_party_licenses_metadata
+- third_party_licenses
+- third_party_licenses_metadata
 
 and registers them as raw resources so that it can be consumed by the
 play-services-oss-licenses library.
@@ -73,3 +73,11 @@ display additional license information for that library.
 You can also set the title of the displayed activity:
 
     OssLicensesMenuActivity.setActivityTitle(getString(R.string.custom_license_title));
+
+### Include third party licenses
+
+You may come across the case where libraries don't include the licenses component
+in the POM file, meaning it will be excluded from the list. To solve this you can
+create a `third_party_licenses` directory in the root of your project and include
+any license file as a plain text file, without the file extension. These files will
+be included in the list using the file name as the list item's text.
