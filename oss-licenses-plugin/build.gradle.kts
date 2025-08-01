@@ -1,7 +1,7 @@
 plugins {
   id("groovy")
     id("java-gradle-plugin")
-    id("org.jetbrains.kotlin.jvm") version "1.8.22"
+    id("org.jetbrains.kotlin.jvm") version "2.2.0"
     id("com.gradle.plugin-publish") version "1.1.0"
 }
 
@@ -20,7 +20,7 @@ java {
 }
 
 kotlin {
-    jvmToolchain(11)
+    jvmToolchain(17)
 }
 
 dependencies {
