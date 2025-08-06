@@ -17,6 +17,7 @@
 package com.google.android.gms.oss.licenses.plugin
 
 import groovy.json.JsonSlurper
+import groovy.xml.XmlSlurper
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.tasks.InputFile

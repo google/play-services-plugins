@@ -20,7 +20,7 @@ plugins {
 }
 
 group = "com.google.gms"
-version = "4.4.1"
+version = "4.4.3"
 
 dependencies {
     compileOnly("com.android.tools.build:gradle-api:7.3.0")
@@ -43,7 +43,7 @@ gradlePlugin {
 publishing {
     repositories {
         maven {
-            url = uri("${buildDir}/repo")
+            url = uri(layout.buildDirectory.dir("repo"))
         }
     }
 }
@@ -76,7 +76,10 @@ publishing {
     publications {
         create<MavenPublication>("pluginMaven") {
             artifactId = "google-services"
-
+        }
+    }
+    afterEvaluate {
+        publications.withType(MavenPublication::class.java) {
             pom {
                 licenses {
                     license {

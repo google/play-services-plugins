@@ -44,11 +44,11 @@ class GoogleServicesPlugin : Plugin<Project> {
               "This error message came from the google-services Gradle plugin, report" +
                   " issues at https://github.com/google/play-services-plugins and disable by " +
                   "adding \"googleServices { disableVersionCheck = true }\" to your build.gradle file.")
-      project.configurations
-          .filter { it.name.contains("ompile") }
-          .forEach { projectConfig ->
-            projectConfig.incoming.afterResolve(strictVersionDepInspector::afterResolve)
-          }
+      project.configurations.configureEach { configuration ->
+        if (configuration.name.contains("ompile")) {
+          configuration.incoming.afterResolve(strictVersionDepInspector::afterResolve)
+        }
+      }
     }
 
     var pluginApplied = false
@@ -92,7 +92,7 @@ class GoogleServicesPlugin : Plugin<Project> {
                       variant.productFlavors.map { it.second },
                       project.projectDir))
               it.applicationId.set(variant.applicationId)
-              it.gmpAppId.set(project.buildDir.resolve("gmpAppId/${variant.name}.txt"))
+              it.gmpAppId.set(project.layout.buildDirectory.file("gmpAppId/${variant.name}.txt"))
             }
 
     // TODO: add an AGP version check to this block
