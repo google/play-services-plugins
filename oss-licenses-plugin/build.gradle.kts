@@ -23,6 +23,15 @@ kotlin {
     jvmToolchain(11)
 }
 
+gradlePlugin {
+    plugins {
+        create("ossLicensesPlugin") {
+            id = "com.google.android.gms.oss-licenses-plugin"
+            implementationClass = "com.google.android.gms.oss.licenses.plugin.OssLicensesPlugin"
+        }
+    }
+}
+
 dependencies {
     implementation(gradleApi())
     implementation(localGroovy())
@@ -37,6 +46,12 @@ dependencies {
 }
 
 publishing {
+    repositories {
+        maven {
+            name = "localPluginRepository"
+            url = uri("../local-plugin-repository")
+        }
+    }
     publications {
         create<MavenPublication>("pluginMaven") {
             artifactId = "oss-licenses-plugin"
