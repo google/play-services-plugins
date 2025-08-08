@@ -21,6 +21,7 @@ import com.android.build.gradle.api.BaseVariant
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
+import org.gradle.api.tasks.TaskProvider
 import org.slf4j.LoggerFactory
 
 class OssLicensesPlugin implements Plugin<Project> {
@@ -35,13 +36,14 @@ class OssLicensesPlugin implements Plugin<Project> {
                         "generated/third_party_licenses/${variant.name}")
                 def dependenciesJson = new File(baseDir, "dependencies.json")
 
-                def dependencyTask = project.tasks.register(
-                        "${variant.name}OssDependencyTask",
+                String dependencyTaskName = "${variant.name}OssDependencyTask"
+                TaskProvider<DependencyTask> dependencyTask = project.tasks.register(
+                        dependencyTaskName,
                         DependencyTask.class) {
                     it.dependenciesJson.set(dependenciesJson)
                     it.libraryDependenciesReport.set(variant.artifacts.get(SingleArtifact.METADATA_LIBRARY_DEPENDENCIES_REPORT.INSTANCE))
-                }.get()
-                logger.debug("Created task ${dependencyTask.name}")
+                }
+                logger.debug("Registered task $dependencyTaskName")
 
                 def resourceBaseDir = new File(baseDir, "/res")
                 def rawResourceDir = new File(resourceBaseDir, "/raw")
@@ -53,7 +55,7 @@ class OssLicensesPlugin implements Plugin<Project> {
                         "${variant.name}OssLicensesTask",
                         LicensesTask.class) {
                     markNotCompatibleWithConfigurationCache(it)
-                    it.dependenciesJson.set(dependencyTask.dependenciesJson)
+                    it.dependenciesJson.set(dependencyTask.flatMap { it.dependenciesJson })
                     it.rawResourceDir = rawResourceDir
                     it.licenses = licensesFile
                     it.licensesMetadata = licensesMetadataFile
@@ -62,18 +64,21 @@ class OssLicensesPlugin implements Plugin<Project> {
 
                 variantTolicenseTaskMap[variant.name] = licenseTask
 
-                def cleanupTask = project.tasks.register(
-                        "${variant.name}OssLicensesCleanUp",
+                String cleanupTaskName = "${variant.name}OssLicensesCleanUp"
+                TaskProvider<LicensesCleanUpTask> cleanupTask = project.tasks.register(
+                        cleanupTaskName,
                         LicensesCleanUpTask.class) {
                     it.dependenciesJson = dependenciesJson
                     it.dependencyDir = baseDir
                     it.licensesFile = licensesFile
                     it.metadataFile = licensesMetadataFile
                     it.licensesDir = rawResourceDir
-                }.get()
-                logger.debug("Created task ${cleanupTask.name}")
+                }
+                logger.debug("Registered task $cleanupTaskName")
 
-                project.tasks.findByName("clean").dependsOn(cleanupTask)
+                project.tasks.named("clean").configure {
+                    it.dependsOn(cleanupTask)
+                }
             })
         }
 
