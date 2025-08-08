@@ -64,12 +64,12 @@ abstract class LicensesTask extends DefaultTask {
     abstract RegularFileProperty getDependenciesJson()
 
     @OutputDirectory
-    abstract DirectoryProperty getRawResourceDir()
+    abstract DirectoryProperty getGeneratedDirectory()
 
-    @Internal // represented by getRawResourceDir()
+    @Internal // represented by getGeneratedDirectory()
     File licenses
 
-    @Internal // represented by getRawResourceDir()
+    @Internal // represented by getGeneratedDirectory()
     File licensesMetadata
 
     @TaskAction
@@ -126,7 +126,7 @@ abstract class LicensesTask extends DefaultTask {
     }
 
     protected void initOutputDir() {
-        File rawResourceDir = getRawResourceDir().get().asFile
+        File rawResourceDir = new File(getGeneratedDirectory().get().asFile, "raw")
         if (!rawResourceDir.exists()) {
             rawResourceDir.mkdirs()
         }

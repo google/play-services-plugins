@@ -35,8 +35,8 @@ gradlePlugin {
 dependencies {
     implementation(gradleApi())
     implementation(localGroovy())
-    implementation("com.android.tools.build:gradle:7.1.0")
-    implementation("com.android.tools.build:gradle-api:7.1.0")
+    implementation("com.android.tools.build:gradle:8.2.0")
+    implementation("com.android.tools.build:gradle-api:8.2.0")
     implementation("com.google.protobuf:protobuf-java:3.19.1")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.mockito:mockito-core:4.1.0")

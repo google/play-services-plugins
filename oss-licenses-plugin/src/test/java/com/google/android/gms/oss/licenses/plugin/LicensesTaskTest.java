@@ -67,14 +67,14 @@ public class LicensesTaskTest {
     project = ProjectBuilder.builder().withProjectDir(new File(BASE_DIR)).build();
     licensesTask = project.getTasks().create("generateLicenses", LicensesTask.class);
 
-    licensesTask.getRawResourceDir().set(outputDir);
+    licensesTask.getGeneratedDirectory().set(outputDir);
   }
 
   @Test
   public void testInitOutputDir() throws IOException {
     licensesTask.initOutputDir();
 
-    File rawResourceDir = licensesTask.getRawResourceDir().get().getAsFile();
+    File rawResourceDir = new File(licensesTask.getGeneratedDirectory().get().getAsFile(), "raw");
     assertTrue(rawResourceDir.exists());
 
     File licenses = new File(rawResourceDir, "third_party_licenses");
@@ -222,7 +222,7 @@ public class LicensesTaskTest {
 
   @Test
   public void testAddGooglePlayServiceLicenses() throws IOException {
-    File tempOutput = new File(licensesTask.getRawResourceDir().get().getAsFile(), "dependencies/groupC");
+    File tempOutput = temporaryFolder.newFolder();
     tempOutput.mkdirs();
     createLicenseZip(tempOutput.getPath() + "play-services-foo-license.aar");
     File artifact = new File(tempOutput.getPath() + "play-services-foo-license.aar");
@@ -243,12 +243,12 @@ public class LicensesTaskTest {
 
   @Test
   public void testAddGooglePlayServiceLicenses_withoutDuplicate() throws IOException {
-    File groupC = new File(licensesTask.getRawResourceDir().get().getAsFile(), "dependencies/groupC");
+    File groupC = temporaryFolder.newFolder();
     groupC.mkdirs();
     createLicenseZip(groupC.getPath() + "/play-services-foo-license.aar");
     File artifactFoo = new File(groupC.getPath() + "/play-services-foo-license.aar");
 
-    File groupD = new File(licensesTask.getRawResourceDir().get().getAsFile(), "dependencies/groupD");
+    File groupD = temporaryFolder.newFolder();
     groupD.mkdirs();
     createLicenseZip(groupD.getPath() + "/play-services-bar-license.aar");
     File artifactBar = new File(groupD.getPath() + "/play-services-bar-license.aar");

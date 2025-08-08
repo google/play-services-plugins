@@ -27,6 +27,7 @@ class EndToEndTest {
             }
             android {
                 compileSdkVersion = "android-31"
+                namespace = "com.example.app"
             }
             dependencies {
                 implementation("com.google.android.gms:play-services-oss-licenses:17.0.0")
@@ -40,14 +41,14 @@ class EndToEndTest {
         )
         val result = GradleRunner.create()
             .withProjectDir(projectDir)
-            .withGradleVersion("7.6")
+            .withGradleVersion("8.2")
             .withArguments("releaseOssLicensesTask", "-s")
             .withPluginClasspath().build()
         Assert.assertEquals(result.task(":collectReleaseDependencies")!!.outcome, TaskOutcome.SUCCESS)
         Assert.assertEquals(result.task(":releaseOssDependencyTask")!!.outcome, TaskOutcome.SUCCESS)
         Assert.assertEquals(result.task(":releaseOssLicensesTask")!!.outcome, TaskOutcome.SUCCESS)
         val metadata =
-            File(projectDir, "build/generated/third_party_licenses/release/res/raw/third_party_license_metadata")
+            File(projectDir, "build/generated/resources/releaseOssLicensesTask/raw/third_party_license_metadata")
         Assert.assertTrue(metadata.readText().contains("play-services-oss-licenses"))
     }
 }
