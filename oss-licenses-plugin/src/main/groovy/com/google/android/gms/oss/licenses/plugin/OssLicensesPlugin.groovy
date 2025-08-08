@@ -45,20 +45,12 @@ class OssLicensesPlugin implements Plugin<Project> {
                 }
                 logger.debug("Registered task $dependencyTaskName")
 
-                def resourceBaseDir = new File(baseDir, "/res")
-                def rawResourceDir = new File(resourceBaseDir, "/raw")
-                def licensesFile = new File(rawResourceDir, "third_party_licenses")
-                def licensesMetadataFile = new File(rawResourceDir,
-                        "third_party_license_metadata")
-
                 def licenseTask = project.tasks.register(
                         "${variant.name}OssLicensesTask",
                         LicensesTask.class) {
                     markNotCompatibleWithConfigurationCache(it)
                     it.dependenciesJson.set(dependencyTask.flatMap { it.dependenciesJson })
-                    it.rawResourceDir = rawResourceDir
-                    it.licenses = licensesFile
-                    it.licensesMetadata = licensesMetadataFile
+                    it.getRawResourceDir().set(new File(baseDir, "/res/raw"))
                 }.get()
                 logger.debug("Created task ${licenseTask.name}")
 
@@ -85,7 +77,7 @@ class OssLicensesPlugin implements Plugin<Project> {
             if (licenseTask == null) {
                 return
             }
-            def generatedResFolder = project.files(licenseTask.rawResourceDir.parentFile).builtBy(licenseTask)
+            def generatedResFolder = project.files(licenseTask.getRawResourceDir().get().asFile.parentFile).builtBy(licenseTask)
             variant.registerGeneratedResFolders(generatedResFolder)
         }
     }

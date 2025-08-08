@@ -19,8 +19,10 @@ package com.google.android.gms.oss.licenses.plugin
 import groovy.json.JsonSlurper
 import groovy.xml.XmlSlurper
 import org.gradle.api.DefaultTask
+import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.tasks.InputFile
+import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
@@ -62,19 +64,17 @@ abstract class LicensesTask extends DefaultTask {
     abstract RegularFileProperty getDependenciesJson()
 
     @OutputDirectory
-    File rawResourceDir
+    abstract DirectoryProperty getRawResourceDir()
 
-    @OutputFile
+    @Internal // represented by getRawResourceDir()
     File licenses
 
-    @OutputFile
+    @Internal // represented by getRawResourceDir()
     File licensesMetadata
 
     @TaskAction
     void action() {
         initOutputDir()
-        initLicenseFile()
-        initLicensesMetadata()
 
         File dependenciesJsonFile = dependenciesJson.asFile.get()
         def artifactInfoSet = loadDependenciesJson(dependenciesJsonFile)
@@ -126,21 +126,15 @@ abstract class LicensesTask extends DefaultTask {
     }
 
     protected void initOutputDir() {
+        File rawResourceDir = getRawResourceDir().get().asFile
         if (!rawResourceDir.exists()) {
             rawResourceDir.mkdirs()
         }
-    }
-
-    protected void initLicenseFile() {
-        if (licenses == null) {
-            logger.error("License file is undefined")
-        }
+        licenses = new File(rawResourceDir, "third_party_licenses")
         licenses.newWriter().withWriter { w ->
             w << ''
         }
-    }
-
-    protected void initLicensesMetadata() {
+        licensesMetadata = new File(rawResourceDir, "third_party_license_metadata")
         licensesMetadata.newWriter().withWriter { w ->
             w << ''
         }
