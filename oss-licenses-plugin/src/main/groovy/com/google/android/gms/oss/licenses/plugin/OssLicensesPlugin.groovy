@@ -32,7 +32,7 @@ class OssLicensesPlugin implements Plugin<Project> {
         def variantTolicenseTaskMap = new HashMap<String, LicensesTask>()
         project.androidComponents {
             onVariants(selector().all(), { variant ->
-                def baseDir = new File(project.buildDir,
+                File baseDir = new File(project.buildDir,
                         "generated/third_party_licenses/${variant.name}")
                 def dependenciesJson = new File(baseDir, "dependencies.json")
 
@@ -68,11 +68,7 @@ class OssLicensesPlugin implements Plugin<Project> {
                 TaskProvider<LicensesCleanUpTask> cleanupTask = project.tasks.register(
                         cleanupTaskName,
                         LicensesCleanUpTask.class) {
-                    it.dependenciesJson = dependenciesJson
-                    it.dependencyDir = baseDir
-                    it.licensesFile = licensesFile
-                    it.metadataFile = licensesMetadataFile
-                    it.licensesDir = rawResourceDir
+                    it.generatedDirectory.set(baseDir)
                 }
                 logger.debug("Registered task $cleanupTaskName")
 

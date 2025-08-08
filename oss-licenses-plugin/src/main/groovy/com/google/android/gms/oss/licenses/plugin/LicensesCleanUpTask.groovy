@@ -17,44 +17,26 @@
 package com.google.android.gms.oss.licenses.plugin
 
 import org.gradle.api.DefaultTask
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.tasks.InputDirectory
+import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.TaskAction
+import org.gradle.work.DisableCachingByDefault
 
 /**
- * Task to clean up the generated dependency.json, third_party_licenses and
- * third_party_license_metadata files.
+ * Task to clean up the generated files.
  */
-class LicensesCleanUpTask extends DefaultTask {
-
-    protected File dependenciesJson
-
-    protected File dependencyDir
-
-    protected File licensesFile
-
-    protected File metadataFile
-
-    protected File licensesDir
+@DisableCachingByDefault(because = "Local deletion operation")
+abstract class LicensesCleanUpTask extends DefaultTask {
+    @Optional
+    @InputDirectory
+    abstract DirectoryProperty getGeneratedDirectory()
 
     @TaskAction
     void action() {
-        if (dependenciesJson.exists()) {
-            dependenciesJson.delete()
-        }
-
-        if (dependencyDir.isDirectory() && dependencyDir.list().length == 0) {
-            dependencyDir.delete()
-        }
-
-        if (licensesFile.exists()) {
-            licensesFile.delete()
-        }
-
-        if (metadataFile.exists()) {
-            metadataFile.delete()
-        }
-
-        if (licensesDir.isDirectory() && licensesDir.list().length == 0) {
-            licensesDir.delete()
+        File directoryToDelete = getGeneratedDirectory().get().asFile
+        if (directoryToDelete.exists()) {
+            directoryToDelete.deleteDir()
         }
     }
 }

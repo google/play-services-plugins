@@ -15,6 +15,7 @@
 package com.google.android.gms.oss.licenses.plugin;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,31 +38,28 @@ public class LicensesCleanUpTaskTest {
   public void testAction() throws IOException {
     File testDir = temporaryFolder.newFolder();
 
-    File dependencyDir = new File(testDir, "dependency");
-    dependencyDir.mkdir();
-
+    // Set up a generated directory with normal expected contents
+    File generatedDir = new File(testDir, "generated");
+    File dependencyDir = new File(generatedDir, "dependency");
+    assertTrue(dependencyDir.mkdirs());
     File dependencyFile = new File(dependencyDir, "dependency.json");
+    assertTrue(dependencyFile.createNewFile());
 
-    File licensesDir = new File(testDir, "raw");
-    licensesDir.mkdir();
+    File licensesDir = new File(generatedDir, "res/raw");
+    assertTrue(licensesDir.mkdirs());
+    assertTrue(new File(licensesDir, "third_party_licenses").createNewFile());
+    assertTrue(new File(licensesDir, "third_party_license_metadata").createNewFile());
 
-    File licensesFile = new File(licensesDir, "third_party_licenses");
-    File metadataFile = new File(licensesDir, "third_party_license_metadata");
-
+    // Create a licenses clean up task
     Project project = ProjectBuilder.builder().withProjectDir(testDir).build();
     LicensesCleanUpTask task =
         project.getTasks().create("licensesCleanUp", LicensesCleanUpTask.class);
-    task.dependencyDir = dependencyDir;
-    task.dependenciesJson = dependencyFile;
-    task.licensesDir = licensesDir;
-    task.licensesFile = licensesFile;
-    task.metadataFile = metadataFile;
+    task.getGeneratedDirectory().set(generatedDir);
 
+    // Run the task action
     task.action();
-    assertFalse(task.dependenciesJson.exists());
-    assertFalse(task.dependencyDir.exists());
-    assertFalse(task.licensesFile.exists());
-    assertFalse(task.metadataFile.exists());
-    assertFalse(task.licensesDir.exists());
+
+    // Ensure the directory is deleted
+    assertFalse(generatedDir.exists());
   }
 }
