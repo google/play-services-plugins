@@ -1,5 +1,5 @@
 plugins {
-  id("groovy")
+    id("groovy")
     id("java-gradle-plugin")
     id("org.jetbrains.kotlin.jvm") version "2.2.0"
     id("com.gradle.plugin-publish") version "1.1.0"
@@ -57,14 +57,12 @@ publishing {
             artifactId = "oss-licenses-plugin"
         }
     }
-    afterEvaluate {
-        publications.withType(MavenPublication::class.java) {
-            pom {
-                licenses {
-                    license {
-                        name.set("The Apache License, Version 2.0")
-                        url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
-                    }
+    publications.withType<MavenPublication>().configureEach {
+        pom {
+            licenses {
+                license {
+                    name.set("The Apache License, Version 2.0")
+                    url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
                 }
             }
         }

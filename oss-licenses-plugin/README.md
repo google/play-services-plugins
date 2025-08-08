@@ -22,33 +22,29 @@ play-services-oss-licenses library.
 
 ### Add the Gradle plugin
 
-In your root-level `build.gradle` make sure you are using the
-[Google Maven repository](https://developer.android.com/studio/build/dependencies#google-maven)
-and add the oss-licenses plugin to your dependencies:
+In your root-level `settings.gradle.kts` make sure you are using the
+[Google Maven repository](https://developer.android.com/studio/build/dependencies#google-maven):
 
-    buildscript {
+    pluginManagement {
       repositories {
-        // ...
-        google()  // or maven { url "https://maven.google.com" } for Gradle <= 3
+        google()
       }
-      dependencies {
-        // ...
-        // Add this line:
-        classpath 'com.google.android.gms:oss-licenses-plugin:0.10.6'
-      }
+    }
 
-In your app-level `build.gradle`, apply the plugin by adding the following line
-under the existing `apply plugin: 'com.android.application'` at the top of the
+In your app-level `build.gradle.kts`, apply the plugin by adding the following line
+under the existing `id("com.android.application")` at the top of the
 file:
 
-    apply plugin: 'com.google.android.gms.oss-licenses-plugin'
+    apply {
+      id("com.google.android.gms.oss-licenses-plugin") version("0.10.7")
+    }
 
 ### Add the library to your app
 
-In the `dependencies` section of your app-level `build.gradle`, add a dependency
+In the `dependencies` section of your app-level `build.gradle.kts`, add a dependency
 on the `oss-licenses` library:
 
-    implementation 'com.google.android.gms:play-services-oss-licenses:17.0.0'
+    implementation("com.google.android.gms:play-services-oss-licenses:17.0.0")
 
 ### Displaying license information
 
