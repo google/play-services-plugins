@@ -62,9 +62,10 @@ public class LicensesTaskTest {
 
   @Before
   public void setUp() throws IOException {
+    File projectDir = temporaryFolder.newFolder();
     File outputDir = temporaryFolder.newFolder();
 
-    project = ProjectBuilder.builder().withProjectDir(new File(BASE_DIR)).build();
+    project = ProjectBuilder.builder().withProjectDir(projectDir).build();
     licensesTask = project.getTasks().create("generateLicenses", LicensesTask.class);
 
     licensesTask.getGeneratedDirectory().set(outputDir);
