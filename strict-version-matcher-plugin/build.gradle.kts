@@ -35,6 +35,11 @@ kotlin {
 }
 
 publishing {
+  repositories {
+        maven {
+          url = uri(layout.buildDirectory.dir("repo"))
+        }
+    }
     publications {
         create<MavenPublication>("pluginMaven") {
             artifactId = "strict-version-matcher-plugin"

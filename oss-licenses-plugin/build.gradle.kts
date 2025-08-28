@@ -48,8 +48,7 @@ dependencies {
 publishing {
     repositories {
         maven {
-            name = "localPluginRepository"
-            url = uri("../local-plugin-repository")
+          url = uri(layout.buildDirectory.dir("repo"))
         }
     }
     publications {
