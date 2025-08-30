@@ -33,22 +33,45 @@ gradlePlugin {
 }
 
 dependencies {
+    compileOnly("com.android.tools.build:gradle:8.2.0")
+    compileOnly("com.android.tools.build:gradle-api:8.2.0")
     implementation(gradleApi())
     implementation(localGroovy())
-    implementation("com.android.tools.build:gradle:8.2.0")
-    implementation("com.android.tools.build:gradle-api:8.2.0")
     implementation("com.google.protobuf:protobuf-java:3.19.1")
+
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.mockito:mockito-core:4.1.0")
     testImplementation("com.google.guava:guava:31.0.1-jre")
     testImplementation("com.google.truth:truth:1.1.3")
     testImplementation("com.google.code.gson:gson:2.8.9")
+    testImplementation("com.android.tools.build:gradle:8.2.0") {
+        because("Needed for DependencyTaskTest.")
+    }
+}
+
+val repo = layout.buildDirectory.dir("repo")
+tasks.withType<Test>().configureEach {
+    // Make sure that build/repo is created and that it is used as input for the test task.
+    // Replace this with something less ugly if https://github.com/gradle/gradle/issues/34870 is fixed
+    dependsOn("publish")
+    inputs.files(
+        repo.map {
+            // Exclude maven-metadata.xml as they contain timestamps but have no effect on the test outcomes
+            it.asFileTree.matching { exclude("**/maven-metadata.xml*") }
+        }
+    ).withPathSensitivity(PathSensitivity.RELATIVE).withPropertyName("repo")
+
+    systemProperties["plugin_version"] = project.version // value used by EndToEndTest.kt
+    doFirst {
+        // Inside doFirst to make sure that absolute path is not considered to be input to the task
+        systemProperties["repo_path"] = repo.get().asFile.absolutePath // value used by EndToEndTest.kt
+    }
 }
 
 publishing {
     repositories {
         maven {
-          url = uri(layout.buildDirectory.dir("repo"))
+          url = uri(repo)
         }
     }
     publications {

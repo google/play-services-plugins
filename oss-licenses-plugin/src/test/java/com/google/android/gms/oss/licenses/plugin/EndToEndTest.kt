@@ -6,9 +6,25 @@ import org.junit.Assert
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.Rule
+import org.junit.runner.RunWith
+import org.junit.runners.Parameterized
+import org.junit.runners.Parameterized.Parameters
 import java.io.File
 
-class EndToEndTest {
+@RunWith(Parameterized::class)
+class EndToEndTest(private val agpVersion: String, private val gradleVersion: String) {
+    companion object {
+        @get:JvmStatic
+        @get:Parameters(name = "agpVersion={0},gradleVersion={1}")
+        @Suppress("unused") // needed for Parameterized
+        val params = listOf(
+            arrayOf("8.2.0", "8.2"),
+            arrayOf("8.10.0", "8.11.1"),
+            arrayOf("8.12.2", "8.14"),
+            arrayOf("9.0.0-alpha03", "9.0.0"),
+        )
+    }
+
     @get:Rule
     val tempDirectory: TemporaryFolder = TemporaryFolder()
 
@@ -16,10 +32,10 @@ class EndToEndTest {
     fun basic() {
         val projectDir = tempDirectory.newFolder("basic")
         File(projectDir, "build.gradle").writeText(
-            """               
+            """
             plugins {
-                id("com.android.application")
-                id("com.google.android.gms.oss-licenses-plugin")
+                id("com.android.application") version "$agpVersion"
+                id("com.google.android.gms.oss-licenses-plugin") version "${System.getProperty("plugin_version")}"
             }
             repositories {
                 google()
@@ -39,11 +55,24 @@ class EndToEndTest {
             android.useAndroidX=true
         """.trimIndent()
         )
+        File(projectDir, "settings.gradle").writeText(
+            """
+            pluginManagement {
+                repositories {
+                    maven {
+                         url = uri("${System.getProperty("repo_path")}")
+                    }
+                    google()
+                    mavenCentral()
+                }
+            }
+            """.trimIndent()
+        )
         val result = GradleRunner.create()
             .withProjectDir(projectDir)
-            .withGradleVersion("8.2")
+            .withGradleVersion(gradleVersion)
             .withArguments("releaseOssLicensesTask", "-s")
-            .withPluginClasspath().build()
+            .build()
         Assert.assertEquals(result.task(":collectReleaseDependencies")!!.outcome, TaskOutcome.SUCCESS)
         Assert.assertEquals(result.task(":releaseOssDependencyTask")!!.outcome, TaskOutcome.SUCCESS)
         Assert.assertEquals(result.task(":releaseOssLicensesTask")!!.outcome, TaskOutcome.SUCCESS)
