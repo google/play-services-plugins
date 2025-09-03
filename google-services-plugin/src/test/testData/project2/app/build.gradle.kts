@@ -3,6 +3,8 @@ plugins {
     id("com.google.gms.google-services")
 }
 
+import com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy
+
 android {
     namespace = "com.example.myapplication"
     compileSdk = 33
@@ -34,4 +36,8 @@ android {
             dimension = "bar"
         }
     }
+}
+
+googleServices {
+    missingGoogleServicesStrategy = MissingGoogleServicesStrategy.ERROR
 }

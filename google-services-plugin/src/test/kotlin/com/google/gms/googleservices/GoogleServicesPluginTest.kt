@@ -36,8 +36,9 @@ class GoogleServicesPluginTest {
   private fun getExpectedResults(projectName: String) =
       File("src/test/testData/$projectName-expected")
 
-  private fun runBuild(expectFailure: Boolean = false) =
+  private fun runBuild(gradleVersion: String, expectFailure: Boolean = false) =
       GradleRunner.create()
+          .withGradleVersion(gradleVersion)
           .withProjectDir(tempFolder.root)
           .forwardOutput() // useful for debugging build under test
           .withArguments(
@@ -74,29 +75,15 @@ class GoogleServicesPluginTest {
   }
 
   @Test
-  fun `res file generation with AGP 7,4`() {
+  fun `res file generation with AGP 8,0`() {
     val projectName = "project1"
 
     copyProjectToTemp(projectName)
-    val buildResult = runBuild()
+    val buildResult = runBuild(gradleVersion = "8.0")
 
     Assert.assertEquals(TaskOutcome.SUCCESS, buildResult.task(":app:assembleDebug")?.outcome)
 
     val actualResults = tempFolder.root.resolve("app/build/generated/res/")
-    val expectedResults = getExpectedResults(projectName)
-    compareResults(actualResults, expectedResults)
-  }
-
-  @Test
-  fun `res file generation with AGP 7,3`() {
-    val projectName = "project1"
-
-    copyProjectToTemp(projectName + "-agp730")
-    val buildResult = runBuild()
-
-    Assert.assertEquals(TaskOutcome.SUCCESS, buildResult.task(":app:assembleDebug")?.outcome)
-
-    val actualResults = tempFolder.root.resolve("app/build/RES/")
     val expectedResults = getExpectedResults(projectName)
     compareResults(actualResults, expectedResults)
   }
@@ -107,7 +94,7 @@ class GoogleServicesPluginTest {
 
     copyProjectToTemp(projectName)
     tempFolder.root.resolve("app/google-services.json").delete()
-    val buildResult = runBuild(expectFailure = true)
+    val buildResult = runBuild(gradleVersion = "8.0", expectFailure = true)
 
     Assert.assertEquals(
         TaskOutcome.FAILED, buildResult.task(":app:processFreeOneDebugGoogleServices")?.outcome)
@@ -125,7 +112,7 @@ class GoogleServicesPluginTest {
         buildFile
             .readText()
             .replace("MissingGoogleServicesStrategy.ERROR", "MissingGoogleServicesStrategy.WARN"))
-    val buildResult = runBuild()
+    val buildResult = runBuild(gradleVersion = "8.0")
 
     Assert.assertEquals(
         TaskOutcome.SUCCESS, buildResult.task(":app:processFreeOneDebugGoogleServices")?.outcome)
@@ -144,7 +131,7 @@ class GoogleServicesPluginTest {
             .readText()
             .replace("MissingGoogleServicesStrategy.ERROR", "MissingGoogleServicesStrategy.IGNORE"))
 
-    val buildResult = runBuild()
+    val buildResult = runBuild(gradleVersion = "8.0")
 
     Assert.assertEquals(
         TaskOutcome.SUCCESS, buildResult.task(":app:processFreeOneDebugGoogleServices")?.outcome)
@@ -152,11 +139,25 @@ class GoogleServicesPluginTest {
   }
 
   @Test
+  fun `agp 9,0,0 and gradle 9,0,0`() {
+    val projectName = "project2"
+
+    copyProjectToTemp(projectName)
+    val buildResult = runBuild(gradleVersion = "9.0.0")
+
+    Assert.assertEquals(TaskOutcome.SUCCESS, buildResult.task(":app:assembleDebug")?.outcome)
+
+    val actualResults = tempFolder.root.resolve("app/build/generated/res/")
+    val expectedResults = getExpectedResults(projectName)
+    compareResults(actualResults, expectedResults)
+  }
+
+  @Test
   fun `flavor specific google-services,json`() {
     val projectName = "project3"
 
     copyProjectToTemp(projectName)
-    val buildResult = runBuild()
+    val buildResult = runBuild(gradleVersion = "8.0")
 
     Assert.assertEquals(TaskOutcome.SUCCESS, buildResult.task(":app:assembleDebug")?.outcome)
 

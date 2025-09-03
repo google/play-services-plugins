@@ -74,7 +74,7 @@ do not require Google Play Services and are missing the `google-services.json` f
 
 #### Android Gradle plugin compatibility
 
-The Google Services plugin requires AGP 7.3.0 or newer to work. 
+The Google Services plugin requires AGP 8.0.0 or newer to work. 
 
 ## Legacy way
 

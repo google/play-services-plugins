@@ -1,3 +1,6 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+
 /*
  * Copyright (C) 2023 The Android Open Source Project
  *
@@ -15,7 +18,7 @@
  */
 plugins {
     id("java-gradle-plugin")
-    id("org.jetbrains.kotlin.jvm") version "1.7.22"
+    id("org.jetbrains.kotlin.jvm") version "2.1.0"
     id("com.gradle.plugin-publish") version "1.1.0"
 }
 
@@ -23,7 +26,7 @@ group = "com.google.gms"
 version = "4.4.3"
 
 dependencies {
-    compileOnly("com.android.tools.build:gradle-api:7.3.0")
+    compileOnly("com.android.tools.build:gradle-api:8.0.0")
     implementation("com.google.android.gms:strict-version-matcher-plugin:1.2.4")
     implementation("com.google.code.gson:gson:2.8.5")
     implementation("com.google.guava:guava:27.0.1-jre")
@@ -49,19 +52,27 @@ publishing {
 }
 
 java {
+    targetCompatibility = JavaVersion.VERSION_11
+    sourceCompatibility = JavaVersion.VERSION_11
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(11))
+        languageVersion.set(JavaLanguageVersion.of(17))
     }
 }
 
 kotlin {
-    jvmToolchain(11)
+    jvmToolchain(17)
+    coreLibrariesVersion = "2.0.0"
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_11)
+        languageVersion.set(KotlinVersion.KOTLIN_2_0)
+    }
 }
 
 tasks.withType<Test>().configureEach {
     // See GoogleServicesPluginTest.kt -> testResGeneration
     dependsOn("publishAllPublicationsToMavenRepository")
     systemProperties["plugin_version"] = project.version // value used by GoogleServicesPluginTest.kt
+    inputs.dir("src/test/testData") // contents used by GoogleServicesPluginTest.kt
 }
 
 tasks.withType<Jar>().configureEach {
@@ -79,14 +90,12 @@ publishing {
             artifactId = "google-services"
         }
     }
-    afterEvaluate {
-        publications.withType(MavenPublication::class.java) {
-            pom {
-                licenses {
-                    license {
-                        name.set("The Apache License, Version 2.0")
-                        url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
-                    }
+    publications.withType(MavenPublication::class.java).configureEach {
+        pom {
+            licenses {
+                license {
+                    name.set("The Apache License, Version 2.0")
+                    url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
                 }
             }
         }
