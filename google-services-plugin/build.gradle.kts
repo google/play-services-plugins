@@ -61,6 +61,7 @@ kotlin {
 tasks.withType<Test>().configureEach {
     // See GoogleServicesPluginTest.kt -> testResGeneration
     dependsOn("publishAllPublicationsToMavenRepository")
+    systemProperties["plugin_version"] = project.version // value used by GoogleServicesPluginTest.kt
 }
 
 tasks.withType<Jar>().configureEach {

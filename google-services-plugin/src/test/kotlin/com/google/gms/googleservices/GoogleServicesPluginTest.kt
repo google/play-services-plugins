@@ -41,13 +41,16 @@ class GoogleServicesPluginTest {
           .withProjectDir(tempFolder.root)
           .forwardOutput() // useful for debugging build under test
           .withArguments(
+            "-s",
               "assembleDebug",
               /*
               GradleRunner.withPluginClasspath() won't work, because it puts the
               plugin in an isolated classloader so it can't interact with AGP.
               Instead we're passing the path to the built Maven repo.
                */
-              "-PpluginRepo=${File("build/repo").absolutePath}")
+              "-PpluginRepo=${File("build/repo").absolutePath}",
+              "-DpluginVersion=${System.getProperty("plugin_version")}",
+            )
           .run {
               if (expectFailure) {
                 buildAndFail()
