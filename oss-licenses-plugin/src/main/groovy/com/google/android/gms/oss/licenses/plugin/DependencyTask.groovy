@@ -18,6 +18,7 @@ package com.google.android.gms.oss.licenses.plugin
 
 import com.android.tools.build.libraries.metadata.AppDependencies
 import groovy.json.JsonBuilder
+import groovy.json.JsonGenerator
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.tasks.InputFile
@@ -54,7 +55,14 @@ abstract class DependencyTask extends DefaultTask {
 
         initOutput(outputFile.parentFile)
         outputFile.newWriter().withWriter {
-            it.write(new JsonBuilder(artifactInfoSet).toPrettyString())
+            JsonBuilder json = new JsonBuilder()
+            json.call(artifactInfoSet) { ArtifactInfo info ->
+                // ensure that order of json entries is consistent to have reproducible output json
+                group info.group
+                name info.name
+                version info.version
+            }
+            it.write(json.toPrettyString())
         }
     }
 
@@ -81,14 +89,22 @@ abstract class DependencyTask extends DefaultTask {
     ) {
         return appDependencies.libraryList.stream()
                 .filter { it.libraryOneofCase == MAVEN_LIBRARY }
+                .sorted { o1, o2 ->
+                    // ensure the set is sorted to have reproducible output json
+                    int groupComparison = o1.mavenLibrary.groupId <=> o2.mavenLibrary.groupId
+                    if (groupComparison == 0) {
+                        o1.mavenLibrary.artifactId <=> o2.mavenLibrary.artifactId
+                    } else {
+                        groupComparison
+                    }
+                }
                 .map { library ->
                     return new ArtifactInfo(
                             library.mavenLibrary.groupId,
                             library.mavenLibrary.artifactId,
                             library.mavenLibrary.version
                     )
-                }
-                .collect(Collectors.toUnmodifiableSet())
+                }.collect(Collectors.toCollection(LinkedHashSet::new))
     }
 
     private static void initOutput(File outputDir) {
