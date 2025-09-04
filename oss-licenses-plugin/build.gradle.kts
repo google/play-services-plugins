@@ -66,6 +66,7 @@ tasks.withType<Test>().configureEach {
         // Inside doFirst to make sure that absolute path is not considered to be input to the task
         systemProperties["repo_path"] = repo.get().asFile.absolutePath // value used by EndToEndTest.kt
     }
+    maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).takeIf { it > 0 } ?: 1
 }
 
 publishing {

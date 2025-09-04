@@ -77,7 +77,7 @@ abstract class LicensesTask extends DefaultTask {
         initOutputDir()
 
         File dependenciesJsonFile = dependenciesJson.asFile.get()
-        def artifactInfoSet = loadDependenciesJson(dependenciesJsonFile)
+        Set<ArtifactInfo> artifactInfoSet = loadDependenciesJson(dependenciesJsonFile)
 
         if (DependencyUtil.ABSENT_ARTIFACT in artifactInfoSet) {
             if (artifactInfoSet.size() > 1) {
@@ -110,7 +110,7 @@ abstract class LicensesTask extends DefaultTask {
 
     private static Set<ArtifactInfo> loadDependenciesJson(File jsonFile) {
         def allDependencies = new JsonSlurper().parse(jsonFile)
-        def artifactInfoSet = new HashSet<ArtifactInfo>()
+        def artifactInfoSet = new LinkedHashSet<ArtifactInfo>() // use LinkedHashSet to ensure stable output order
         for (entry in allDependencies) {
             ArtifactInfo artifactInfo = artifactInfoFromEntry(entry)
             artifactInfoSet.add(artifactInfo)

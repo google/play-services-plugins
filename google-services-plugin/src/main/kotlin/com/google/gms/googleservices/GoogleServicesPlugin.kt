@@ -25,7 +25,6 @@ import java.io.File
 import java.util.*
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.configurationcache.extensions.capitalized
 
 class GoogleServicesPlugin : Plugin<Project> {
 
@@ -171,3 +170,6 @@ class GoogleServicesPlugin : Plugin<Project> {
     var missingGoogleServicesStrategy = MissingGoogleServicesStrategy.ERROR
   }
 }
+
+private fun CharSequence.capitalized(): String =
+    toString().replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
