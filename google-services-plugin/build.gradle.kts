@@ -13,9 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+
 plugins {
     id("java-gradle-plugin")
-    id("org.jetbrains.kotlin.jvm") version "1.7.22"
+    id("org.jetbrains.kotlin.jvm") version "2.1.0"
     id("com.gradle.plugin-publish") version "1.1.0"
 }
 
@@ -56,6 +59,10 @@ java {
 
 kotlin {
     jvmToolchain(11)
+    coreLibrariesVersion = "1.7.10"
+    compilerOptions {
+        languageVersion.set(KotlinVersion.KOTLIN_1_7)
+    }
 }
 
 tasks.withType<Test>().configureEach {
