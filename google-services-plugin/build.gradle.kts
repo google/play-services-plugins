@@ -66,6 +66,10 @@ kotlin {
 }
 
 tasks.withType<Test>().configureEach {
+    javaLauncher = javaToolchains.launcherFor {
+        // GoogleServicesPluginTest runs test with AGP that requires Java 17
+        languageVersion = JavaLanguageVersion.of(17)
+    }
     // See GoogleServicesPluginTest.kt -> testResGeneration
     dependsOn("publishAllPublicationsToMavenRepository")
     systemProperties["plugin_version"] = project.version // value used by GoogleServicesPluginTest.kt

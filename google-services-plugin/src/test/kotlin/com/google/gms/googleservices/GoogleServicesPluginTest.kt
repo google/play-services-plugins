@@ -75,6 +75,34 @@ class GoogleServicesPluginTest {
   }
 
   @Test
+  fun `res file generation with AGP 9,0,0-alpha04`() {
+    val projectName = "project1"
+
+    copyProjectToTemp(projectName)
+    val buildResult = runBuild(gradleVersion = "9.0.0", agpVersion = "9.0.0-alpha04")
+
+    Assert.assertEquals(TaskOutcome.SUCCESS, buildResult.task(":app:assembleDebug")?.outcome)
+
+    val actualResults = tempFolder.root.resolve("app/build/generated/res/")
+    val expectedResults = getExpectedResults(projectName)
+    compareResults(actualResults, expectedResults)
+  }
+
+  @Test
+  fun `res file generation with AGP 8,13`() {
+    val projectName = "project1"
+
+    copyProjectToTemp(projectName)
+    val buildResult = runBuild(gradleVersion = "8.14.3", agpVersion = "8.13.0")
+
+    Assert.assertEquals(TaskOutcome.SUCCESS, buildResult.task(":app:assembleDebug")?.outcome)
+
+    val actualResults = tempFolder.root.resolve("app/build/generated/res/")
+    val expectedResults = getExpectedResults(projectName)
+    compareResults(actualResults, expectedResults)
+  }
+
+  @Test
   fun `res file generation with AGP 7,4`() {
     val projectName = "project1"
 
