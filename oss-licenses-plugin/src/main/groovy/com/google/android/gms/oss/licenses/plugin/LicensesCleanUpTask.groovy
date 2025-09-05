@@ -20,6 +20,7 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.Optional
+import org.gradle.api.tasks.SkipWhenEmpty
 import org.gradle.api.tasks.TaskAction
 import org.gradle.work.DisableCachingByDefault
 
@@ -29,6 +30,7 @@ import org.gradle.work.DisableCachingByDefault
 @DisableCachingByDefault(because = "Local deletion operation")
 abstract class LicensesCleanUpTask extends DefaultTask {
     @Optional
+    @SkipWhenEmpty
     @InputDirectory
     abstract DirectoryProperty getGeneratedDirectory()
 

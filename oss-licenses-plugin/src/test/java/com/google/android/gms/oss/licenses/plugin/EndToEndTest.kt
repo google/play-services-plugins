@@ -3,6 +3,7 @@ package com.google.android.gms.oss.licenses.plugin
 import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
 import org.junit.Assert
+import org.junit.Before
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.Rule
@@ -30,9 +31,11 @@ class EndToEndTest(private val agpVersion: String, private val gradleVersion: St
 
     private fun isBuiltInKotlinEnabled() = agpVersion.startsWith("9.")
 
-    @Test
-    fun basic() {
-        val projectDir = tempDirectory.newFolder("basic")
+    private lateinit var projectDir: File
+
+    @Before
+    fun setup() {
+        projectDir = tempDirectory.newFolder("basic")
         File(projectDir, "build.gradle").writeText(
             """
             plugins {
@@ -70,6 +73,10 @@ class EndToEndTest(private val agpVersion: String, private val gradleVersion: St
             }
             """.trimIndent()
         )
+    }
+
+    @Test
+    fun basic() {
         val result = GradleRunner.create()
             .withProjectDir(projectDir)
             .withGradleVersion(gradleVersion)
@@ -84,7 +91,26 @@ class EndToEndTest(private val agpVersion: String, private val gradleVersion: St
         val metadata =
             File(projectDir, "build/generated/resources/releaseOssLicensesTask/raw/third_party_license_metadata")
         Assert.assertEquals(expectedContents(isBuiltInKotlinEnabled()), metadata.readText())
+
+        val cleanResult = GradleRunner.create()
+            .withProjectDir(projectDir)
+            .withGradleVersion(gradleVersion)
+            .withArguments("clean", "-s")
+            .build()
+        Assert.assertFalse(File(projectDir, "build").exists())
+        Assert.assertEquals(cleanResult.task(":clean")!!.outcome, TaskOutcome.SUCCESS)
     }
+
+    @Test
+    fun clean() {
+        val result = GradleRunner.create()
+            .withProjectDir(projectDir)
+            .withGradleVersion(gradleVersion)
+            .withArguments("clean", "-s")
+            .build()
+        Assert.assertEquals(result.task(":clean")!!.outcome, TaskOutcome.UP_TO_DATE)
+    }
+
 }
 
 private fun expectedDependenciesJson(builtInKotlinEnabled: Boolean) = """[
