@@ -27,9 +27,9 @@ In your root-level `settings.gradle.kts` make sure you are using the
 
 ```gradle.kts
 pluginManagement {
-  repositories {
-    google()
-  }
+    repositories {
+        google()
+    }
 }
 ```
 
@@ -39,7 +39,7 @@ file:
 
 ```gradle.kts
 plugins {
-  id("com.google.android.gms.oss-licenses-plugin") version "0.10.7"
+    id("com.google.android.gms.oss-licenses-plugin") version "0.10.7"
 }
 ```
 
