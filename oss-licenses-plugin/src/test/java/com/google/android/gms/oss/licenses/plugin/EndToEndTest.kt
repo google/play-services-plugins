@@ -89,7 +89,7 @@ class EndToEndTest(private val agpVersion: String, private val gradleVersion: St
         Assert.assertEquals(expectedDependenciesJson(isBuiltInKotlinEnabled()), dependenciesJson.readText())
 
         val metadata =
-            File(projectDir, "build/generated/resources/releaseOssLicensesTask/raw/third_party_license_metadata")
+            File(projectDir, "build/generated/res/releaseOssLicensesTask/raw/third_party_license_metadata")
         Assert.assertEquals(expectedContents(isBuiltInKotlinEnabled()), metadata.readText())
 
         val cleanResult = GradleRunner.create()
