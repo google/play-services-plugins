@@ -57,7 +57,7 @@ class OssLicensesPlugin implements Plugin<Project> {
             it.dependenciesJson.set(dependencyTask.flatMap { it.dependenciesJson })
         }
         project.logger.debug("Registered task ${licenseTask.name}")
-        variant.sources.resources.addGeneratedSourceDirectory(licenseTask, LicensesTask::getGeneratedDirectory)
+        variant.sources.res.addGeneratedSourceDirectory(licenseTask, LicensesTask::getGeneratedDirectory)
 
         TaskProvider<LicensesCleanUpTask> cleanupTask = project.tasks.register(
                 "${variant.name}OssLicensesCleanUp",
