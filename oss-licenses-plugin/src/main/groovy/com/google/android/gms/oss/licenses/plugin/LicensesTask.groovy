@@ -126,7 +126,7 @@ abstract class LicensesTask extends DefaultTask {
     }
 
     protected void initOutputDir() {
-        File resourceBaseDir = new File(getGeneratedDirectory().get().asFile, "/res")
+        File resourceBaseDir = new File(getGeneratedDirectory().get().asFile, "res")
         File rawResourceDir = new File(resourceBaseDir, "raw")
         if (!rawResourceDir.exists()) {
             rawResourceDir.mkdirs()
