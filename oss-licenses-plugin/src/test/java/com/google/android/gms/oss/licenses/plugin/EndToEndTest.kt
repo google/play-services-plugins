@@ -22,7 +22,7 @@ class EndToEndTest(private val agpVersion: String, private val gradleVersion: St
             arrayOf("8.2.0", "8.2"),
             arrayOf("8.10.0", "8.11.1"),
             arrayOf("8.12.2", "8.14"),
-            arrayOf("9.0.0-alpha03", "9.0.0"),
+            arrayOf("9.0.0", "9.1.0"),
         )
     }
 
@@ -292,7 +292,7 @@ private fun expectedDependenciesJson(builtInKotlinEnabled: Boolean) = """[
     {
         "group": "org.jetbrains.kotlin",
         "name": "kotlin-stdlib",
-        "version": "2.2.0"""" else ""}
+        "version": "2.2.10"""" else ""}
     }
 ]"""
 
