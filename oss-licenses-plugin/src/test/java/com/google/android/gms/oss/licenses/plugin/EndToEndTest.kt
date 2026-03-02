@@ -7,24 +7,9 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.Rule
-import org.junit.runner.RunWith
-import org.junit.runners.Parameterized
-import org.junit.runners.Parameterized.Parameters
 import java.io.File
 
-@RunWith(Parameterized::class)
-class EndToEndTest(private val agpVersion: String, private val gradleVersion: String) {
-    companion object {
-        @get:JvmStatic
-        @get:Parameters(name = "agpVersion={0},gradleVersion={1}")
-        @Suppress("unused") // needed for Parameterized
-        val params = listOf(
-            arrayOf("8.2.0", "8.2"),
-            arrayOf("8.10.0", "8.11.1"),
-            arrayOf("8.12.2", "8.14"),
-            arrayOf("9.0.0-alpha03", "9.0.0"),
-        )
-    }
+abstract class EndToEndTest(private val agpVersion: String, private val gradleVersion: String) {
 
     @get:Rule
     val tempDirectory: TemporaryFolder = TemporaryFolder()
@@ -86,7 +71,7 @@ class EndToEndTest(private val agpVersion: String, private val gradleVersion: St
         Assert.assertEquals(result.task(":releaseOssDependencyTask")!!.outcome, TaskOutcome.SUCCESS)
         Assert.assertEquals(result.task(":releaseOssLicensesTask")!!.outcome, TaskOutcome.SUCCESS)
         val dependenciesJson = File(projectDir, "build/generated/third_party_licenses/release/dependencies.json")
-        Assert.assertEquals(expectedDependenciesJson(isBuiltInKotlinEnabled()), dependenciesJson.readText())
+        Assert.assertEquals(expectedDependenciesJson(isBuiltInKotlinEnabled(), agpVersion), dependenciesJson.readText())
 
         val metadata =
             File(projectDir, "build/generated/res/releaseOssLicensesTask/raw/third_party_license_metadata")
@@ -110,10 +95,18 @@ class EndToEndTest(private val agpVersion: String, private val gradleVersion: St
             .build()
         Assert.assertEquals(result.task(":clean")!!.outcome, TaskOutcome.UP_TO_DATE)
     }
-
 }
 
-private fun expectedDependenciesJson(builtInKotlinEnabled: Boolean) = """[
+class EndToEndTest_AGP74_G75 : EndToEndTest("7.4.2", "7.5")
+class EndToEndTest_AGP80_G80 : EndToEndTest("8.0.0", "8.0")
+class EndToEndTest_AGP82_G82 : EndToEndTest("8.2.0", "8.2")
+class EndToEndTest_AGP87_G89 : EndToEndTest("8.7.0", "8.9")
+class EndToEndTest_AGP810_G811 : EndToEndTest("8.10.0", "8.11.1")
+class EndToEndTest_AGP812_G814 : EndToEndTest("8.12.2", "8.14")
+class EndToEndTest_AGP90_G90 : EndToEndTest("9.0.0-alpha03", "9.0.0")
+class EndToEndTest_AGP91_G931 : EndToEndTest("9.1.0-alpha05", "9.3.1")
+
+private fun expectedDependenciesJson(builtInKotlinEnabled: Boolean, agpVersion: String) = """[
     {
         "group": "androidx.annotation",
         "name": "annotation",
@@ -292,7 +285,7 @@ private fun expectedDependenciesJson(builtInKotlinEnabled: Boolean) = """[
     {
         "group": "org.jetbrains.kotlin",
         "name": "kotlin-stdlib",
-        "version": "2.2.0"""" else ""}
+        "version": "${if (agpVersion.startsWith("9.1")) "2.2.10" else "2.2.0"}"""" else ""}
     }
 ]"""
 
