@@ -53,7 +53,6 @@ class OssLicensesPlugin implements Plugin<Project> {
         TaskProvider<LicensesTask> licenseTask = project.tasks.register(
                 "${variant.name}OssLicensesTask",
                 LicensesTask.class) {
-            markNotCompatibleWithConfigurationCache(it)
             it.dependenciesJson.set(dependencyTask.flatMap { it.dependenciesJson })
         }
         project.logger.debug("Registered task ${licenseTask.name}")
@@ -71,15 +70,4 @@ class OssLicensesPlugin implements Plugin<Project> {
         }
     }
 
-    private static void markNotCompatibleWithConfigurationCache(Task it) {
-        // Configuration cache method incubating in Gradle 7.4
-        if (it.metaClass.respondsTo(it, "notCompatibleWithConfigurationCache", String)) {
-            it.notCompatibleWithConfigurationCache(
-                    "Requires Project instance to resolve POM files during " +
-                            " task execution, but depends on another Task to " +
-                            " create the artifact list. Without the list we " +
-                            " cannot enumerate POM files during configuration."
-            )
-        }
-    }
 }

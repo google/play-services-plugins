@@ -43,6 +43,7 @@ abstract class EndToEndTest(private val agpVersion: String, private val gradleVe
         File(projectDir, "gradle.properties").writeText(
             """
             android.useAndroidX=true
+            com.google.protobuf.use_unsafe_pre22_gencode=true
         """.trimIndent()
         )
         File(projectDir, "settings.gradle").writeText(
@@ -84,6 +85,25 @@ abstract class EndToEndTest(private val agpVersion: String, private val gradleVe
             .build()
         Assert.assertFalse(File(projectDir, "build").exists())
         Assert.assertEquals(cleanResult.task(":clean")!!.outcome, TaskOutcome.SUCCESS)
+    }
+
+    @Test
+    fun testConfigurationCache() {
+        // First run to store the configuration cache
+        GradleRunner.create()
+            .withProjectDir(projectDir)
+            .withGradleVersion(gradleVersion)
+            .withArguments("releaseOssLicensesTask", "--configuration-cache")
+            .build()
+
+        // Second run to reuse the configuration cache
+        val result = GradleRunner.create()
+            .withProjectDir(projectDir)
+            .withGradleVersion(gradleVersion)
+            .withArguments("releaseOssLicensesTask", "--configuration-cache")
+            .build()
+
+        Assert.assertTrue(result.output.contains("Reusing configuration cache"))
     }
 
     @Test
