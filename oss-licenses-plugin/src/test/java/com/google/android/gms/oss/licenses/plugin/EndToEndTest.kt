@@ -88,7 +88,7 @@ abstract class EndToEndTest(private val agpVersion: String, private val gradleVe
     }
 
     @Test
-    fun debug() {
+    fun testAbsentDependencyReport() {
         val result = GradleRunner.create()
             .withProjectDir(projectDir)
             .withGradleVersion(gradleVersion)
