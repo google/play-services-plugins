@@ -88,6 +88,20 @@ abstract class EndToEndTest(private val agpVersion: String, private val gradleVe
     }
 
     @Test
+    fun debug() {
+        val result = GradleRunner.create()
+            .withProjectDir(projectDir)
+            .withGradleVersion(gradleVersion)
+            .withArguments("debugOssLicensesTask", "-s")
+            .build()
+        Assert.assertEquals(result.task(":debugOssDependencyTask")!!.outcome, TaskOutcome.SUCCESS)
+        Assert.assertEquals(result.task(":debugOssLicensesTask")!!.outcome, TaskOutcome.SUCCESS)
+        
+        val licenses = File(projectDir, "build/generated/res/debugOssLicensesTask/raw/third_party_licenses")
+        Assert.assertEquals(LicensesTask.ABSENT_DEPENDENCY_TEXT + "\n", licenses.readText())
+    }
+
+    @Test
     fun testConfigurationCache() {
         // First run to store the configuration cache
         GradleRunner.create()
