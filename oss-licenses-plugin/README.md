@@ -25,7 +25,7 @@ play-services-oss-licenses library.
 In your root-level `settings.gradle.kts` make sure you are using the
 [Google Maven repository](https://developer.android.com/studio/build/dependencies#google-maven):
 
-```gradle.kts
+```kotlin
 pluginManagement {
     repositories {
         google()
@@ -37,9 +37,9 @@ In your app-level `build.gradle.kts`, apply the plugin by adding the following l
 under the existing `id("com.android.application")` at the top of the
 file:
 
-```gradle.kts
+```kotlin
 plugins {
-    id("com.google.android.gms.oss-licenses-plugin") version "0.10.7"
+    id("com.google.android.gms.oss-licenses-plugin") version "0.11.0"
 }
 ```
 
@@ -48,7 +48,7 @@ plugins {
 In the `dependencies` section of your app-level `build.gradle.kts`, add a dependency
 on the `oss-licenses` library:
 
-```gradle.kts
+```kotlin
 implementation("com.google.android.gms:play-services-oss-licenses:17.0.0")
 ```
 

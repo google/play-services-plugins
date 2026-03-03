@@ -8,7 +8,7 @@ This plugin converts the google-services.json file for Firebase into a set of re
 
 Add the following to your project's settings.gradle:
 
-```gradle.kts
+```kotlin
 pluginManagement {
     repositories {
         gradlePluginPortal()
@@ -19,16 +19,16 @@ pluginManagement {
 
 Apply the plugin in your app's build.gradle.kts:
 
-```gradle.kts
+```kotlin
 plugins {
-    id("com.google.gms.google-services") version "4.4.1"
+    id("com.google.gms.google-services") version "4.4.4"
 }
 ```
 
 Or in build.gradle:
 ```gradle
 plugins {
-    id 'com.google.gms.google-services' version '4.4.1'
+    id 'com.google.gms.google-services' version '4.4.4'
 }
 ```
 
@@ -54,7 +54,7 @@ contain an `applicationId`.
 
 Configure the plugin's behavior through the `googleServices` block in build.gradle.kts:
 
-```gradle.kts
+```kotlin
 googleServices {
     // Disables checking of Google Play Services dependencies compatibility
     // Default: false
@@ -82,7 +82,7 @@ Add the following to your buildscript classpath, obtained from Google’s
 [Maven repository](//developer.android.com/studio/build/dependencies#google-maven):
 
 ```gradle
-classpath 'com.google.gms:google-services:4.4.1'
+classpath 'com.google.gms:google-services:4.4.4'
 ```
 
 Apply the plugin in your app's build.gradle:
