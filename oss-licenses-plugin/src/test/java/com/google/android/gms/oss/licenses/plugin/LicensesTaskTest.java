@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Google LLC
+ * Copyright 2018-2026 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -69,6 +69,7 @@ public class LicensesTaskTest {
     licensesTask = project.getTasks().create("generateLicenses", LicensesTask.class);
 
     licensesTask.getGeneratedDirectory().set(outputDir);
+    licensesTask.getArtifactFiles().empty();
   }
 
   @Test

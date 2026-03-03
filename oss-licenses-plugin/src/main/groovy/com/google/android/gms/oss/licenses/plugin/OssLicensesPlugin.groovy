@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Google LLC
+ * Copyright 2018-2026 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,11 +22,18 @@ import com.android.build.api.variant.ApplicationVariant
 import com.android.build.gradle.AppPlugin
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.Task
 import org.gradle.api.file.Directory
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.TaskProvider
 
+/**
+ * Main entry point for the OSS Licenses Gradle Plugin.
+ *
+ * The plugin architecture follows a three-task workflow for each variant:
+ * 1. DependencyTask: Converts AGP's internal dependency protobuf into a simplified JSON.
+ * 2. LicensesTask: Resolves licenses from POM files and Google Service artifacts.
+ * 3. LicensesCleanUpTask: Cleans up generated directories as part of the clean
+ */
 class OssLicensesPlugin implements Plugin<Project> {
     void apply(Project project) {
         project.plugins.configureEach { plugin ->
@@ -39,8 +46,18 @@ class OssLicensesPlugin implements Plugin<Project> {
         }
     }
 
+    /**
+     * Configures the license generation tasks for a specific Android variant.
+     *
+     * To support Gradle's Configuration Cache, all mappings from GAV coordinates to
+     * physical files (POMs and Library artifacts) are resolved during the configuration phase
+     * and passed to the execution phase as lazy Provider properties.
+     */
     private static void configureLicenceTasks(Project project, ApplicationVariant variant) {
         Provider<Directory> baseDir = project.layout.buildDirectory.dir("generated/third_party_licenses/${variant.name}")
+        
+        // Task 1: Dependency Identification
+        // This task reads the AGP METADATA_LIBRARY_DEPENDENCIES_REPORT protobuf.
         def dependenciesJson =  baseDir.map { it.file("dependencies.json") }
         TaskProvider<DependencyTask> dependencyTask = project.tasks.register(
                 "${variant.name}OssDependencyTask",
@@ -50,15 +67,24 @@ class OssLicensesPlugin implements Plugin<Project> {
         }
         project.logger.debug("Registered task ${dependencyTask.name}")
 
+        // Task 2: License Extraction
+        // This task parses POMs and library files to extract license text.
         TaskProvider<LicensesTask> licenseTask = project.tasks.register(
                 "${variant.name}OssLicensesTask",
                 LicensesTask.class) {
-            markNotCompatibleWithConfigurationCache(it)
             it.dependenciesJson.set(dependencyTask.flatMap { it.dependenciesJson })
+
+            it.artifactFiles.set(project.provider {
+                DependencyUtil.resolveArtifacts(project, variant.runtimeConfiguration)
+            })
         }
         project.logger.debug("Registered task ${licenseTask.name}")
-        variant.sources.resources.addGeneratedSourceDirectory(licenseTask, LicensesTask::getGeneratedDirectory)
+        
+        // Register the LicensesTask output as a generated resource folder for AGP.
+        variant.sources.res.addGeneratedSourceDirectory(licenseTask, LicensesTask::getGeneratedDirectory)
 
+        // Task 3: Cleanup
+        // Ensures generated license files are deleted when running the clean task.
         TaskProvider<LicensesCleanUpTask> cleanupTask = project.tasks.register(
                 "${variant.name}OssLicensesCleanUp",
                 LicensesCleanUpTask.class) {
@@ -71,15 +97,4 @@ class OssLicensesPlugin implements Plugin<Project> {
         }
     }
 
-    private static void markNotCompatibleWithConfigurationCache(Task it) {
-        // Configuration cache method incubating in Gradle 7.4
-        if (it.metaClass.respondsTo(it, "notCompatibleWithConfigurationCache", String)) {
-            it.notCompatibleWithConfigurationCache(
-                    "Requires Project instance to resolve POM files during " +
-                            " task execution, but depends on another Task to " +
-                            " create the artifact list. Without the list we " +
-                            " cannot enumerate POM files during configuration."
-            )
-        }
-    }
 }

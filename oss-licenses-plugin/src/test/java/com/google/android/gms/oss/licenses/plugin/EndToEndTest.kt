@@ -1,3 +1,19 @@
+/*
+ * Copyright 2025-2026 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.google.android.gms.oss.licenses.plugin
 
 import org.gradle.testkit.runner.GradleRunner
@@ -7,24 +23,9 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.Rule
-import org.junit.runner.RunWith
-import org.junit.runners.Parameterized
-import org.junit.runners.Parameterized.Parameters
 import java.io.File
 
-@RunWith(Parameterized::class)
-class EndToEndTest(private val agpVersion: String, private val gradleVersion: String) {
-    companion object {
-        @get:JvmStatic
-        @get:Parameters(name = "agpVersion={0},gradleVersion={1}")
-        @Suppress("unused") // needed for Parameterized
-        val params = listOf(
-            arrayOf("8.2.0", "8.2"),
-            arrayOf("8.10.0", "8.11.1"),
-            arrayOf("8.12.2", "8.14"),
-            arrayOf("9.0.0-alpha03", "9.0.0"),
-        )
-    }
+abstract class EndToEndTest(private val agpVersion: String, private val gradleVersion: String) {
 
     @get:Rule
     val tempDirectory: TemporaryFolder = TemporaryFolder()
@@ -58,6 +59,7 @@ class EndToEndTest(private val agpVersion: String, private val gradleVersion: St
         File(projectDir, "gradle.properties").writeText(
             """
             android.useAndroidX=true
+            com.google.protobuf.use_unsafe_pre22_gencode=true
         """.trimIndent()
         )
         File(projectDir, "settings.gradle").writeText(
@@ -86,10 +88,10 @@ class EndToEndTest(private val agpVersion: String, private val gradleVersion: St
         Assert.assertEquals(result.task(":releaseOssDependencyTask")!!.outcome, TaskOutcome.SUCCESS)
         Assert.assertEquals(result.task(":releaseOssLicensesTask")!!.outcome, TaskOutcome.SUCCESS)
         val dependenciesJson = File(projectDir, "build/generated/third_party_licenses/release/dependencies.json")
-        Assert.assertEquals(expectedDependenciesJson(isBuiltInKotlinEnabled()), dependenciesJson.readText())
+        Assert.assertEquals(expectedDependenciesJson(isBuiltInKotlinEnabled(), agpVersion), dependenciesJson.readText())
 
         val metadata =
-            File(projectDir, "build/generated/resources/releaseOssLicensesTask/raw/third_party_license_metadata")
+            File(projectDir, "build/generated/res/releaseOssLicensesTask/raw/third_party_license_metadata")
         Assert.assertEquals(expectedContents(isBuiltInKotlinEnabled()), metadata.readText())
 
         val cleanResult = GradleRunner.create()
@@ -102,6 +104,113 @@ class EndToEndTest(private val agpVersion: String, private val gradleVersion: St
     }
 
     @Test
+    fun testAbsentDependencyReport() {
+        val result = GradleRunner.create()
+            .withProjectDir(projectDir)
+            .withGradleVersion(gradleVersion)
+            .withArguments("debugOssLicensesTask", "-s")
+            .build()
+        Assert.assertEquals(result.task(":debugOssDependencyTask")!!.outcome, TaskOutcome.SUCCESS)
+        Assert.assertEquals(result.task(":debugOssLicensesTask")!!.outcome, TaskOutcome.SUCCESS)
+        
+        val licenses = File(projectDir, "build/generated/res/debugOssLicensesTask/raw/third_party_licenses")
+        Assert.assertEquals(LicensesTask.ABSENT_DEPENDENCY_TEXT + "\n", licenses.readText())
+    }
+
+    @Test
+    fun testConfigurationCache() {
+        // First run to store the configuration cache
+        GradleRunner.create()
+            .withProjectDir(projectDir)
+            .withGradleVersion(gradleVersion)
+            .withArguments("releaseOssLicensesTask", "--configuration-cache")
+            .build()
+
+        // Second run to reuse the configuration cache
+        val result = GradleRunner.create()
+            .withProjectDir(projectDir)
+            .withGradleVersion(gradleVersion)
+            .withArguments("releaseOssLicensesTask", "--configuration-cache")
+            .build()
+
+        Assert.assertTrue(
+            result.output.contains("Reusing configuration cache") ||
+                result.output.contains("Configuration cache entry reused")
+        )
+    }
+
+    @Test
+    fun testComplexDependencyGraph() {
+        // Create a multi-module setup to test configuration cache with complex resolution
+        val libDir = tempDirectory.newFolder("lib")
+        File(libDir, "build.gradle").writeText(
+            """
+            plugins { id("com.android.library") }
+            android {
+                compileSdkVersion = "android-31"
+                namespace = "com.example.lib"
+            }
+            dependencies {
+                implementation("com.google.code.gson:gson:2.10.1")
+            }
+        """.trimIndent()
+        )
+        File(projectDir, "settings.gradle").appendText("\ninclude ':lib'\nproject(':lib').projectDir = new File('${libDir.absolutePath.replace("\\", "/")}')")
+        
+        // Rewrite the main build.gradle to include the project dependency and a forced conflict
+        File(projectDir, "build.gradle").writeText(
+            """
+            plugins {
+                id("com.android.application") version "$agpVersion"
+                id("com.google.android.gms.oss-licenses-plugin") version "${System.getProperty("plugin_version")}"
+            }
+            repositories {
+                google()
+                mavenCentral()
+            }
+            android {
+                compileSdkVersion = "android-31"
+                namespace = "com.example.app"
+            }
+            dependencies {
+                implementation(project(":lib"))
+                // Version conflict: lib uses 2.10.1, we force 2.8.9
+                implementation("com.google.code.gson:gson") {
+                    version {
+                        strictly("2.8.9")
+                    }
+                }
+            }
+        """.trimIndent()
+        )
+
+        // Run with configuration cache twice to ensure resolution is stable and cacheable
+        GradleRunner.create()
+            .withProjectDir(projectDir)
+            .withGradleVersion(gradleVersion)
+            .withArguments("releaseOssLicensesTask", "--configuration-cache")
+            .build()
+
+        val result = GradleRunner.create()
+            .withProjectDir(projectDir)
+            .withGradleVersion(gradleVersion)
+            .withArguments("releaseOssLicensesTask", "--configuration-cache")
+            .build()
+
+        Assert.assertTrue(
+            result.output.contains("Configuration cache entry reused") ||
+                result.output.contains("Reusing configuration cache")
+        )
+        
+        // Verify output exists and contains the forced version's license link
+        val licensesFile = File(projectDir, "build/generated/res/releaseOssLicensesTask/raw/third_party_licenses")
+        Assert.assertTrue(licensesFile.exists())
+        val content = licensesFile.readText()
+        // Gson 2.8.9 specifically uses the Apache 2.0 license URL.
+        Assert.assertTrue(content.contains("apache.org/licenses/LICENSE-2.0"))
+    }
+
+    @Test
     fun clean() {
         val result = GradleRunner.create()
             .withProjectDir(projectDir)
@@ -110,10 +219,18 @@ class EndToEndTest(private val agpVersion: String, private val gradleVersion: St
             .build()
         Assert.assertEquals(result.task(":clean")!!.outcome, TaskOutcome.UP_TO_DATE)
     }
-
 }
 
-private fun expectedDependenciesJson(builtInKotlinEnabled: Boolean) = """[
+class EndToEndTest_AGP74_G75 : EndToEndTest("7.4.2", "7.5")
+class EndToEndTest_AGP80_G80 : EndToEndTest("8.0.0", "8.0")
+class EndToEndTest_AGP82_G82 : EndToEndTest("8.2.0", "8.2")
+class EndToEndTest_AGP87_G89 : EndToEndTest("8.7.0", "8.9")
+class EndToEndTest_AGP810_G811 : EndToEndTest("8.10.0", "8.11.1")
+class EndToEndTest_AGP812_G814 : EndToEndTest("8.12.2", "8.14")
+class EndToEndTest_AGP90_G90 : EndToEndTest("9.0.0-alpha03", "9.0.0")
+class EndToEndTest_AGP91_G931 : EndToEndTest("9.1.0-alpha05", "9.3.1")
+
+private fun expectedDependenciesJson(builtInKotlinEnabled: Boolean, agpVersion: String) = """[
     {
         "group": "androidx.annotation",
         "name": "annotation",
@@ -292,7 +409,7 @@ private fun expectedDependenciesJson(builtInKotlinEnabled: Boolean) = """[
     {
         "group": "org.jetbrains.kotlin",
         "name": "kotlin-stdlib",
-        "version": "2.2.0"""" else ""}
+        "version": "${if (agpVersion.startsWith("9.1")) "2.2.10" else "2.2.0"}"""" else ""}
     }
 ]"""
 
