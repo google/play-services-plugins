@@ -49,22 +49,24 @@ dependencies {
     }
 }
 
-val repo = layout.buildDirectory.dir("repo")
+val repo: Provider<Directory> = layout.buildDirectory.dir("repo")
 tasks.withType<Test>().configureEach {
+    val localRepo = repo
     // Make sure that build/repo is created and that it is used as input for the test task.
     // Replace this with something less ugly if https://github.com/gradle/gradle/issues/34870 is fixed
     dependsOn("publish")
     inputs.files(
-        repo.map {
+        localRepo.map {
             // Exclude maven-metadata.xml as they contain timestamps but have no effect on the test outcomes
             it.asFileTree.matching { exclude("**/maven-metadata.xml*") }
         }
     ).withPathSensitivity(PathSensitivity.RELATIVE).withPropertyName("repo")
 
-    systemProperties["plugin_version"] = project.version // value used by EndToEndTest.kt
+    val localVersion = project.version.toString()
+    systemProperties["plugin_version"] = localVersion // value used by EndToEndTest.kt
     doFirst {
         // Inside doFirst to make sure that absolute path is not considered to be input to the task
-        systemProperties["repo_path"] = repo.get().asFile.absolutePath // value used by EndToEndTest.kt
+        systemProperties["repo_path"] = localRepo.get().asFile.absolutePath // value used by EndToEndTest.kt
     }
     maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).takeIf { it > 0 } ?: 1
 }

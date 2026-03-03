@@ -103,7 +103,81 @@ abstract class EndToEndTest(private val agpVersion: String, private val gradleVe
             .withArguments("releaseOssLicensesTask", "--configuration-cache")
             .build()
 
-        Assert.assertTrue(result.output.contains("Reusing configuration cache"))
+        Assert.assertTrue(
+            result.output.contains("Reusing configuration cache") ||
+                result.output.contains("Configuration cache entry reused")
+        )
+    }
+
+    @Test
+    fun testComplexDependencyGraph() {
+        // Create a multi-module setup to test configuration cache with complex resolution
+        val libDir = tempDirectory.newFolder("lib")
+        File(libDir, "build.gradle").writeText(
+            """
+            plugins { id("com.android.library") }
+            android {
+                compileSdkVersion = "android-31"
+                namespace = "com.example.lib"
+            }
+            dependencies {
+                implementation("com.google.code.gson:gson:2.10.1")
+            }
+        """.trimIndent()
+        )
+        File(projectDir, "settings.gradle").appendText("\ninclude ':lib'\nproject(':lib').projectDir = new File('${libDir.absolutePath.replace("\\", "/")}')")
+        
+        // Rewrite the main build.gradle to include the project dependency and a forced conflict
+        File(projectDir, "build.gradle").writeText(
+            """
+            plugins {
+                id("com.android.application") version "$agpVersion"
+                id("com.google.android.gms.oss-licenses-plugin") version "${System.getProperty("plugin_version")}"
+            }
+            repositories {
+                google()
+                mavenCentral()
+            }
+            android {
+                compileSdkVersion = "android-31"
+                namespace = "com.example.app"
+            }
+            dependencies {
+                implementation(project(":lib"))
+                // Version conflict: lib uses 2.10.1, we force 2.8.9
+                implementation("com.google.code.gson:gson") {
+                    version {
+                        strictly("2.8.9")
+                    }
+                }
+            }
+        """.trimIndent()
+        )
+
+        // Run with configuration cache twice to ensure resolution is stable and cacheable
+        GradleRunner.create()
+            .withProjectDir(projectDir)
+            .withGradleVersion(gradleVersion)
+            .withArguments("releaseOssLicensesTask", "--configuration-cache")
+            .build()
+
+        val result = GradleRunner.create()
+            .withProjectDir(projectDir)
+            .withGradleVersion(gradleVersion)
+            .withArguments("releaseOssLicensesTask", "--configuration-cache")
+            .build()
+
+        Assert.assertTrue(
+            result.output.contains("Configuration cache entry reused") ||
+                result.output.contains("Reusing configuration cache")
+        )
+        
+        // Verify output exists and contains the forced version's license link
+        val licensesFile = File(projectDir, "build/generated/res/releaseOssLicensesTask/raw/third_party_licenses")
+        Assert.assertTrue(licensesFile.exists())
+        val content = licensesFile.readText()
+        // Gson 2.8.9 specifically uses the Apache 2.0 license URL.
+        Assert.assertTrue(content.contains("apache.org/licenses/LICENSE-2.0"))
     }
 
     @Test

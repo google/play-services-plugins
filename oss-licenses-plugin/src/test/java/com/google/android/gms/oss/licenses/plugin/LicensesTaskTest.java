@@ -69,6 +69,7 @@ public class LicensesTaskTest {
     licensesTask = project.getTasks().create("generateLicenses", LicensesTask.class);
 
     licensesTask.getGeneratedDirectory().set(outputDir);
+    licensesTask.getArtifactFiles().empty();
   }
 
   @Test
