@@ -27,7 +27,7 @@ jobs:
       - name: Ratchet Check
         uses: sethvargo/ratchet@8b4ca256dbed184350608a3023620f267f0a5253 # main
         with:
-          args: check .github/workflows/*.yml
+          files: .github/workflows/*.yml
 
   # This workflow contains a single job called "build"
   build:
