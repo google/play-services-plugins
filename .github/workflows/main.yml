@@ -15,17 +15,23 @@ on:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # Check the integrity of the Gradle Wrapper executables
-  validation:
+  # Check the integrity of the Gradle Wrapper executables and lint workflows
+  lint-and-check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Validate Gradle Wrapper
-        uses: gradle/actions/wrapper-validation@748248ddd2a24f49513d8f472f81c3a07d4d50e1 # v4.4.4
+        uses: gradle/actions/wrapper-validation@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
+      - name: Lint GitHub Actions
+        uses: abcxyz/actions/.github/actions/lint-github-actions@e32ec3bd6af6d87d79fe7c441f435eb7ad11d527 # main
+      - name: Ratchet Check
+        uses: sethvargo/ratchet@8b4ca256dbed184350608a3023620f267f0a5253 # main
+        with:
+          files: .github/workflows/*.yml
 
   # This workflow contains a single job called "build"
   build:
-    needs: validation
+    needs: lint-and-check
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
@@ -42,13 +48,13 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Set up JDK 17
-        uses: actions/setup-java@3a4f6e1af504cf6a31855fa899c6aa5355ba6c12 # v4.7.0
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
         with:
           java-version: '17'
           distribution: 'temurin'
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@748248ddd2a24f49513d8f472f81c3a07d4d50e1 # v4.4.4
+        uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
         with:
           dependency-graph: generate-and-submit
 
