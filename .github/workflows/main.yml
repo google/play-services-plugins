@@ -15,8 +15,17 @@ on:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
+  # Check the integrity of the Gradle Wrapper executables
+  validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Validate Gradle Wrapper
+        uses: gradle/actions/wrapper-validation@v4
+
   # This workflow contains a single job called "build"
   build:
+    needs: validation
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
@@ -32,6 +41,17 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          dependency-graph: generate-and-submit
+
       # Runs a build which includes `check` and `test` tasks
       - name: Perform a Gradle build
         run: ./gradlew build
