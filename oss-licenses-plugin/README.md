@@ -25,26 +25,32 @@ play-services-oss-licenses library.
 In your root-level `settings.gradle.kts` make sure you are using the
 [Google Maven repository](https://developer.android.com/studio/build/dependencies#google-maven):
 
-    pluginManagement {
-      repositories {
+```kotlin
+pluginManagement {
+    repositories {
         google()
-      }
     }
+}
+```
 
 In your app-level `build.gradle.kts`, apply the plugin by adding the following line
 under the existing `id("com.android.application")` at the top of the
 file:
 
-    apply {
-      id("com.google.android.gms.oss-licenses-plugin") version("0.10.7")
-    }
+```kotlin
+plugins {
+    id("com.google.android.gms.oss-licenses-plugin") version "0.11.0"
+}
+```
 
 ### Add the library to your app
 
 In the `dependencies` section of your app-level `build.gradle.kts`, add a dependency
 on the `oss-licenses` library:
 
-    implementation("com.google.android.gms:play-services-oss-licenses:17.0.0")
+```kotlin
+implementation("com.google.android.gms:play-services-oss-licenses:17.0.0")
+```
 
 ### Displaying license information
 
@@ -53,12 +59,14 @@ add them to the app resources. To easily display them you can trigger an
 activity provided by the `play-services-oss-licenses` library at an appropriate
 point in your app:
 
-    import com.google.android.gms.oss.licenses.OssLicensesMenuActivity;
+```java
+import com.google.android.gms.oss.licenses.OssLicensesMenuActivity;
 
-    // ...
+// ...
 
-    // When the user selects an option to see the licenses:
-    startActivity(new Intent(this, OssLicensesMenuActivity.class));
+// When the user selects an option to see the licenses:
+startActivity(new Intent(this, OssLicensesMenuActivity.class));
+```
 
 This will display a list of open source libraries that are compiled into the
 app, whether part of Google Play services or not. Tapping the library name will
@@ -68,4 +76,6 @@ display additional license information for that library.
 
 You can also set the title of the displayed activity:
 
-    OssLicensesMenuActivity.setActivityTitle(getString(R.string.custom_license_title));
+```java
+OssLicensesMenuActivity.setActivityTitle(getString(R.string.custom_license_title));
+```

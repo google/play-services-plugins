@@ -10,7 +10,7 @@ highest referenced version even if it crossed the major version boundary.
 
 In your app's build.gradle:
 
-```
+```gradle
 apply plugin: 'com.google.android.gms.strict-version-matcher-plugin'
 ```
 
@@ -18,8 +18,8 @@ In order to use this plugin, you will also need to add the following to your
 buildscript classpath, obtained from Google’s
 [Maven repository](//developer.android.com/studio/build/dependencies#google-maven):
 
-```
-classpath 'com.google.android.gms:strict-version-matcher-plugin:1.0.2'
+```gradle
+classpath 'com.google.android.gms:strict-version-matcher-plugin:1.2.4'
 ```
 
 These instructions are also documented
