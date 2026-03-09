@@ -20,6 +20,7 @@ import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.component.ModuleComponentIdentifier
 import org.gradle.api.artifacts.result.ResolvedArtifactResult
+import org.gradle.api.provider.Provider
 import org.gradle.maven.MavenModule
 import org.gradle.maven.MavenPomArtifact
 
@@ -45,52 +46,54 @@ class DependencyUtil {
      * 
      * @param project The Gradle project used to create the resolution query.
      * @param runtimeConfiguration The configuration whose dependencies should be resolved.
-     * @return A map of GAV coordinates to their resolved ArtifactFiles.
+     * @return A provider for a map of GAV coordinates to their resolved ArtifactFiles.
      */
-    static Map<String, ArtifactFiles> resolveArtifacts(Project project, Configuration runtimeConfiguration) {
-        // We create an ArtifactView to gather the component identifiers and library files.
-        // We specifically target external Maven dependencies (ModuleComponentIdentifiers).
-        def runtimeArtifactView = runtimeConfiguration.incoming.artifactView {
-            it.componentFilter { id -> id instanceof ModuleComponentIdentifier }
-        }
-        
-        def artifactsMap = [:]
-        
-        // 1. Gather library files directly from the view
-        runtimeArtifactView.artifacts.each { artifact ->
-            def id = artifact.id.componentIdentifier
-            if (id instanceof ModuleComponentIdentifier) {
-                String key = "${id.group}:${id.module}:${id.version}".toString()
-                artifactsMap[key] = new ArtifactFiles(null, artifact.file)
+    static Provider<Map<String, ArtifactFiles>> resolveArtifacts(Project project, Configuration runtimeConfiguration) {
+        return project.provider {
+            // We create an ArtifactView to gather the component identifiers and library files.
+            // We specifically target external Maven dependencies (ModuleComponentIdentifiers).
+            def runtimeArtifactView = runtimeConfiguration.incoming.artifactView {
+                it.componentFilter { id -> id instanceof ModuleComponentIdentifier }
             }
-        }
+            
+            def artifactsMap = [:]
+            
+            // 1. Gather library files directly from the view
+            runtimeArtifactView.artifacts.each { artifact ->
+                def id = artifact.id.componentIdentifier
+                if (id instanceof ModuleComponentIdentifier) {
+                    String key = "${id.group}:${id.module}:${id.version}".toString()
+                    artifactsMap[key] = new ArtifactFiles(null, artifact.file)
+                }
+            }
 
-        // 2. Fetch corresponding POM files using ArtifactResolutionQuery
-        def componentIds = runtimeArtifactView.artifacts.collect { it.id.componentIdentifier }
-        
-        if (!componentIds.isEmpty()) {
-            def result = project.dependencies.createArtifactResolutionQuery()
-                    .forComponents(componentIds)
-                    .withArtifacts(MavenModule, MavenPomArtifact)
-                    .execute()
+            // 2. Fetch corresponding POM files using ArtifactResolutionQuery
+            def componentIds = runtimeArtifactView.artifacts.collect { it.id.componentIdentifier }
+            
+            if (!componentIds.isEmpty()) {
+                def result = project.dependencies.createArtifactResolutionQuery()
+                        .forComponents(componentIds)
+                        .withArtifacts(MavenModule, MavenPomArtifact)
+                        .execute()
 
-            result.resolvedComponents.each { component ->
-                component.getArtifacts(MavenPomArtifact).each { artifact ->
-                    if (artifact instanceof ResolvedArtifactResult) {
-                        def id = component.id
-                        String key = "${id.group}:${id.module}:${id.version}".toString()
-                        
-                        // Update the existing entry with the POM file
-                        if (artifactsMap.containsKey(key)) {
-                            artifactsMap[key].pomFile = artifact.file
-                        } else {
-                            artifactsMap[key] = new ArtifactFiles(artifact.file, null)
+                result.resolvedComponents.each { component ->
+                    component.getArtifacts(MavenPomArtifact).each { artifact ->
+                        if (artifact instanceof ResolvedArtifactResult) {
+                            def id = component.id
+                            String key = "${id.group}:${id.module}:${id.version}".toString()
+                            
+                            // Update the existing entry with the POM file
+                            if (artifactsMap.containsKey(key)) {
+                                artifactsMap[key].pomFile = artifact.file
+                            } else {
+                                artifactsMap[key] = new ArtifactFiles(artifact.file, null)
+                            }
                         }
                     }
                 }
             }
+            
+            return artifactsMap
         }
-        
-        return artifactsMap
     }
 }
