@@ -58,10 +58,11 @@ class OssLicensesPlugin implements Plugin<Project> {
         
         // Task 1: Dependency Identification
         // This task reads the AGP METADATA_LIBRARY_DEPENDENCIES_REPORT protobuf.
+        def dependenciesJson =  baseDir.map { it.file("dependencies.json") }
         TaskProvider<DependencyTask> dependencyTask = project.tasks.register(
                 "${variant.name}OssDependencyTask",
                 DependencyTask.class) {
-            it.dependenciesJson.set(baseDir.map { it.file("dependencies.json") })
+            it.dependenciesJson.set(dependenciesJson)
             it.libraryDependenciesReport.set(variant.artifacts.get(SingleArtifact.METADATA_LIBRARY_DEPENDENCIES_REPORT.INSTANCE))
         }
         project.logger.debug("Registered task ${dependencyTask.name}")
@@ -72,12 +73,28 @@ class OssLicensesPlugin implements Plugin<Project> {
                 "${variant.name}OssLicensesTask",
                 LicensesTask.class) {
             it.dependenciesJson.set(dependencyTask.flatMap { it.dependenciesJson })
-            it.artifactFiles.set(DependencyUtil.resolveArtifacts(project, variant.runtimeConfiguration))
+
+            it.artifactFiles.set(project.provider {
+                DependencyUtil.resolveArtifacts(project, variant.runtimeConfiguration)
+            })
         }
         project.logger.debug("Registered task ${licenseTask.name}")
         
         // Register the LicensesTask output as a generated resource folder for AGP.
         variant.sources.res.addGeneratedSourceDirectory(licenseTask, LicensesTask::getGeneratedDirectory)
+
+        // Task 3: Cleanup
+        // Ensures generated license files are deleted when running the clean task.
+        TaskProvider<LicensesCleanUpTask> cleanupTask = project.tasks.register(
+                "${variant.name}OssLicensesCleanUp",
+                LicensesCleanUpTask.class) {
+            it.generatedDirectory.set(baseDir)
+        }
+        project.logger.debug("Registered task ${cleanupTask.name}")
+
+        project.tasks.named("clean").configure {
+            it.dependsOn(cleanupTask)
+        }
     }
 
 }

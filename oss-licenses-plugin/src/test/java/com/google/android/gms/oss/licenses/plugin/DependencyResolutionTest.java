@@ -92,7 +92,7 @@ public class DependencyResolutionTest {
         runtimeClasspath.resolve();
 
         // Execute resolution logic
-        Map<String, ArtifactFiles> artifactFiles = DependencyUtil.resolveArtifacts(appProject, runtimeClasspath).get();
+        Map<String, ArtifactFiles> artifactFiles = DependencyUtil.resolveArtifacts(appProject, runtimeClasspath);
 
         // Assertions
         // - Guava resolved to the higher version
@@ -121,7 +121,7 @@ public class DependencyResolutionTest {
         Configuration runtimeClasspath = appProject.getConfigurations().getByName("runtimeClasspath");
         runtimeClasspath.resolve();
 
-        Map<String, ArtifactFiles> artifactFiles = DependencyUtil.resolveArtifacts(appProject, runtimeClasspath).get();
+        Map<String, ArtifactFiles> artifactFiles = DependencyUtil.resolveArtifacts(appProject, runtimeClasspath);
 
         assertThat(artifactFiles).containsKey("com.google.guava:guava:33.0.0-jre");
         assertThat(artifactFiles.get("com.google.guava:guava:33.0.0-jre").getPomFile()).isNotNull();
