@@ -78,19 +78,6 @@ class OssLicensesPlugin implements Plugin<Project> {
         
         // Register the LicensesTask output as a generated resource folder for AGP.
         variant.sources.res.addGeneratedSourceDirectory(licenseTask, LicensesTask::getGeneratedDirectory)
-
-        // Task 3: Cleanup
-        // Ensures generated license files are deleted when running the clean task.
-        TaskProvider<LicensesCleanUpTask> cleanupTask = project.tasks.register(
-                "${variant.name}OssLicensesCleanUp",
-                LicensesCleanUpTask.class) {
-            it.generatedDirectory.set(baseDir)
-        }
-        project.logger.debug("Registered task ${cleanupTask.name}")
-
-        project.tasks.named("clean").configure {
-            it.dependsOn(cleanupTask)
-        }
     }
 
 }
