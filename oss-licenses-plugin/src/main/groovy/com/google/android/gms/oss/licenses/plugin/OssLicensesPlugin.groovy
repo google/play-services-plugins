@@ -58,11 +58,10 @@ class OssLicensesPlugin implements Plugin<Project> {
         
         // Task 1: Dependency Identification
         // This task reads the AGP METADATA_LIBRARY_DEPENDENCIES_REPORT protobuf.
-        def dependenciesJson =  baseDir.map { it.file("dependencies.json") }
         TaskProvider<DependencyTask> dependencyTask = project.tasks.register(
                 "${variant.name}OssDependencyTask",
                 DependencyTask.class) {
-            it.dependenciesJson.set(dependenciesJson)
+            it.dependenciesJson.set(baseDir.map { it.file("dependencies.json") })
             it.libraryDependenciesReport.set(variant.artifacts.get(SingleArtifact.METADATA_LIBRARY_DEPENDENCIES_REPORT.INSTANCE))
         }
         project.logger.debug("Registered task ${dependencyTask.name}")
@@ -73,10 +72,7 @@ class OssLicensesPlugin implements Plugin<Project> {
                 "${variant.name}OssLicensesTask",
                 LicensesTask.class) {
             it.dependenciesJson.set(dependencyTask.flatMap { it.dependenciesJson })
-
-            it.artifactFiles.set(project.provider {
-                DependencyUtil.resolveArtifacts(project, variant.runtimeConfiguration)
-            })
+            it.artifactFiles.set(DependencyUtil.resolveArtifacts(project, variant.runtimeConfiguration))
         }
         project.logger.debug("Registered task ${licenseTask.name}")
         
