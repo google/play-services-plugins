@@ -53,7 +53,11 @@ abstract class EndToEndTest(private val agpVersion: String, private val gradleVe
     @Before
     fun setup() {
         projectDir = tempDirectory.newFolder("basic")
-        File(projectDir, "build.gradle").writeText(
+        setupProject(projectDir)
+    }
+
+    private fun setupProject(dir: File) {
+        File(dir, "build.gradle").writeText(
             """
             plugins {
                 id("com.android.application") version "$agpVersion"
@@ -72,13 +76,13 @@ abstract class EndToEndTest(private val agpVersion: String, private val gradleVe
             }
         """.trimIndent()
         )
-        File(projectDir, "gradle.properties").writeText(
+        File(dir, "gradle.properties").writeText(
             """
             android.useAndroidX=true
             com.google.protobuf.use_unsafe_pre22_gencode=true
         """.trimIndent()
         )
-        File(projectDir, "settings.gradle").writeText(
+        File(dir, "settings.gradle").writeText(
             """
             pluginManagement {
                 repositories {
@@ -203,31 +207,20 @@ abstract class EndToEndTest(private val agpVersion: String, private val gradleVe
         val dir1 = tempDirectory.newFolder("dir1")
         val dir2 = tempDirectory.newFolder("dir2")
 
-        // Helper to populate a directory with the test project
+        // Helper to populate a directory with the test project and shared cache config
         fun populate(dir: File) {
-            projectDir.copyRecursively(dir, overwrite = true)
-            // Update the settings.gradle to point to the correct repo path in the new location
-            File(dir, "settings.gradle").writeText(
-                """
-                pluginManagement {
-                    repositories {
-                        maven {
-                             url = uri("${System.getProperty("repo_path")}")
-                        }
-                        google()
-                        mavenCentral()
-                    }
-                }
+            setupProject(dir)
+
+            // Add local build cache configuration to settings.gradle
+            File(dir, "settings.gradle").appendText("""
 
                 buildCache {
                     local {
                         directory = '${cacheDir.absolutePath.replace("\\", "/")}'
                     }
                 }
-                """.trimIndent()
-            )
+            """.trimIndent())
         }
-
         populate(dir1)
         populate(dir2)
 
