@@ -21,8 +21,12 @@ import groovy.json.JsonBuilder
 import groovy.json.JsonGenerator
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.InputFile
+import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.OutputFile
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import org.slf4j.LoggerFactory
 
@@ -37,6 +41,7 @@ import static com.android.tools.build.libraries.metadata.Library.LibraryOneofCas
  * If the protobuf is not present (e.g. debug variants) it writes a single
  * dependency on the {@link DependencyUtil#ABSENT_ARTIFACT}.
  */
+@CacheableTask
 abstract class DependencyTask extends DefaultTask {
     private static final logger = LoggerFactory.getLogger(DependencyTask.class)
 
@@ -44,7 +49,8 @@ abstract class DependencyTask extends DefaultTask {
     abstract RegularFileProperty getDependenciesJson()
 
     @InputFile
-    @org.gradle.api.tasks.Optional
+    @PathSensitive(PathSensitivity.NONE)
+    @Optional
     abstract RegularFileProperty getLibraryDependenciesReport()
 
     @TaskAction

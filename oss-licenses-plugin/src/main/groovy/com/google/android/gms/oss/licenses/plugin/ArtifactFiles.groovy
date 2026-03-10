@@ -16,13 +16,24 @@
 
 package com.google.android.gms.oss.licenses.plugin
 
+import org.gradle.api.tasks.InputFile
+import org.gradle.api.tasks.Optional
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
 import java.io.Serializable
 
 /**
  * Data class to hold the resolved physical files for a single dependency.
  */
 class ArtifactFiles implements Serializable {
+    @InputFile
+    @PathSensitive(PathSensitivity.NONE)
+    @Optional
     File pomFile
+
+    @InputFile
+    @PathSensitive(PathSensitivity.NONE)
+    @Optional
     File libraryFile
 
     ArtifactFiles(File pomFile, File libraryFile) {

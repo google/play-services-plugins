@@ -35,8 +35,12 @@ abstract class EndToEndTest(private val agpVersion: String, private val gradleVe
     private lateinit var projectDir: File
 
     private fun createRunner(vararg arguments: String): GradleRunner {
+        return createRunnerWithDir(projectDir, *arguments)
+    }
+
+    private fun createRunnerWithDir(dir: File, vararg arguments: String): GradleRunner {
         return GradleRunner.create()
-            .withProjectDir(projectDir)
+            .withProjectDir(dir)
             .withGradleVersion(gradleVersion)
             .forwardOutput()
             // Isolate TestKit per AGP version subclass to allow parallel execution
@@ -191,6 +195,59 @@ abstract class EndToEndTest(private val agpVersion: String, private val gradleVe
         val content = licensesFile.readText()
         // Gson 2.8.9 specifically uses the Apache 2.0 license URL.
         Assert.assertTrue(content.contains("apache.org/licenses/LICENSE-2.0"))
+    }
+
+    @Test
+    fun testRelocatability() {
+        val cacheDir = tempDirectory.newFolder("cache")
+        val dir1 = tempDirectory.newFolder("dir1")
+        val dir2 = tempDirectory.newFolder("dir2")
+
+        // Helper to populate a directory with the test project
+        fun populate(dir: File) {
+            projectDir.copyRecursively(dir, overwrite = true)
+            // Update the settings.gradle to point to the correct repo path in the new location
+            File(dir, "settings.gradle").writeText(
+                """
+                pluginManagement {
+                    repositories {
+                        maven {
+                             url = uri("${System.getProperty("repo_path")}")
+                        }
+                        google()
+                        mavenCentral()
+                    }
+                }
+                
+                buildCache {
+                    local {
+                        directory = '${cacheDir.absolutePath.replace("\\", "/")}'
+                    }
+                }
+                """.trimIndent()
+            )
+        }
+
+        populate(dir1)
+        populate(dir2)
+
+        // 1. Run in dir1 to prime the cache
+        val result1 = createRunnerWithDir(dir1, "releaseOssLicensesTask", "--build-cache").build()
+        Assert.assertEquals(TaskOutcome.SUCCESS, result1.task(":releaseOssLicensesTask")?.outcome)
+
+        // 2. Run in dir2 (different absolute path) and expect FROM-CACHE
+        val result2 = createRunnerWithDir(dir2, "releaseOssLicensesTask", "--build-cache").build()
+        
+        Assert.assertEquals(
+            "LicensesTask should be relocatable",
+            TaskOutcome.FROM_CACHE, 
+            result2.task(":releaseOssLicensesTask")?.outcome
+        )
+        Assert.assertEquals(
+            "DependencyTask should be relocatable",
+            TaskOutcome.FROM_CACHE, 
+            result2.task(":releaseOssDependencyTask")?.outcome
+        )
     }
 }
 
