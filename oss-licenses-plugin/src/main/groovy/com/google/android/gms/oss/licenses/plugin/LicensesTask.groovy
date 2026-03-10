@@ -21,10 +21,14 @@ import groovy.xml.XmlSlurper
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.Internal
+import org.gradle.api.tasks.Nested
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.OutputFile
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import org.slf4j.LoggerFactory
 
@@ -38,6 +42,7 @@ import java.util.zip.ZipFile
  * mappings (POMs and Library artifacts) are provided as lazy input properties, 
  * making the task a pure function of its inputs.
  */
+@CacheableTask
 abstract class LicensesTask extends DefaultTask {
     private static final String UTF_8 = "UTF-8"
     private static final byte[] LINE_SEPARATOR = System
@@ -66,10 +71,11 @@ abstract class LicensesTask extends DefaultTask {
      * A map of GAV coordinates (group:name:version) to their resolved POM and Library files.
      * Populated by OssLicensesPlugin during configuration.
      */
-    @org.gradle.api.tasks.Input
+    @Nested
     abstract org.gradle.api.provider.MapProperty<String, ArtifactFiles> getArtifactFiles()
 
     @InputFile
+    @PathSensitive(PathSensitivity.NONE)
     abstract RegularFileProperty getDependenciesJson()
 
     @OutputDirectory
