@@ -29,10 +29,9 @@ import org.gradle.api.tasks.TaskProvider
 /**
  * Main entry point for the OSS Licenses Gradle Plugin.
  *
- * The plugin architecture follows a three-task workflow for each variant:
+ * The plugin architecture follows a two-task workflow for each variant:
  * 1. DependencyTask: Converts AGP's internal dependency protobuf into a simplified JSON.
  * 2. LicensesTask: Resolves licenses from POM files and Google Service artifacts.
- * 3. LicensesCleanUpTask: Cleans up generated directories as part of the clean
  */
 class OssLicensesPlugin implements Plugin<Project> {
     void apply(Project project) {
@@ -82,19 +81,6 @@ class OssLicensesPlugin implements Plugin<Project> {
         
         // Register the LicensesTask output as a generated resource folder for AGP.
         variant.sources.res.addGeneratedSourceDirectory(licenseTask, LicensesTask::getGeneratedDirectory)
-
-        // Task 3: Cleanup
-        // Ensures generated license files are deleted when running the clean task.
-        TaskProvider<LicensesCleanUpTask> cleanupTask = project.tasks.register(
-                "${variant.name}OssLicensesCleanUp",
-                LicensesCleanUpTask.class) {
-            it.generatedDirectory.set(baseDir)
-        }
-        project.logger.debug("Registered task ${cleanupTask.name}")
-
-        project.tasks.named("clean").configure {
-            it.dependsOn(cleanupTask)
-        }
     }
 
 }

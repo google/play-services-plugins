@@ -34,6 +34,18 @@ abstract class EndToEndTest(private val agpVersion: String, private val gradleVe
 
     private lateinit var projectDir: File
 
+    private fun createRunner(vararg arguments: String): GradleRunner {
+        return GradleRunner.create()
+            .withProjectDir(projectDir)
+            .withGradleVersion(gradleVersion)
+            .forwardOutput()
+            // Isolate TestKit per AGP version subclass to allow parallel execution
+            // while keeping all metadata inside the project's build directory for cleanliness.
+            .withTestKitDir(File(System.getProperty("testkit_path"), this.javaClass.simpleName))
+            // Enable strict configuration cache mode for all tests.
+            .withArguments(*arguments, "--configuration-cache", "-Dorg.gradle.configuration-cache.problems=fail")
+    }
+
     @Before
     fun setup() {
         projectDir = tempDirectory.newFolder("basic")
@@ -79,11 +91,7 @@ abstract class EndToEndTest(private val agpVersion: String, private val gradleVe
 
     @Test
     fun basic() {
-        val result = GradleRunner.create()
-            .withProjectDir(projectDir)
-            .withGradleVersion(gradleVersion)
-            .withArguments("releaseOssLicensesTask", "-s")
-            .build()
+        val result = createRunner("releaseOssLicensesTask").build()
         Assert.assertEquals(result.task(":collectReleaseDependencies")!!.outcome, TaskOutcome.SUCCESS)
         Assert.assertEquals(result.task(":releaseOssDependencyTask")!!.outcome, TaskOutcome.SUCCESS)
         Assert.assertEquals(result.task(":releaseOssLicensesTask")!!.outcome, TaskOutcome.SUCCESS)
@@ -93,26 +101,14 @@ abstract class EndToEndTest(private val agpVersion: String, private val gradleVe
         val metadata =
             File(projectDir, "build/generated/res/releaseOssLicensesTask/raw/third_party_license_metadata")
         Assert.assertEquals(expectedContents(isBuiltInKotlinEnabled()), metadata.readText())
-
-        val cleanResult = GradleRunner.create()
-            .withProjectDir(projectDir)
-            .withGradleVersion(gradleVersion)
-            .withArguments("clean", "-s")
-            .build()
-        Assert.assertFalse(File(projectDir, "build").exists())
-        Assert.assertEquals(cleanResult.task(":clean")!!.outcome, TaskOutcome.SUCCESS)
     }
 
     @Test
     fun testAbsentDependencyReport() {
-        val result = GradleRunner.create()
-            .withProjectDir(projectDir)
-            .withGradleVersion(gradleVersion)
-            .withArguments("debugOssLicensesTask", "-s")
-            .build()
+        val result = createRunner("debugOssLicensesTask").build()
         Assert.assertEquals(result.task(":debugOssDependencyTask")!!.outcome, TaskOutcome.SUCCESS)
         Assert.assertEquals(result.task(":debugOssLicensesTask")!!.outcome, TaskOutcome.SUCCESS)
-        
+
         val licenses = File(projectDir, "build/generated/res/debugOssLicensesTask/raw/third_party_licenses")
         Assert.assertEquals(LicensesTask.ABSENT_DEPENDENCY_TEXT + "\n", licenses.readText())
     }
@@ -120,18 +116,13 @@ abstract class EndToEndTest(private val agpVersion: String, private val gradleVe
     @Test
     fun testConfigurationCache() {
         // First run to store the configuration cache
-        GradleRunner.create()
-            .withProjectDir(projectDir)
-            .withGradleVersion(gradleVersion)
-            .withArguments("releaseOssLicensesTask", "--configuration-cache")
-            .build()
+        createRunner("releaseOssLicensesTask").build()
+
+        // Clean to test configuration cache with a clean build
+        createRunner("clean").build()
 
         // Second run to reuse the configuration cache
-        val result = GradleRunner.create()
-            .withProjectDir(projectDir)
-            .withGradleVersion(gradleVersion)
-            .withArguments("releaseOssLicensesTask", "--configuration-cache")
-            .build()
+        val result = createRunner("releaseOssLicensesTask").build()
 
         Assert.assertTrue(
             result.output.contains("Reusing configuration cache") ||
@@ -156,7 +147,7 @@ abstract class EndToEndTest(private val agpVersion: String, private val gradleVe
         """.trimIndent()
         )
         File(projectDir, "settings.gradle").appendText("\ninclude ':lib'\nproject(':lib').projectDir = new File('${libDir.absolutePath.replace("\\", "/")}')")
-        
+
         // Rewrite the main build.gradle to include the project dependency and a forced conflict
         File(projectDir, "build.gradle").writeText(
             """
@@ -185,39 +176,21 @@ abstract class EndToEndTest(private val agpVersion: String, private val gradleVe
         )
 
         // Run with configuration cache twice to ensure resolution is stable and cacheable
-        GradleRunner.create()
-            .withProjectDir(projectDir)
-            .withGradleVersion(gradleVersion)
-            .withArguments("releaseOssLicensesTask", "--configuration-cache")
-            .build()
+        createRunner("releaseOssLicensesTask").build()
 
-        val result = GradleRunner.create()
-            .withProjectDir(projectDir)
-            .withGradleVersion(gradleVersion)
-            .withArguments("releaseOssLicensesTask", "--configuration-cache")
-            .build()
+        val result = createRunner("releaseOssLicensesTask").build()
 
         Assert.assertTrue(
             result.output.contains("Configuration cache entry reused") ||
                 result.output.contains("Reusing configuration cache")
         )
-        
+
         // Verify output exists and contains the forced version's license link
         val licensesFile = File(projectDir, "build/generated/res/releaseOssLicensesTask/raw/third_party_licenses")
         Assert.assertTrue(licensesFile.exists())
         val content = licensesFile.readText()
         // Gson 2.8.9 specifically uses the Apache 2.0 license URL.
         Assert.assertTrue(content.contains("apache.org/licenses/LICENSE-2.0"))
-    }
-
-    @Test
-    fun clean() {
-        val result = GradleRunner.create()
-            .withProjectDir(projectDir)
-            .withGradleVersion(gradleVersion)
-            .withArguments("clean", "-s")
-            .build()
-        Assert.assertEquals(result.task(":clean")!!.outcome, TaskOutcome.UP_TO_DATE)
     }
 }
 

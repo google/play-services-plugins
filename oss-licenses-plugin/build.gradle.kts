@@ -80,11 +80,19 @@ tasks.withType<Test>().configureEach {
 
     val localVersion = project.version.toString()
     systemProperties["plugin_version"] = localVersion // value used by EndToEndTest.kt
+    systemProperties["testkit_path"] = layout.buildDirectory.dir("testkit").get().asFile.absolutePath // value used by EndToEndTest.kt
     doFirst {
         // Inside doFirst to make sure that absolute path is not considered to be input to the task
         systemProperties["repo_path"] = localRepo.get().asFile.absolutePath // value used by EndToEndTest.kt
     }
+    minHeapSize = "512m"
+    maxHeapSize = "2g"
     maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).takeIf { it > 0 } ?: 1
+    testLogging {
+        events("passed", "skipped", "failed")
+        showStandardStreams = false
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+    }
 }
 
 publishing {
