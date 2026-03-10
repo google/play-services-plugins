@@ -218,7 +218,7 @@ abstract class EndToEndTest(private val agpVersion: String, private val gradleVe
                         mavenCentral()
                     }
                 }
-                
+
                 buildCache {
                     local {
                         directory = '${cacheDir.absolutePath.replace("\\", "/")}'
@@ -237,28 +237,26 @@ abstract class EndToEndTest(private val agpVersion: String, private val gradleVe
 
         // 2. Run in dir2 (different absolute path) and expect FROM-CACHE
         val result2 = createRunnerWithDir(dir2, "releaseOssLicensesTask", "--build-cache").build()
-        
+
         Assert.assertEquals(
             "LicensesTask should be relocatable",
-            TaskOutcome.FROM_CACHE, 
+            TaskOutcome.FROM_CACHE,
             result2.task(":releaseOssLicensesTask")?.outcome
         )
         Assert.assertEquals(
             "DependencyTask should be relocatable",
-            TaskOutcome.FROM_CACHE, 
+            TaskOutcome.FROM_CACHE,
             result2.task(":releaseOssDependencyTask")?.outcome
         )
     }
 }
 
-class EndToEndTest_AGP74_G75 : EndToEndTest("7.4.2", "7.5")
-class EndToEndTest_AGP80_G80 : EndToEndTest("8.0.0", "8.0")
-class EndToEndTest_AGP82_G82 : EndToEndTest("8.2.0", "8.2")
-class EndToEndTest_AGP87_G89 : EndToEndTest("8.7.0", "8.9")
-class EndToEndTest_AGP810_G811 : EndToEndTest("8.10.0", "8.11.1")
-class EndToEndTest_AGP812_G814 : EndToEndTest("8.12.2", "8.14")
-class EndToEndTest_AGP90_G90 : EndToEndTest("9.0.0-alpha03", "9.0.0")
-class EndToEndTest_AGP91_G931 : EndToEndTest("9.1.0-alpha05", "9.3.1")
+class EndToEndTest_AGP74_G75 : EndToEndTest("7.4.2", "7.5.1")
+class EndToEndTest_AGP80_G80 : EndToEndTest("8.0.2", "8.0.2")
+class EndToEndTest_AGP87_G89 : EndToEndTest("8.7.3", "8.9")
+class EndToEndTest_AGP812_G814 : EndToEndTest("8.12.2", "8.14.1")
+class EndToEndTest_AGP_STABLE_90_G90 : EndToEndTest("9.0.1", "9.1.0")
+class EndToEndTest_AGP_ALPHA_92_G94 : EndToEndTest("9.2.0-alpha02", "9.4.0")
 
 private fun expectedDependenciesJson(builtInKotlinEnabled: Boolean, agpVersion: String) = """[
     {
@@ -439,7 +437,7 @@ private fun expectedDependenciesJson(builtInKotlinEnabled: Boolean, agpVersion: 
     {
         "group": "org.jetbrains.kotlin",
         "name": "kotlin-stdlib",
-        "version": "${if (agpVersion.startsWith("9.1")) "2.2.10" else "2.2.0"}"""" else ""}
+        "version": "${if (agpVersion.startsWith("9"))"2.2.10" else "2.2.0"}"""" else ""}
     }
 ]"""
 
