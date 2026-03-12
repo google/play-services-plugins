@@ -16,6 +16,7 @@
 
 package com.google.android.gms.oss.licenses.testapp
 
+<<<<<<< HEAD
 import android.widget.ListView
 import androidx.test.core.app.ActivityScenario
 import androidx.test.espresso.Espresso.onData
@@ -27,6 +28,15 @@ import org.hamcrest.CoreMatchers.anything
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
+=======
+import androidx.test.core.app.ActivityScenario
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.google.android.gms.oss.licenses.OssLicensesMenuActivity
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertTrue
+import org.junit.Ignore
+>>>>>>> 8096c82 (test(oss-licenses): introduce unified 'testapp' verification suite)
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Shadows.shadowOf
@@ -64,6 +74,7 @@ class OssLicensesV1Test {
     }
 
     @Test
+<<<<<<< HEAD
     fun testV1DetailNavigation() {
         ActivityScenario.launch(OssLicensesMenuActivity::class.java).use { scenario ->
             // Use Espresso to click the first item in the list.
@@ -74,6 +85,39 @@ class OssLicensesV1Test {
                 .perform(click())
 
             scenario.onActivity { activity ->
+=======
+    @Ignore(
+        "Fails because the plugin currently cannot find licenses declared only in POM files (without an internal LICENSE file)."
+    )
+    fun testV1ContainsPomOnlyLicense() {
+        ActivityScenario.launch(OssLicensesMenuActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val res = activity.resources
+                val metadataId =
+                    res.getIdentifier("third_party_license_metadata", "raw", activity.packageName)
+                val metadataText =
+                    res.openRawResource(metadataId).bufferedReader().use { it.readText() }
+                // Using aopalliance as the high-signal representative of a POM-only license
+                // declaration
+                assertTrue(
+                    "Metadata should contain aopalliance (representative of POM-only license)",
+                    metadataText.contains("aopalliance"),
+                )
+            }
+        }
+    }
+
+    @Test
+    fun testV1DetailNavigation() {
+        ActivityScenario.launch(OssLicensesMenuActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val licenseListId =
+                    activity.resources.getIdentifier("license_list", "id", activity.packageName)
+
+                val listView = activity.findViewById<android.widget.ListView>(licenseListId)
+                listView.performItemClick(listView.getChildAt(0), 0, listView.adapter.getItemId(0))
+
+>>>>>>> 8096c82 (test(oss-licenses): introduce unified 'testapp' verification suite)
                 // Use ShadowActivity to verify the next activity was started
                 val shadowActivity = shadowOf(activity)
                 val nextIntent = shadowActivity.nextStartedActivity

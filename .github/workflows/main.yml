@@ -8,7 +8,6 @@ on:
   push:
     branches: [main]
   pull_request:
-
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
@@ -75,7 +74,7 @@ jobs:
           distribution: 'temurin'
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # ratchet:gradle/actions/setup-gradle@v6.1.0
+        uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # ratchet:gradle/actions/wrapper-validation@v6.1.0
         with:
           dependency-graph: generate-and-submit
 
@@ -134,5 +133,5 @@ jobs:
         run: |
           OUTPUT=$(./gradlew build -PusePublishedPluginFrom=../build/repo 2>&1)
           echo "$OUTPUT"
-          echo "$OUTPUT" | grep -q "Configuration cache entry reused" || \
+          echo "$OUTPUT" | rg -q "Configuration cache entry reused" || \
             { echo "::error::Configuration cache was NOT reused"; exit 1; }
