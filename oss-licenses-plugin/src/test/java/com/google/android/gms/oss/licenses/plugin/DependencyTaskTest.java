@@ -121,7 +121,7 @@ public class DependencyTaskTest {
     File outputDir = temporaryFolder.newFolder();
     File outputJson = new File(outputDir, "test.json");
     dependencyTask.getDependenciesJson().set(outputJson);
-    ImmutableSet<ArtifactInfo> expectedArtifacts = ImmutableSet.of(DependencyUtil.ABSENT_ARTIFACT);
+    ImmutableSet<ArtifactInfo> expectedArtifacts = ImmutableSet.of(DependencyTask.ABSENT_ARTIFACT);
 
     dependencyTask.action();
 

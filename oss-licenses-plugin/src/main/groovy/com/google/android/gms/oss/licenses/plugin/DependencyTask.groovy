@@ -39,11 +39,16 @@ import static com.android.tools.build.libraries.metadata.Library.LibraryOneofCas
  * Plugin into a JSON format that will be consumed by the {@link LicensesTask}.
  *
  * If the protobuf is not present (e.g. debug variants) it writes a single
- * dependency on the {@link DependencyUtil#ABSENT_ARTIFACT}.
+ * dependency on the {@link #ABSENT_ARTIFACT}.
  */
 @CacheableTask
 abstract class DependencyTask extends DefaultTask {
     private static final logger = LoggerFactory.getLogger(DependencyTask.class)
+
+    // Sentinel written to the JSON when AGP does not provide a dependency report (e.g. debug
+    // variants). LicensesTask detects this and renders a placeholder message instead of licenses.
+    protected static final ArtifactInfo ABSENT_ARTIFACT =
+            new ArtifactInfo("absent", "absent", "absent")
 
     @OutputFile
     abstract RegularFileProperty getDependenciesJson()
@@ -75,7 +80,7 @@ abstract class DependencyTask extends DefaultTask {
     private Set<ArtifactInfo> loadArtifactInfo() {
         if (!libraryDependenciesReport.isPresent()) {
             logger.info("$name not provided with AppDependencies proto file.")
-            return [DependencyUtil.ABSENT_ARTIFACT]
+            return [ABSENT_ARTIFACT]
         }
 
         AppDependencies appDependencies = loadDependenciesFile()

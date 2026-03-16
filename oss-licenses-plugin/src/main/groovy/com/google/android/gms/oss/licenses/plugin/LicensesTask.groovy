@@ -21,12 +21,11 @@ import groovy.xml.XmlSlurper
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.provider.MapProperty
 import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.Internal
-import org.gradle.api.tasks.Nested
 import org.gradle.api.tasks.OutputDirectory
-import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
@@ -37,7 +36,7 @@ import java.util.zip.ZipFile
 
 /**
  * Task to extract and bundle license information from application dependencies.
- * 
+ *
  * This task is compatible with Gradle's Configuration Cache. All necessary file 
  * mappings (POMs and Library artifacts) are provided as lazy input properties, 
  * making the task a pure function of its inputs.
@@ -67,12 +66,24 @@ abstract class LicensesTask extends DefaultTask {
             "(e.g. release) where the Android Gradle Plugin " +
             "generates an app dependency list.")
 
-    /**
-     * A map of GAV coordinates (group:name:version) to their resolved POM and Library files.
-     * Populated by OssLicensesPlugin during configuration.
-     */
-    @Nested
-    abstract org.gradle.api.provider.MapProperty<String, ArtifactFiles> getArtifactFiles()
+    // Library JARs/AARs keyed by "group:name:version", used to extract bundled license data
+    // from Google Play Services / Firebase artifacts.
+    //
+    // Why @Internal instead of @InputFiles?
+    // Gradle uses task input annotations to compute a cache key for up-to-date checks and build
+    // cache lookups. If these maps were @InputFiles, Gradle would hash every JAR/AAR and POM,
+    // which is expensive and redundant. The dependenciesJson file (which IS @InputFile) already
+    // captures the full dependency set as a stable JSON list. Since Maven Central artifacts are
+    // immutable per GAV coordinate (you can't re-publish the same version), the physical files
+    // can only change when the dependency list itself changes — which dependenciesJson already
+    // tracks. Using @Internal avoids the redundant hashing while maintaining correctness.
+    @Internal
+    abstract MapProperty<String, File> getLibraryFilesByGav()
+
+    // POM files keyed by "group:name:version", for reading <licenses> URLs from Maven metadata.
+    // @Internal for the same reason as libraryFilesByGav above.
+    @Internal
+    abstract MapProperty<String, File> getPomFilesByGav()
 
     @InputFile
     @PathSensitive(PathSensitivity.NONE)
@@ -81,20 +92,23 @@ abstract class LicensesTask extends DefaultTask {
     @OutputDirectory
     abstract DirectoryProperty getGeneratedDirectory()
 
-    @Internal // represented by getGeneratedDirectory()
+    @Internal // output file within getGeneratedDirectory(); tracked via that @OutputDirectory
     File licenses
 
-    @Internal // represented by getGeneratedDirectory()
+    @Internal // output file within getGeneratedDirectory(); tracked via that @OutputDirectory
     File licensesMetadata
 
     @TaskAction
     void action() {
         initOutputDir()
 
+        Map<String, File> libraryMap = libraryFilesByGav.getOrElse([:])
+        Map<String, File> pomMap = pomFilesByGav.getOrElse([:])
+
         File dependenciesJsonFile = dependenciesJson.asFile.get()
         Set<ArtifactInfo> artifactInfoSet = loadDependenciesJson(dependenciesJsonFile)
 
-        if (DependencyUtil.ABSENT_ARTIFACT in artifactInfoSet) {
+        if (DependencyTask.ABSENT_ARTIFACT in artifactInfoSet) {
             if (artifactInfoSet.size() > 1) {
                 throw new IllegalStateException("artifactInfoSet that contains EMPTY_ARTIFACT should not contain other artifacts.")
             }
@@ -104,7 +118,7 @@ abstract class LicensesTask extends DefaultTask {
                 if (isGoogleServices(artifactInfo.group)) {
                     // Add license info for google-play-services itself
                     if (!artifactInfo.name.endsWith(LICENSE_ARTIFACT_SUFFIX)) {
-                        addLicensesFromPom(artifactInfo)
+                        addLicensesFromPom(pomMap, artifactInfo)
                     }
                     // Add transitive licenses info for google-play-services. For
                     // post-granular versions, this is located in the artifact
@@ -112,10 +126,10 @@ abstract class LicensesTask extends DefaultTask {
                     // is located at the complementary license artifact as a runtime
                     // dependency.
                     if (isGranularVersion(artifactInfo.version) || artifactInfo.name.endsWith(LICENSE_ARTIFACT_SUFFIX)) {
-                        addGooglePlayServiceLicenses(artifactInfo)
+                        addGooglePlayServiceLicenses(libraryMap, artifactInfo)
                     }
                 } else {
-                    addLicensesFromPom(artifactInfo)
+                    addLicensesFromPom(pomMap, artifactInfo)
                 }
             }
         }
@@ -125,7 +139,8 @@ abstract class LicensesTask extends DefaultTask {
 
     private static Set<ArtifactInfo> loadDependenciesJson(File jsonFile) {
         def allDependencies = new JsonSlurper().parse(jsonFile)
-        def artifactInfoSet = new LinkedHashSet<ArtifactInfo>() // use LinkedHashSet to ensure stable output order
+        def artifactInfoSet = new LinkedHashSet<ArtifactInfo>()
+        // use LinkedHashSet to ensure stable output order
         for (entry in allDependencies) {
             ArtifactInfo artifactInfo = artifactInfoFromEntry(entry)
             artifactInfoSet.add(artifactInfo)
@@ -166,14 +181,13 @@ abstract class LicensesTask extends DefaultTask {
                 && Integer.valueOf(versions[0]) >= GRANULAR_BASE_VERSION)
     }
 
-    protected void addGooglePlayServiceLicenses(ArtifactInfo artifactInfo) {
-        // We look up the artifact file using the pre-resolved map provided during configuration.
-        ArtifactFiles files = getArtifactFiles().get().get(artifactInfo.toString())
-        if (files == null || files.libraryFile == null || !files.libraryFile.exists()) {
+    protected void addGooglePlayServiceLicenses(Map<String, File> libraryMap, ArtifactInfo artifactInfo) {
+        File libraryFile = libraryMap.get(artifactInfo.toString())
+        if (libraryFile == null || !libraryFile.exists()) {
             logger.warn("Unable to find Google Play Services Artifact for $artifactInfo")
             return
         }
-        addGooglePlayServiceLicenses(files.libraryFile)
+        addGooglePlayServiceLicenses(libraryFile)
     }
 
     protected void addGooglePlayServiceLicenses(File artifactFile) {
@@ -242,10 +256,9 @@ abstract class LicensesTask extends DefaultTask {
         }
     }
 
-    protected void addLicensesFromPom(ArtifactInfo artifactInfo) {
-        // We look up the POM file using the pre-resolved map provided during configuration.
-        ArtifactFiles files = getArtifactFiles().get().get(artifactInfo.toString())
-        addLicensesFromPom(files?.pomFile, artifactInfo.group, artifactInfo.name)
+    protected void addLicensesFromPom(Map<String, File> pomMap, ArtifactInfo artifactInfo) {
+        File pomFile = pomMap.get(artifactInfo.toString())
+        addLicensesFromPom(pomFile, artifactInfo.group, artifactInfo.name)
     }
 
     protected void addLicensesFromPom(File pomFile, String group, String name) {
