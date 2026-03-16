@@ -27,23 +27,39 @@ jobs:
         with:
           files: .github/workflows/*.yml
 
-  # This workflow contains a single job called "build"
+  # Build the simple plugins (no special test infrastructure needed)
   build:
     needs: lint-and-check
-    # The type of runner that the job will run on
     runs-on: ubuntu-latest
-
-    # Runs this job in parallel for each sub-project
     strategy:
       matrix:
         project-dir:
           - strict-version-matcher-plugin
           - google-services-plugin
-          - oss-licenses-plugin
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # ratchet:actions/checkout@v6.0.2
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # ratchet:actions/setup-java@v5.2.0
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # ratchet:gradle/actions/setup-gradle@v5.0.2
+        with:
+          dependency-graph: generate-and-submit
+
+      - name: Perform a Gradle build
+        run: ./gradlew build
+        working-directory: ./${{ matrix.project-dir }}
+
+  # Build the oss-licenses plugin: unit tests + integration tests (no heavy E2E).
+  # Publishes the plugin artifact for downstream jobs.
+  oss-licenses-build:
+    needs: lint-and-check
+    runs-on: ubuntu-latest
+    steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # ratchet:actions/checkout@v6.0.2
 
       - name: Set up JDK 17 (For plugin build)
@@ -63,28 +79,96 @@ jobs:
         with:
           dependency-graph: generate-and-submit
 
-      # Runs a build which includes `check` and `test` tasks
-      - name: Perform a Gradle build
-        run: ./gradlew build
-        working-directory: ./${{ matrix.project-dir }}
+      # Cache GradleTestKit directories (downloaded Gradle distributions + dependency caches).
+      # These live inside build/testkit/ which isn't covered by setup-gradle's ~/.gradle cache.
+      # Main branch writes the cache; PR branches only read it.
+      - name: Restore GradleTestKit cache
+        if: github.event_name == 'pull_request'
+        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # ratchet:actions/cache/restore@v4.2.3
+        with:
+          path: oss-licenses-plugin/build/testkit
+          key: testkit-${{ runner.os }}-${{ hashFiles('oss-licenses-plugin/build.gradle.kts', 'oss-licenses-plugin/src/test/**/*Test*.kt') }}
+          restore-keys: |
+            testkit-${{ runner.os }}-
 
-      # Publish the plugin to a local repo for testapp verification
+      - name: Cache GradleTestKit directories
+        if: github.event_name != 'pull_request'
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # ratchet:actions/cache@v4.2.3
+        with:
+          path: oss-licenses-plugin/build/testkit
+          key: testkit-${{ runner.os }}-${{ hashFiles('oss-licenses-plugin/build.gradle.kts', 'oss-licenses-plugin/src/test/**/*Test*.kt') }}
+          restore-keys: |
+            testkit-${{ runner.os }}-
+
+      # Build + unit/integration tests only (E2E tests run in a separate parallel job)
+      - name: Build and test
+        run: ./gradlew build -x e2eTest
+        working-directory: ./oss-licenses-plugin
+
       - name: Publish to local repo
-        if: matrix.project-dir == 'oss-licenses-plugin'
         run: ./gradlew publish
         working-directory: ./oss-licenses-plugin
 
-      # Upload the built plugin as an artifact
       - name: Upload local repo artifact
-        if: matrix.project-dir == 'oss-licenses-plugin'
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # ratchet:actions/upload-artifact@v7.0.0
         with:
           name: oss-licenses-local-repo
           path: oss-licenses-plugin/build/repo/
 
-  # Job to run high-signal tests using the standalone testapp.
-  testapp-verification:
-    needs: build
+  # Heavy E2E tests that build the full testapp against multiple AGP versions.
+  # Runs in parallel with testapp-verification after the plugin is built and published.
+  oss-licenses-e2e:
+    needs: oss-licenses-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # ratchet:actions/checkout@v6.0.2
+
+      - name: Download local repo artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # ratchet:actions/download-artifact@v8.0.1
+        with:
+          name: oss-licenses-local-repo
+          path: oss-licenses-plugin/build/repo/
+
+      - name: Set up JDK 17 (For plugin build)
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # ratchet:actions/setup-java@v5.2.0
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up JDK 21 (For plugin testing)
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # ratchet:actions/setup-java@v5.2.0
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # ratchet:gradle/actions/setup-gradle@v5.0.2
+
+      - name: Restore GradleTestKit cache
+        if: github.event_name == 'pull_request'
+        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # ratchet:actions/cache/restore@v4.2.3
+        with:
+          path: oss-licenses-plugin/build/testkit
+          key: testkit-e2e-${{ runner.os }}-${{ hashFiles('oss-licenses-plugin/build.gradle.kts', 'oss-licenses-plugin/src/e2eTest/**/*Test*.kt') }}
+          restore-keys: |
+            testkit-e2e-${{ runner.os }}-
+
+      - name: Cache GradleTestKit directories
+        if: github.event_name != 'pull_request'
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # ratchet:actions/cache@v4.2.3
+        with:
+          path: oss-licenses-plugin/build/testkit
+          key: testkit-e2e-${{ runner.os }}-${{ hashFiles('oss-licenses-plugin/build.gradle.kts', 'oss-licenses-plugin/src/e2eTest/**/*Test*.kt') }}
+          restore-keys: |
+            testkit-e2e-${{ runner.os }}-
+
+      - name: Run E2E Tests
+        run: ./gradlew e2eTest
+        working-directory: ./oss-licenses-plugin
+
+  # Verify the plugin works with the standalone testapp.
+  oss-licenses-testapp:
+    needs: oss-licenses-build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # ratchet:actions/checkout@v6.0.2
