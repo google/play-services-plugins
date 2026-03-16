@@ -90,12 +90,12 @@ tasks.withType<Test>().configureEach {
     ).withPathSensitivity(PathSensitivity.RELATIVE).withPropertyName("repo")
 
     val localVersion = project.version.toString()
-    systemProperties["plugin_version"] = localVersion // value used by EndToEndTest.kt
-    systemProperties["testkit_path"] = layout.buildDirectory.dir("testkit").get().asFile.absolutePath // value used by EndToEndTest.kt
-    systemProperties["java21_home"] = java21Home.get()
+    systemProperties["plugin_version"] = localVersion // value used by IntegrationTest.kt
+    systemProperties["testkit_path"] = layout.buildDirectory.dir("testkit").get().asFile.absolutePath // value used by IntegrationTest.kt
+    systemProperties["java21_home"] = java21Home.get() // value used by EndToEndTest.kt
     doFirst {
         // Inside doFirst to make sure that absolute path is not considered to be input to the task
-        systemProperties["repo_path"] = localRepo.get().asFile.absolutePath // value used by EndToEndTest.kt
+        systemProperties["repo_path"] = localRepo.get().asFile.absolutePath // value used by IntegrationTest.kt
     }
     minHeapSize = "512m"
     maxHeapSize = "2g"

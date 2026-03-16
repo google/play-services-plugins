@@ -25,11 +25,15 @@ if (!localProps.exists()) {
 
 pluginManagement {
     repositories {
-        // Automatically pick up the locally built plugin if it has been published to the project's internal repository.
-        // This is primarily used by the CI and local 'publish' task.
+        // Check if the licenses plugin has been built in the parent project. If so, use it here
+        // (Not using includeBuild as it would cause a circular dependency with the plugin's e2e tests)
         val localRepo = file("../build/repo")
         if (localRepo.exists()) {
+            logger.lifecycle("Using the built plugin from parent project.")
             maven { url = uri(localRepo) }
+        } else {
+            logger.lifecycle("Fetching OSS Licences plugin from gMaven. To use the plugin built" +
+            "from the parent project, run cd .. && /gradlew publish")
         }
         google()
         mavenCentral()
