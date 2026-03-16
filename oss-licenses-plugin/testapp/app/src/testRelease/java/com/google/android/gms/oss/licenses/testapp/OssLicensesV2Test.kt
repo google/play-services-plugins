@@ -24,7 +24,6 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.android.gms.oss.licenses.v2.OssLicensesMenuActivity
-import org.junit.Assert.assertEquals
 import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
@@ -63,23 +62,31 @@ class OssLicensesV2Test {
     }
 
     @Test
-    @Ignore(
-        "Fails due to a bug in the play-services-oss-licenses library where the title is not correctly set via Intent extras in V2."
-    )
     fun testV2ActivityCustomTitleViaIntent() {
         val customTitle = "My Custom Licenses Title"
         val intent =
             Intent(ApplicationProvider.getApplicationContext(), OssLicensesMenuActivity::class.java)
                 .apply { putExtra("title", customTitle) }
 
-        ActivityScenario.launch<OssLicensesMenuActivity>(intent).use { scenario ->
-            scenario.onActivity { activity ->
-                assertEquals(
-                    "The V2 activity title should be set via intent.",
-                    customTitle,
-                    activity.title,
-                )
-            }
+        ActivityScenario.launch<OssLicensesMenuActivity>(intent).use {
+            // The v2 library does not update activity.title, it only displays it in the Compose UI.
+            composeTestRule.onNodeWithText(customTitle).assertExists()
+        }
+    }
+
+    @Test
+    @Ignore("Reproduces Issue #364: setActivityTitle() is missing from the SDK in v17.4.0.")
+    fun testV2ActivityCustomTitleViaStaticSetter() {
+        val customTitle = "Static Setter Title"
+
+        // Use reflection to call setActivityTitle so that the test app still compiles
+        // even when the method is missing from the library (Issue #364).
+        val method =
+            OssLicensesMenuActivity::class.java.getMethod("setActivityTitle", String::class.java)
+        method.invoke(null, customTitle)
+
+        ActivityScenario.launch(OssLicensesMenuActivity::class.java).use {
+            composeTestRule.onNodeWithText(customTitle).assertExists()
         }
     }
 }
