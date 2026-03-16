@@ -102,7 +102,7 @@ jobs:
 
       # Build + unit/integration tests only (E2E tests run in a separate parallel job)
       - name: Build and test
-        run: ./gradlew build -x e2eTest
+        run: ./gradlew build -x e2eTestTask
         working-directory: ./oss-licenses-plugin
 
       - name: Publish to local repo
@@ -163,7 +163,7 @@ jobs:
             testkit-e2e-${{ runner.os }}-
 
       - name: Run E2E Tests
-        run: ./gradlew e2eTest
+        run: ./gradlew e2eTestTask
         working-directory: ./oss-licenses-plugin
 
   # Verify the plugin works with the standalone testapp.
