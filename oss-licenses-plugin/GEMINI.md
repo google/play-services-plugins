@@ -16,7 +16,7 @@ The project uses a single test application to test the plugin.
     *   Contains the actual Android application and Robolectric tests used by the environment.
 
 ### Test App End-to-End Suite
-The `TestAppEndToEndTest.kt` file in the main plugin source executes the `testapp` across a matrix of AGP and Gradle versions. 
+The `EndToEndTest.kt` file in the main plugin source executes the `testapp` across a matrix of AGP and Gradle versions.
 **Important:** When updating dependencies or AGP, you must verify and maintain the versions defined in this matrix to ensure broad compatibility.
 
 ### Running Tests Standalone
@@ -35,5 +35,5 @@ The test app is configured to automatically pick up the locally built plugin if 
 
 ### Test Separation (V1 vs V2)
 Tests are split:
-*   `OssLicensesV1Test.kt`: Standard Espresso tests for the original activity.
+*   `OssLicensesV1Test.kt`: Tests for the original activity.
 *   `OssLicensesV2Test.kt`: Compose tests for the V2 activity.
