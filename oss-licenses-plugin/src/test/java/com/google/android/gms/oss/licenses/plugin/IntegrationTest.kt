@@ -25,7 +25,7 @@ import org.junit.rules.TemporaryFolder
 import org.junit.Rule
 import java.io.File
 
-abstract class EndToEndTest(private val agpVersion: String, private val gradleVersion: String) {
+abstract class IntegrationTest(private val agpVersion: String, private val gradleVersion: String) {
 
     @get:Rule
     val tempDirectory: TemporaryFolder = TemporaryFolder()
@@ -341,12 +341,12 @@ abstract class EndToEndTest(private val agpVersion: String, private val gradleVe
     }
 }
 
-class EndToEndTest_AGP74_G75 : EndToEndTest("7.4.2", "7.5.1")
-class EndToEndTest_AGP80_G80 : EndToEndTest("8.0.2", "8.0.2")
-class EndToEndTest_AGP87_G89 : EndToEndTest("8.7.3", "8.9")
-class EndToEndTest_AGP812_G814 : EndToEndTest("8.12.2", "8.14.1")
-class EndToEndTest_AGP_STABLE_90_G90 : EndToEndTest("9.0.1", "9.1.0")
-class EndToEndTest_AGP_ALPHA_92_G94 : EndToEndTest("9.2.0-alpha02", "9.4.0")
+class IntegrationTest_AGP74_G75 : IntegrationTest("7.4.2", "7.5.1")
+class IntegrationTest_AGP80_G80 : IntegrationTest("8.0.2", "8.0.2")
+class IntegrationTest_AGP87_G89 : IntegrationTest("8.7.3", "8.9")
+class IntegrationTest_AGP812_G814 : IntegrationTest("8.12.2", "8.14.1")
+class IntegrationTest_AGP_STABLE_90_G90 : IntegrationTest("9.0.1", "9.1.0")
+class IntegrationTest_AGP_ALPHA_92_G94 : IntegrationTest("9.2.0-alpha02", "9.4.0")
 
 private fun expectedDependenciesJson(builtInKotlinEnabled: Boolean, agpVersion: String) = """[
     {

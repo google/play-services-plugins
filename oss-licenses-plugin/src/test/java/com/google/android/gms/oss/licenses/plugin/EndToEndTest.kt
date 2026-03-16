@@ -1,5 +1,5 @@
 /*
- * Copyright 2026 Google LLC
+ * Copyright 2025-2026 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ import java.io.File
 /**
  * Robust E2E test that executes the standalone testapp.
  */
-abstract class TestAppEndToEndTest(private val agpVersion: String, private val gradleVersion: String) {
+abstract class EndToEndTest(private val agpVersion: String, private val gradleVersion: String) {
 
     @get:Rule
     val tempDirectory: TemporaryFolder = TemporaryFolder()
@@ -134,7 +134,7 @@ abstract class TestAppEndToEndTest(private val agpVersion: String, private val g
 }
 
 // Due to the dependency requirements of the library, we can only test with recent versions of AGP
-class TestAppEndToEndTest_AGP810_G811 : TestAppEndToEndTest("8.10.0", "8.11.1")
-class TestAppEndToEndTest_AGP812_G814 : TestAppEndToEndTest("8.12.2", "8.14")
-class TestAppEndToEndTest_AGP90_G90 : TestAppEndToEndTest("9.0.0-alpha03", "9.0.0")
-class TestAppEndToEndTest_AGP91_G931 : TestAppEndToEndTest("9.1.0-alpha05", "9.3.1")
+class EndToEndTest_AGP810_G811 : EndToEndTest("8.10.0", "8.11.1")
+class EndToEndTest_AGP812_G814 : EndToEndTest("8.12.2", "8.14")
+class EndToEndTest_AGP90_G90 : EndToEndTest("9.0.0-alpha03", "9.0.0")
+class EndToEndTest_AGP91_G931 : EndToEndTest("9.1.0-alpha05", "9.3.1")
