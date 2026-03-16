@@ -75,6 +75,13 @@ abstract class EndToEndTest(private val agpVersion: String, private val gradleVe
             }
         }
 
+        // Remove the Gradle daemon jvm file. Gradle 8.13+ can use it to use a downloaded toolchain from the
+        // foojay-toolchains plugin, but older versions didn't have that capability. This causes them to fail to find
+        // the JVM that it needs if it's not already on the path.
+        // The JAVA_HOME injection below handles this more cleanly anyways, using the toolchains that the oss-licences
+        // project uses.
+        File(projectDir, "gradle/gradle-daemon-jvm.properties").delete()
+
         // The testapp template uses AGP 9.0+ and modern Kotlin.
         // For older compatible AGP versions, we dynamically override the versions.
         val isModernKotlin = agpVersion.startsWith("9.")
@@ -118,11 +125,18 @@ abstract class EndToEndTest(private val agpVersion: String, private val gradleVe
     }
 
     private fun createRunner(vararg arguments: String): GradleRunner {
+        val environment = mutableMapOf<String, String>()
+        val javaHome = System.getProperty("java21_home")
+        if (javaHome != null) {
+            environment["JAVA_HOME"] = javaHome
+        }
+
         return GradleRunner.create()
             .withProjectDir(projectDir)
             .withGradleVersion(gradleVersion)
             .withTestKitDir(File(System.getProperty("testkit_path"), this.javaClass.simpleName))
             .forwardOutput()
+            .withEnvironment(environment)
             .withArguments(*arguments, "--configuration-cache", "--parallel", "-Dorg.gradle.configuration-cache.problems=fail", "-s")
     }
 

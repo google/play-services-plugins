@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+import org.gradle.jvm.toolchain.JavaLanguageVersion
+import org.gradle.jvm.toolchain.JavaToolchainService
+
 plugins {
     id("groovy")
     id("java-gradle-plugin")
@@ -28,6 +31,14 @@ repositories {
     google()
     mavenCentral()
 }
+
+// Prepare the path to the Java 21 JVM used by the main build to inject into the
+// EndToEnd test's environment. Required when the running user doesn't have a
+// Java 21 JVM available
+val javaToolchains = project.extensions.getByType<JavaToolchainService>()
+val java21Home = javaToolchains.launcherFor {
+    languageVersion.set(JavaLanguageVersion.of(21))
+}.map { it.metadata.installationPath.asFile.absolutePath }
 
 java {
     toolchain {
@@ -81,6 +92,7 @@ tasks.withType<Test>().configureEach {
     val localVersion = project.version.toString()
     systemProperties["plugin_version"] = localVersion // value used by EndToEndTest.kt
     systemProperties["testkit_path"] = layout.buildDirectory.dir("testkit").get().asFile.absolutePath // value used by EndToEndTest.kt
+    systemProperties["java21_home"] = java21Home.get()
     doFirst {
         // Inside doFirst to make sure that absolute path is not considered to be input to the task
         systemProperties["repo_path"] = localRepo.get().asFile.absolutePath // value used by EndToEndTest.kt
