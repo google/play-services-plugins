@@ -25,7 +25,17 @@ import org.junit.rules.TemporaryFolder
 import org.junit.Rule
 import java.io.File
 
-abstract class IntegrationTest(private val agpVersion: String, private val gradleVersion: String) {
+abstract class IntegrationTest {
+
+    // AGP and Gradle versions are defined in build.gradle.kts (single source of truth) and injected
+    // as system properties keyed by class name. E.g., IntegrationTest_AGP74 reads the system
+    // properties "IntegrationTest_AGP74.agpVersion" and "IntegrationTest_AGP74.gradleVersion".
+    // To add a new version: add an entry to the version map in build.gradle.kts and a subclass here
+    // whose name matches the map key (prefixed with "IntegrationTest_").
+    private val agpVersion: String = System.getProperty("${javaClass.simpleName}.agpVersion")
+        ?: error("Missing ${javaClass.simpleName}.agpVersion — add to integrationOnlyVersions or e2eVersions in build.gradle.kts")
+    private val gradleVersion: String = System.getProperty("${javaClass.simpleName}.gradleVersion")
+        ?: error("Missing ${javaClass.simpleName}.gradleVersion — add to integrationOnlyVersions or e2eVersions in build.gradle.kts")
 
     @get:Rule
     val tempDirectory: TemporaryFolder = TemporaryFolder()
@@ -341,12 +351,11 @@ abstract class IntegrationTest(private val agpVersion: String, private val gradl
     }
 }
 
-class IntegrationTest_AGP74_G75 : IntegrationTest("7.4.2", "7.5.1")
-class IntegrationTest_AGP80_G80 : IntegrationTest("8.0.2", "8.0.2")
-class IntegrationTest_AGP87_G89 : IntegrationTest("8.7.3", "8.9")
-class IntegrationTest_AGP812_G814 : IntegrationTest("8.12.2", "8.14.1")
-class IntegrationTest_AGP_STABLE_90_G90 : IntegrationTest("9.0.1", "9.1.0")
-class IntegrationTest_AGP_ALPHA_92_G94 : IntegrationTest("9.2.0-alpha02", "9.4.0")
+class IntegrationTest_AGP74 : IntegrationTest()
+class IntegrationTest_AGP87 : IntegrationTest()
+class IntegrationTest_AGP812 : IntegrationTest()
+class IntegrationTest_AGP_STABLE : IntegrationTest()
+class IntegrationTest_AGP_ALPHA : IntegrationTest()
 
 private fun expectedDependenciesJson(builtInKotlinEnabled: Boolean, agpVersion: String) = """[
     {

@@ -28,7 +28,17 @@ import java.io.File
 /**
  * Robust E2E test that executes the standalone testapp.
  */
-abstract class EndToEndTest(private val agpVersion: String, private val gradleVersion: String) {
+abstract class EndToEndTest {
+
+    // AGP and Gradle versions are defined in build.gradle.kts (single source of truth) and injected
+    // as system properties keyed by class name. E.g., EndToEndTest_AGP812 reads the system
+    // properties "EndToEndTest_AGP812.agpVersion" and "EndToEndTest_AGP812.gradleVersion".
+    // To add a new version: add an entry to e2eVersions in build.gradle.kts and a subclass here
+    // whose name matches the map key (prefixed with "EndToEndTest_").
+    private val agpVersion: String = System.getProperty("${javaClass.simpleName}.agpVersion")
+        ?: error("Missing ${javaClass.simpleName}.agpVersion — add to e2eVersions in build.gradle.kts")
+    private val gradleVersion: String = System.getProperty("${javaClass.simpleName}.gradleVersion")
+        ?: error("Missing ${javaClass.simpleName}.gradleVersion — add to e2eVersions in build.gradle.kts")
 
     @get:Rule
     val tempDirectory: TemporaryFolder = TemporaryFolder()
@@ -148,7 +158,6 @@ abstract class EndToEndTest(private val agpVersion: String, private val gradleVe
 }
 
 // Due to the dependency requirements of the library, we can only test with recent versions of AGP
-class EndToEndTest_AGP810_G811 : EndToEndTest("8.10.0", "8.11.1")
-class EndToEndTest_AGP812_G814 : EndToEndTest("8.12.2", "8.14")
-class EndToEndTest_AGP90_G90 : EndToEndTest("9.0.0-alpha03", "9.0.0")
-class EndToEndTest_AGP91_G931 : EndToEndTest("9.1.0-alpha05", "9.3.1")
+class EndToEndTest_AGP812 : EndToEndTest()
+class EndToEndTest_AGP_STABLE : EndToEndTest()
+class EndToEndTest_AGP_ALPHA : EndToEndTest()
