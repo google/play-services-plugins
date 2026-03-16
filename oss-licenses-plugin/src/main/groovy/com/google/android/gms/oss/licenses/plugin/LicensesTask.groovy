@@ -37,8 +37,8 @@ import java.util.zip.ZipFile
 /**
  * Task to extract and bundle license information from application dependencies.
  *
- * This task is compatible with Gradle's Configuration Cache. All necessary file 
- * mappings (POMs and Library artifacts) are provided as lazy input properties, 
+ * This task is compatible with Gradle's Configuration Cache. All necessary file
+ * mappings (POMs and Library artifacts) are provided as lazy input properties,
  * making the task a pure function of its inputs.
  */
 @CacheableTask
@@ -263,7 +263,7 @@ abstract class LicensesTask extends DefaultTask {
 
     protected void addLicensesFromPom(File pomFile, String group, String name) {
         if (pomFile == null || !pomFile.exists()) {
-            logger.error("POM file $pomFile for $group:$name does not exist.")
+            logger.info("POM file $pomFile for $group:$name does not exist. This is expected for some libraries from androidx and org.jetbrains")
             return
         }
 
