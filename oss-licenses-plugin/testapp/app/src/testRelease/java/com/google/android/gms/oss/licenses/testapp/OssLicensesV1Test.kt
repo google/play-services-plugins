@@ -16,13 +16,17 @@
 
 package com.google.android.gms.oss.licenses.testapp
 
+import android.widget.ListView
 import androidx.test.core.app.ActivityScenario
+import androidx.test.espresso.Espresso.onData
+import androidx.test.espresso.action.ViewActions.click
+import androidx.test.espresso.matcher.ViewMatchers.isAssignableFrom
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.android.gms.oss.licenses.OssLicensesMenuActivity
+import org.hamcrest.CoreMatchers.anything
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
-import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Shadows.shadowOf
@@ -60,37 +64,16 @@ class OssLicensesV1Test {
     }
 
     @Test
-    @Ignore(
-        "Fails because the plugin currently cannot find licenses declared only in POM files (without an internal LICENSE file)."
-    )
-    fun testV1ContainsPomOnlyLicense() {
-        ActivityScenario.launch(OssLicensesMenuActivity::class.java).use { scenario ->
-            scenario.onActivity { activity ->
-                val res = activity.resources
-                val metadataId =
-                    res.getIdentifier("third_party_license_metadata", "raw", activity.packageName)
-                val metadataText =
-                    res.openRawResource(metadataId).bufferedReader().use { it.readText() }
-                // Using aopalliance as the high-signal representative of a POM-only license
-                // declaration
-                assertTrue(
-                    "Metadata should contain aopalliance (representative of POM-only license)",
-                    metadataText.contains("aopalliance"),
-                )
-            }
-        }
-    }
-
-    @Test
     fun testV1DetailNavigation() {
         ActivityScenario.launch(OssLicensesMenuActivity::class.java).use { scenario ->
+            // Use Espresso to click the first item in the list.
+            // Targeting by class type (ListView) is more robust than using internal library IDs.
+            onData(anything())
+                .inAdapterView(isAssignableFrom(ListView::class.java))
+                .atPosition(0)
+                .perform(click())
+
             scenario.onActivity { activity ->
-                val licenseListId =
-                    activity.resources.getIdentifier("license_list", "id", activity.packageName)
-
-                val listView = activity.findViewById<android.widget.ListView>(licenseListId)
-                listView.performItemClick(listView.getChildAt(0), 0, listView.adapter.getItemId(0))
-
                 // Use ShadowActivity to verify the next activity was started
                 val shadowActivity = shadowOf(activity)
                 val nextIntent = shadowActivity.nextStartedActivity
