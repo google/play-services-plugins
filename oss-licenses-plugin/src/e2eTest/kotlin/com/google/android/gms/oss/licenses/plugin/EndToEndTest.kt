@@ -26,7 +26,7 @@ import org.junit.rules.TemporaryFolder
 import java.io.File
 
 /**
- * Robust E2E test that executes the standalone testapp.
+ * E2E test that builds the standalone testapp against multiple AGP/Gradle versions.
  */
 abstract class EndToEndTest {
 
@@ -40,118 +40,119 @@ abstract class EndToEndTest {
     private val gradleVersion: String = System.getProperty("${javaClass.simpleName}.gradleVersion")
         ?: error("Missing ${javaClass.simpleName}.gradleVersion — add to e2eVersions in build.gradle.kts")
 
+    companion object {
+        private val AGP_VERSION_REGEX = Regex("""agp = ".*"""")
+        private val KOTLIN_VERSION_REGEX = Regex("""kotlin = ".*"""")
+
+        // Files to copy from the testapp source into the temp project directory
+        private val TESTAPP_ALLOW_LIST = listOf(
+            "app", "gradle", "build.gradle.kts", "settings.gradle.kts", "gradle.properties",
+            "gradlew", "gradlew.bat"
+        )
+
+        // AGP 9+ has built-in Kotlin support; AGP 8.x requires the standalone KGP with legacy config.
+        private val AGP_9_KOTLIN_BLOCK = """
+            kotlin {
+                jvmToolchain(21)
+                compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21) }
+            }
+        """.trimIndent()
+
+        private val AGP_8_KOTLIN_BLOCK = """
+            tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+                @Suppress("DEPRECATION")
+                kotlinOptions {
+                    jvmTarget = "21"
+                }
+            }
+        """.trimIndent()
+    }
+
     @get:Rule
     val tempDirectory: TemporaryFolder = TemporaryFolder()
 
     private lateinit var projectDir: File
-    private lateinit var testAppSourceDir: File
 
     @Before
     fun setup() {
         projectDir = tempDirectory.newFolder("testapp")
 
-        // Find the source testapp directory
-        val currentDir = File(System.getProperty("user.dir"))
-        testAppSourceDir = File(currentDir, "testapp")
-
-        if (!testAppSourceDir.exists()) {
-            throw IllegalStateException("Test app source not found at: ${testAppSourceDir.absolutePath}")
+        val currentDir = File(System.getProperty("user.dir")!!) // if this is missing then something is very wrong
+        val testAppSourceDir = File(currentDir, "testapp")
+        require(testAppSourceDir.exists()) {
+            "Test app source not found at: ${testAppSourceDir.absolutePath}"
         }
 
-        // Point the testapp at the Android SDK. Prefer ANDROID_HOME, fall back to the plugin
-        // project's local.properties (which IntelliJ/Android Studio generates automatically).
+        configureAndroidSdk(currentDir)
+        copyTestApp(testAppSourceDir)
+
+        // Remove the Gradle daemon JVM file — the JAVA_HOME injection in createRunner() handles
+        // JVM selection more cleanly across all Gradle versions.
+        File(projectDir, "gradle/gradle-daemon-jvm.properties").delete()
+
+        patchVersions()
+    }
+
+    private fun configureAndroidSdk(currentDir: File) {
         val sdkDir = System.getenv("ANDROID_HOME")
             ?: File(currentDir, "local.properties").takeIf { it.exists() }
                 ?.readLines()?.firstOrNull { it.startsWith("sdk.dir=") }
                 ?.substringAfter("sdk.dir=")
-            ?: throw IllegalStateException("Cannot find Android SDK: set ANDROID_HOME or create local.properties")
+            ?: error("Cannot find Android SDK: set ANDROID_HOME or create local.properties")
         File(projectDir, "local.properties").writeText("sdk.dir=${sdkDir.replace("\\", "\\\\")}\n")
+    }
 
-        // Copy testapp to the temporary directory using an allow-list to ensure a clean build environment
-        val allowList = listOf("app", "gradle", "build.gradle.kts", "settings.gradle.kts", "gradle.properties", "gradlew", "gradlew.bat")
-        testAppSourceDir.listFiles()?.filter { it.name in allowList }?.forEach { source ->
-            if (source.isDirectory) {
-                // Copy directories but skip internal build/cache dirs
-                source.walk().onEnter { file ->
-                    file.name != "build" && file.name != ".gradle" && file.name != ".idea"
-                }.filter { it.isFile }.forEach { file ->
-                    val relativePath = file.relativeTo(testAppSourceDir).path
-                    val target = projectDir.resolve(relativePath)
-                    target.parentFile.mkdirs()
-                    file.copyTo(target, overwrite = true)
-                }
-            } else {
-                source.copyTo(projectDir.resolve(source.name), overwrite = true)
-            }
-        }
+    private fun copyTestApp(sourceDir: File) {
+        TESTAPP_ALLOW_LIST
+            .map { sourceDir.resolve(it) }
+            .filter { it.exists() }
+            .forEach { it.copyRecursively(projectDir.resolve(it.name), overwrite = true) }
+    }
 
-        // Remove the Gradle daemon jvm file. Gradle 8.13+ can use it to use a downloaded toolchain from the
-        // foojay-toolchains plugin, but older versions didn't have that capability. This causes them to fail to find
-        // the JVM that it needs if it's not already on the path.
-        // The JAVA_HOME injection below handles this more cleanly anyways, using the toolchains that the oss-licences
-        // project uses.
-        File(projectDir, "gradle/gradle-daemon-jvm.properties").delete()
+    private fun patchVersions() {
+        val isAgp9 = agpVersion.startsWith("9.")
 
-        // The testapp template uses AGP 9.0+ and modern Kotlin.
-        // For older compatible AGP versions, we dynamically override the versions.
-        val isModernKotlin = agpVersion.startsWith("9.")
-
+        // Patch AGP (and optionally Kotlin) version in the version catalog
         val tomlFile = File(projectDir, "gradle/libs.versions.toml")
         var tomlContent = tomlFile.readText()
-        tomlContent = tomlContent.replace(Regex("agp = \".*\""), "agp = \"$agpVersion\"")
-
-        // If testing an older AGP, we dynamically override the kotlin version
-        // since older AGPs didn't have built-in Kotlin support and rely on the older KGP.
-        if (!isModernKotlin) {
-            tomlContent = tomlContent.replace(Regex("kotlin = \".*\""), "kotlin = \"2.1.10\"")
+        check(AGP_VERSION_REGEX.containsMatchIn(tomlContent)) {
+            "libs.versions.toml missing expected 'agp = \"...\"' entry — has the testapp template changed?"
+        }
+        tomlContent = tomlContent.replace(AGP_VERSION_REGEX, "agp = \"$agpVersion\"")
+        if (!isAgp9) {
+            tomlContent = tomlContent.replace(KOTLIN_VERSION_REGEX, "kotlin = \"2.1.10\"")
         }
         tomlFile.writeText(tomlContent)
 
-        // Update build.gradle.kts to handle older Kotlin compiler configs vs modern built-in Kotlin
-        val buildFile = File(projectDir, "app/build.gradle.kts")
-        var buildContent = buildFile.readText()
-        if (!isModernKotlin) {
-            buildContent = buildContent.replace(
-                """
-                kotlin {
-                    jvmToolchain(21)
-                    compilerOptions {
-                        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
-                    }
-                }
-                """.trimIndent(),
-                """
-                tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-                    @Suppress("DEPRECATION")
-                    kotlinOptions {
-                        jvmTarget = "21"
-                        freeCompilerArgs += listOf("-Xskip-metadata-version-check")
-                    }
-                }
-                """.trimIndent()
-            )
+        // AGP 8.x doesn't have built-in Kotlin support — replace with standalone KGP config
+        if (!isAgp9) {
+            val buildFile = File(projectDir, "app/build.gradle.kts")
+            val original = buildFile.readText()
+            val patched = original.replace(AGP_9_KOTLIN_BLOCK, AGP_8_KOTLIN_BLOCK)
+            check(patched != original) {
+                "Failed to patch Kotlin block in app/build.gradle.kts — has the testapp template changed?"
+            }
+            buildFile.writeText(patched)
         }
-        buildFile.writeText(buildContent)
     }
 
     private fun createRunner(vararg arguments: String): GradleRunner {
-        val environment = mutableMapOf<String, String>()
-        val javaHome = System.getProperty("java21_home")
-        if (javaHome != null) {
-            environment["JAVA_HOME"] = javaHome
-        }
-
-        return GradleRunner.create()
+        val runner = GradleRunner.create()
             .withProjectDir(projectDir)
             .withGradleVersion(gradleVersion)
             .withTestKitDir(File(System.getProperty("testkit_path"), this.javaClass.simpleName))
             .forwardOutput()
-            .withEnvironment(environment)
             .withArguments(*arguments, "--configuration-cache", "--parallel", "-Dorg.gradle.configuration-cache.problems=fail", "-s")
+
+        val javaHome = System.getProperty("java21_home")
+        if (javaHome != null) {
+            runner.withEnvironment(mapOf("JAVA_HOME" to javaHome))
+        }
+        return runner
     }
 
     @Test
-    fun testTestAppTestsPass() {
+    fun testBuildSucceeds() {
         val result = createRunner("build").build()
         Assert.assertEquals(TaskOutcome.SUCCESS, result.task(":app:build")?.outcome)
     }

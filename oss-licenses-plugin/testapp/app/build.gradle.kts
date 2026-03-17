@@ -22,7 +22,6 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.ktfmt)
     alias(libs.plugins.oss.licenses)
 }
 
@@ -85,8 +84,6 @@ kotlin {
     jvmToolchain(21)
     compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21) }
 }
-
-ktfmt { kotlinLangStyle() }
 
 dependencies {
     implementation(libs.play.services.oss.licenses)

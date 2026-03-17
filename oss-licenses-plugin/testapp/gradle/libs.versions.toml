@@ -10,7 +10,6 @@ compileSdk = "36"
 gson = "2.13.2"
 guava = "33.5.0-android"
 junit = "4.13.2"
-ktfmt = "0.25.0"
 kotlin = "2.1.10"
 minSdk = "24"
 oss-licenses = "+"
@@ -37,5 +36,4 @@ robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectr
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-ktfmt = { id = "com.ncorti.ktfmt.gradle", version.ref = "ktfmt" }
 oss-licenses = { id = "com.google.android.gms.oss-licenses-plugin", version.ref = "oss-licenses" }
