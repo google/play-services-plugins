@@ -95,20 +95,4 @@ class OssLicensesV2Test {
             composeTestRule.onNodeWithText(customTitle).assertExists()
         }
     }
-
-    @Test
-    @Ignore("Reproduces Issue #364: setActivityTitle() is missing from the SDK in v17.4.0.")
-    fun testV2ActivityCustomTitleViaStaticSetter() {
-        val customTitle = "Static Setter Title"
-
-        // Use reflection to call setActivityTitle so that the test app still compiles
-        // even when the method is missing from the library (Issue #364).
-        val method =
-            OssLicensesMenuActivity::class.java.getMethod("setActivityTitle", String::class.java)
-        method.invoke(null, customTitle)
-
-        ActivityScenario.launch(OssLicensesMenuActivity::class.java).use {
-            composeTestRule.onNodeWithText(customTitle).assertExists()
-        }
-    }
 }

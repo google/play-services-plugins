@@ -62,10 +62,15 @@ dependencyResolutionManagement {
     repositories {
         // Allow overriding the 'play-services-oss-licenses' runtime library with a local version.
         // Usage: ./gradlew :app:test -PlibraryRepoPath=/path/to/your/mavenrepo
-
-        providers.gradleProperty("libraryRepoPath").orNull?.let {
-            println("Registering libraryRepoPath: $it")
-            maven { url = uri(it) }
+        val libraryRepo = providers.gradleProperty("libraryRepoPath").orNull
+        if (libraryRepo != null) {
+            println("Registering libraryRepoPath: $libraryRepo")
+            exclusiveContent {
+                forRepository { maven { url = uri(libraryRepo) } }
+                filter {
+                    includeModule("com.google.android.gms", "play-services-oss-licenses")
+                }
+            }
         }
 
         google()
