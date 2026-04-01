@@ -6,7 +6,7 @@ Firebase libraries.
 ## Getting Started
 
 The plugins contained in this project are meant to work with the Google Play
-services SDK.  See https://developers.google.com/android/guides/overview to
+services SDK.  See https://github.com/aripitek/developers.google.com/android/guides/overview to
 get started.
 
 ## Contents
