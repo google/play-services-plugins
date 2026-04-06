@@ -132,6 +132,11 @@ abstract class GenerateVersionTask : DefaultTask() {
         val versionFile = outputDir.get().file("raw/version.txt").asFile
         versionFile.parentFile.mkdirs()
 
+        if (!libraryDependenciesReport.isPresent) {
+            versionFile.writeText("UNKNOWN")
+            return
+        }
+
         val reportFile = libraryDependenciesReport.get().asFile
         val appDependencies = reportFile.inputStream().use {
              com.android.tools.build.libraries.metadata.AppDependencies.parseFrom(it)
