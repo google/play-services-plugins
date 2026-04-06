@@ -95,4 +95,14 @@ class OssLicensesV2Test {
             composeTestRule.onNodeWithText(customTitle).assertExists()
         }
     }
+
+    @Test
+    fun testV2ActivitySetActivityTitle() {
+        val customTitle = "Test Title via API"
+        OssLicensesMenuActivity.setActivityTitle(customTitle)
+
+        ActivityScenario.launch(OssLicensesMenuActivity::class.java).use {
+            composeTestRule.onNodeWithText(customTitle).assertExists()
+        }
+    }
 }

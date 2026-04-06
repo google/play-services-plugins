@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.CustomOssTheme" parent="Theme.AppCompat.Light">
+        <item name="android:windowBackground">#E0F7FA</item> <!-- Light Cyan -->
+        <item name="colorPrimary">#E0F7FA</item> <!-- Light Cyan for Action Bar -->
+        <item name="colorPrimaryDark">#B2EBF2</item> <!-- Darker Cyan for Status Bar if needed -->
+    </style>
+</resources>

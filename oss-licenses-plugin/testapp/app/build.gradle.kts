@@ -78,6 +78,18 @@ androidComponents {
         // We explicitly enable them for all variants to ensure both Debug and Release coverage.
         variantBuilder.hostTests[HostTestBuilder.UNIT_TEST_TYPE]?.enable = true
     }
+
+    onVariants { variant ->
+        val generateTask = tasks.register<GenerateVersionTask>("generateVersionResource_${variant.name}") {
+            libraryDependenciesReport.set(variant.artifacts.get(com.android.build.api.artifact.SingleArtifact.METADATA_LIBRARY_DEPENDENCIES_REPORT))
+            outputDir.set(layout.buildDirectory.dir("generated/oss_res/${variant.name}"))
+        }
+
+        variant.sources.res?.addGeneratedSourceDirectory(
+            generateTask,
+            GenerateVersionTask::outputDir
+        )
+    }
 }
 
 kotlin {
@@ -105,4 +117,34 @@ dependencies {
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+}
+
+abstract class GenerateVersionTask : DefaultTask() {
+    @get:org.gradle.api.tasks.InputFile
+    @get:org.gradle.api.tasks.Optional
+    abstract val libraryDependenciesReport: org.gradle.api.file.RegularFileProperty
+
+    @get:org.gradle.api.tasks.OutputDirectory
+    abstract val outputDir: org.gradle.api.file.DirectoryProperty
+
+    @org.gradle.api.tasks.TaskAction
+    fun doAction() {
+        val versionFile = outputDir.get().file("raw/version.txt").asFile
+        versionFile.parentFile.mkdirs()
+
+        val reportFile = libraryDependenciesReport.get().asFile
+        val appDependencies = reportFile.inputStream().use {
+             com.android.tools.build.libraries.metadata.AppDependencies.parseFrom(it)
+        }
+
+        val ossLicensesLibrary = appDependencies.libraryList.find {
+            it.libraryOneofCase.name == "MAVEN_LIBRARY" &&
+            it.mavenLibrary.groupId == "com.google.android.gms" &&
+            it.mavenLibrary.artifactId == "play-services-oss-licenses"
+        }
+
+        val version = ossLicensesLibrary?.mavenLibrary?.version ?: "UNKNOWN"
+        versionFile.writeText(version)
+        println("Generated version.txt with version: $version")
+    }
 }

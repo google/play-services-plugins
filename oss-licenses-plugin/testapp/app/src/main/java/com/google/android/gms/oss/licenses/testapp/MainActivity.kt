@@ -31,6 +31,8 @@ import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.ui.graphics.Color
 import com.google.android.gms.oss.licenses.OssLicensesMenuActivity as V1Activity
 import com.google.android.gms.oss.licenses.v2.OssLicensesMenuActivity as V2Activity
 
@@ -44,15 +46,39 @@ class MainActivity : ComponentActivity() {
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
+                    Text("Library Version: ${getLibraryVersion()}")
+                    Spacer(modifier = Modifier.height(16.dp))
                     Button(onClick = { startActivity(Intent(this@MainActivity, V1Activity::class.java)) }) {
-                        Text("Launch V1 Licenses")
+                        Text("Launch V1 (XML Theme)")
                     }
                     Spacer(modifier = Modifier.height(16.dp))
-                    Button(onClick = { startActivity(Intent(this@MainActivity, V2Activity::class.java)) }) {
-                        Text("Launch V2 Licenses")
+                    Button(onClick = {
+                        val customColors = lightColorScheme(
+                            background = Color(0xFFE0F7FA), // Light Cyan
+                            surface = Color(0xFFE0F7FA),    // Light Cyan for TopAppBar
+                            onBackground = Color.Black,
+                            onSurface = Color.Black
+                        )
+                        V2Activity.setTheme(customColors, customColors, null)
+                        V2Activity.setActivityTitle("Custom Title from App")
+                        startActivity(Intent(this@MainActivity, V2Activity::class.java))
+                    }) {
+                        Text("Launch V2 (Compose Theme)")
                     }
                 }
             }
+        }
+    }
+
+    private fun getLibraryVersion(): String {
+        val id = resources.getIdentifier("version", "raw", packageName)
+        if (id == 0) return "UNKNOWN"
+        return try {
+            resources.openRawResource(id).use { inputStream ->
+                inputStream.bufferedReader().use { it.readText() }
+            }
+        } catch (e: Exception) {
+            "UNKNOWN"
         }
     }
 }
