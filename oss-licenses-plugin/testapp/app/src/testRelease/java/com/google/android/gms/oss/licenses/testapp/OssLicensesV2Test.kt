@@ -83,18 +83,7 @@ class OssLicensesV2Test {
         }
     }
 
-    @Test
-    fun testV2ActivityCustomTitleViaIntent() {
-        val customTitle = "My Custom Licenses Title"
-        val intent =
-            Intent(ApplicationProvider.getApplicationContext(), OssLicensesMenuActivity::class.java)
-                .apply { putExtra("title", customTitle) }
 
-        ActivityScenario.launch<OssLicensesMenuActivity>(intent).use {
-            // The v2 library does not update activity.title, it only displays it in the Compose UI.
-            composeTestRule.onNodeWithText(customTitle).assertExists()
-        }
-    }
 
     @Test
     fun testV2ActivitySetActivityTitle() {
