@@ -65,6 +65,14 @@ class MainActivity : ComponentActivity() {
                     }) {
                         Text("Launch V2 (Compose Theme)")
                     }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(onClick = {
+                        V2Activity.setTheme(null, null, null)
+                        V2Activity.setActivityTitle("Title from XML Theme")
+                        startActivity(Intent(this@MainActivity, V2Activity::class.java))
+                    }) {
+                        Text("Launch V2 (XML Theme)")
+                    }
                 }
             }
         }

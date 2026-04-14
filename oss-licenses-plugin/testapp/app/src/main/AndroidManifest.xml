@@ -16,6 +16,8 @@
         </activity>
         <activity
             android:name="com.google.android.gms.oss.licenses.v2.OssLicensesMenuActivity"
+            android:theme="@style/Theme.CustomOssThemeV2"
+            tools:replace="android:theme"
             android:exported="true" />
         <activity
             android:name="com.google.android.gms.oss.licenses.OssLicensesMenuActivity"

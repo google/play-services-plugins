@@ -23,7 +23,10 @@ import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import android.graphics.Color
+import android.util.TypedValue
 import com.google.android.gms.oss.licenses.v2.OssLicensesMenuActivity
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Ignore
 import org.junit.Rule
@@ -92,6 +95,26 @@ class OssLicensesV2Test {
 
         ActivityScenario.launch(OssLicensesMenuActivity::class.java).use {
             composeTestRule.onNodeWithText(customTitle).assertExists()
+        }
+    }
+
+    @Test
+    fun testV2ActivityUsesXmlThemeFallback() {
+        // Ensure no programmatic theme is set
+        OssLicensesMenuActivity.setTheme(null, null, null)
+
+        ActivityScenario.launch(OssLicensesMenuActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val typedValue = TypedValue()
+                val theme = activity.theme
+                val success = theme.resolveAttribute(android.R.attr.windowBackground, typedValue, true)
+                
+                assertTrue("Failed to resolve windowBackground attribute", success)
+                
+                // The expected color is #FCE4EC (Light Pink) defined in Theme.CustomOssThemeV2
+                val expectedColor = Color.parseColor("#FCE4EC")
+                assertEquals("Theme background color mismatch", expectedColor, typedValue.data)
+            }
         }
     }
 }

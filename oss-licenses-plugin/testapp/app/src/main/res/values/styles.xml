@@ -5,4 +5,9 @@
         <item name="colorPrimary">#E0F7FA</item> <!-- Light Cyan for Action Bar -->
         <item name="colorPrimaryDark">#B2EBF2</item> <!-- Darker Cyan for Status Bar if needed -->
     </style>
+    <style name="Theme.CustomOssThemeV2" parent="Theme.AppCompat.Light">
+        <item name="android:windowBackground">#FCE4EC</item> <!-- Light Pink -->
+        <item name="colorPrimary">#FCE4EC</item>
+        <item name="colorPrimaryDark">#F8BBD0</item>
+    </style>
 </resources>
