@@ -20,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # ratchet:actions/checkout@v6.0.2
       - name: Validate Gradle Wrapper
-        uses: gradle/actions/wrapper-validation@39e147cb9de83bb9910b8ef8bd7fff0ee20fcd6f # ratchet:gradle/actions/wrapper-validation@v6.0.1
+        uses: gradle/actions/wrapper-validation@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # ratchet:gradle/actions/wrapper-validation@v6.1.0
       - name: Lint GitHub Actions
         uses: abcxyz/actions/.github/actions/lint-github-actions@e32ec3bd6af6d87d79fe7c441f435eb7ad11d527 # ratchet:abcxyz/actions/.github/actions/lint-github-actions@main
       - name: Ratchet Check
@@ -47,7 +47,7 @@ jobs:
           distribution: 'temurin'
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@39e147cb9de83bb9910b8ef8bd7fff0ee20fcd6f # ratchet:gradle/actions/setup-gradle@v6.0.1
+        uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # ratchet:gradle/actions/setup-gradle@v6.1.0
         with:
           dependency-graph: generate-and-submit
 
@@ -75,7 +75,7 @@ jobs:
           distribution: 'temurin'
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@39e147cb9de83bb9910b8ef8bd7fff0ee20fcd6f # ratchet:gradle/actions/setup-gradle@v6.0.1
+        uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # ratchet:gradle/actions/setup-gradle@v6.1.0
         with:
           dependency-graph: generate-and-submit
 
@@ -116,7 +116,7 @@ jobs:
           distribution: 'temurin'
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@39e147cb9de83bb9910b8ef8bd7fff0ee20fcd6f # ratchet:gradle/actions/setup-gradle@v6.0.1
+        uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # ratchet:gradle/actions/setup-gradle@v6.1.0
 
       - name: Pre-create Android SDK cache directory
         run: mkdir -p "$ANDROID_USER_HOME/cache"
