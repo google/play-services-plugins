@@ -28,7 +28,11 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.Type;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import org.gradle.api.Project;
 import org.gradle.testfixtures.ProjectBuilder;
 import org.junit.Before;
@@ -126,6 +130,41 @@ public class DependencyTaskTest {
     dependencyTask.action();
 
     verifyExpectedDependencies(expectedArtifacts, outputJson);
+  }
+
+  @Test
+  public void testAction_snapshotVersions_includeHashes() throws Exception {
+    File outputDir = temporaryFolder.newFolder();
+    File outputJson = new File(outputDir, "test.json");
+    dependencyTask.getDependenciesJson().set(outputJson);
+
+    String snapshotVersion = "1.0.0-SNAPSHOT";
+    ArtifactInfo snapshotDep = new ArtifactInfo("org.group", "artifact", snapshotVersion);
+    AppDependencies appDependencies = createAppDependencies(ImmutableSet.of(snapshotDep));
+    File protoFile = writeAppDependencies(appDependencies, temporaryFolder.newFile());
+    dependencyTask.getLibraryDependenciesReport().set(protoFile);
+
+    // Create a dummy artifact file
+    File artifactFile = temporaryFolder.newFile("artifact-1.0.0-SNAPSHOT.jar");
+    String content = "dummy jar content";
+    Files.write(artifactFile.toPath(), content.getBytes(StandardCharsets.UTF_8));
+
+    Map<String, File> libraryFiles = new HashMap<>();
+    libraryFiles.put("org.group:artifact:" + snapshotVersion, artifactFile);
+    dependencyTask.getLibraryFilesByGav().set(libraryFiles);
+
+    dependencyTask.action();
+
+    // Verify output
+    Gson gson = new Gson();
+    try (FileReader reader = new FileReader(outputJson)) {
+      Type collectionOfArtifactInfo = new TypeToken<Collection<ArtifactInfo>>() {}.getType();
+      Collection<ArtifactInfo> jsonArtifacts = gson.fromJson(reader, collectionOfArtifactInfo);
+      assertThat(jsonArtifacts).hasSize(1);
+      ArtifactInfo info = jsonArtifacts.iterator().next();
+      assertThat(info.getHash()).isNotNull();
+      assertThat(info.getVersion()).isEqualTo(snapshotVersion);
+    }
   }
 
   private void verifyExpectedDependencies(ImmutableSet<ArtifactInfo> expectedArtifacts,

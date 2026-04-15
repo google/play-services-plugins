@@ -20,13 +20,22 @@ class ArtifactInfo {
     private String group
     private String name
     private String version
+    private String hash
 
     ArtifactInfo(String group,
                  String name,
                  String version) {
+        this(group, name, version, null)
+    }
+
+    ArtifactInfo(String group,
+                 String name,
+                 String version,
+                 String hash) {
         this.group = group
         this.name = name
         this.version = version
+        this.hash = hash
     }
 
     String getGroup() {
@@ -41,23 +50,37 @@ class ArtifactInfo {
         return version
     }
 
+    String getHash() {
+        return hash
+    }
+
     @Override
     boolean equals(Object obj) {
         if (obj instanceof ArtifactInfo) {
             return (group == obj.group
                     && name == obj.name
-                    && version == obj.version)
+                    && version == obj.version
+                    && hash == obj.hash)
         }
         return false
     }
 
     @Override
     int hashCode() {
-        return group.hashCode() ^ name.hashCode() ^ version.hashCode()
+        int result = group.hashCode()
+        result = 31 * result + name.hashCode()
+        result = 31 * result + version.hashCode()
+        result = 31 * result + (hash != null ? hash.hashCode() : 0)
+        return result
     }
 
     @Override
     String toString() {
         return "$group:$name:$version"
+    }
+
+    String toDebugString() {
+        String base = toString()
+        return hash != null ? "$base@$hash" : base
     }
 }

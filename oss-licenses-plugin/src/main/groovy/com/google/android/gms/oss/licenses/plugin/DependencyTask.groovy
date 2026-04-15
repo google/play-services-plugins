@@ -28,18 +28,26 @@ import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
+import org.gradle.api.provider.MapProperty
+import org.gradle.api.tasks.Internal
 import org.slf4j.LoggerFactory
 
+import java.security.MessageDigest
 import java.util.stream.Collectors
 
 import static com.android.tools.build.libraries.metadata.Library.LibraryOneofCase.MAVEN_LIBRARY
 
 /**
  * Converts the AppDependencies protobuf file provided by the Android Gradle
- * Plugin into a JSON format that will be consumed by the LicensesTask.
+ * Plugin into a JSON format that will be consumed by the {@link LicensesTask}.
  *
  * If the protobuf is not present (e.g. debug variants) it writes a single
- * dependency on the ABSENT_ARTIFACT.
+ * dependency on the {@link #ABSENT_ARTIFACT}.
+ *
+ * To support active development with SNAPSHOT dependencies, this task calculates
+ * a hash of each snapshot artifact. If the snapshot is re-published with changes,
+ * the generated JSON report will change, which in turn triggers a re-run of
+ * the {@link LicensesTask} to update the final license output.
  */
 @CacheableTask
 abstract class DependencyTask extends DefaultTask {
@@ -58,6 +66,17 @@ abstract class DependencyTask extends DefaultTask {
     @Optional
     abstract RegularFileProperty getLibraryDependenciesReport()
 
+    /**
+     * Map of GAV coordinates (group:name:version) to physical JAR/AAR files.
+     * Used to calculate hashes for SNAPSHOT versions to ensure correctness.
+     *
+     * Why @Internal? Same reason as in LicensesTask: the dependenciesJson report (which IS an @InputFile)
+     * is the stable proxy for this information. This task only reads these files to append a hash
+     * to that report if the version is a snapshot.
+     */
+    @Internal
+    abstract MapProperty<String, File> getLibraryFilesByGav()
+
     @TaskAction
     void action() {
         def artifactInfoSet = loadArtifactInfo()
@@ -72,6 +91,9 @@ abstract class DependencyTask extends DefaultTask {
                 group info.group
                 name info.name
                 version info.version
+                if (info.hash != null) {
+                    hash info.hash
+                }
             }
             it.write(json.toPrettyString())
         }
@@ -95,9 +117,11 @@ abstract class DependencyTask extends DefaultTask {
         } as AppDependencies
     }
 
-    private static Set<ArtifactInfo> convertDependenciesToArtifactInfo(
+    private Set<ArtifactInfo> convertDependenciesToArtifactInfo(
             AppDependencies appDependencies
     ) {
+        Map<String, File> fileMap = libraryFilesByGav.getOrElse([:])
+
         return appDependencies.libraryList.stream()
                 .filter { it.libraryOneofCase == MAVEN_LIBRARY }
                 .sorted { o1, o2 ->
@@ -110,15 +134,31 @@ abstract class DependencyTask extends DefaultTask {
                     }
                 }
                 .map { library ->
-                    return new ArtifactInfo(
-                            library.mavenLibrary.groupId,
-                            library.mavenLibrary.artifactId,
-                            library.mavenLibrary.version
-                    )
+                    String group = library.mavenLibrary.groupId
+                    String name = library.mavenLibrary.artifactId
+                    String version = library.mavenLibrary.version
+                    String hash = null
+
+                    if (version.endsWith("-SNAPSHOT")) {
+                        File file = fileMap.get("$group:$name:$version".toString())
+                        if (file != null && file.exists()) {
+                            hash = calculateHash(file)
+                        }
+                    }
+
+                    return new ArtifactInfo(group, name, version, hash)
                 }.collect(Collectors.toCollection(LinkedHashSet::new))
     }
 
-    private static void initOutput(File outputDir) {
+    protected String calculateHash(File file) {
+        MessageDigest digest = MessageDigest.getInstance("SHA-256")
+        file.eachByte(4096) { buffer, length ->
+            digest.update(buffer, 0, length)
+        }
+        return digest.digest().encodeHex().toString()
+    }
+
+    protected void initOutput(File outputDir) {
         if (!outputDir.exists()) {
             outputDir.mkdirs()
         }

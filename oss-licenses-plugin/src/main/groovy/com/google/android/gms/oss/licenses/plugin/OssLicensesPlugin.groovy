@@ -34,26 +34,26 @@ import org.gradle.maven.MavenPomArtifact
  * Main entry point for the OSS Licenses Gradle Plugin.
  *
  * Two-task workflow (per variant)
- * 1. DependencyTask - converts AGP's internal dependency protobuf into a simplified JSON.
- * 2. LicensesTask - resolves licenses from POM files and Google Play Services artifacts.
+ * 1. {@link DependencyTask} - converts AGP's internal dependency protobuf into a simplified JSON.
+ * 2. {@link LicensesTask} - resolves licenses from POM files and Google Play Services artifacts.
  *
  * Configuration Cache & lazy resolution
  * Gradle's Configuration Cache serializes the task graph after the configuration phase,
  * then replays it on subsequent builds without re-executing any configuration-phase code.
  * This means:
  *
- * - No Project references in task state: Project is not serializable.
- *   Any closure that captures project (even indirectly, e.g. via project.provider {})
- *   will fail serialization. Instead, extract what you need (like project.dependencies) into
+ * - No {@code Project} references in task state: {@code Project} is not serializable.
+ *   Any closure that captures {@code project} (even indirectly, e.g. via {@code project.provider {}})
+ *   will fail serialization. Instead, extract what you need (like {@code project.dependencies}) into
  *   a local variable before entering any lazy closure.
- * - No eager dependency resolution: Calling configuration.resolve() or iterating
- *   configuration.incoming.artifacts during configuration time forces Gradle to resolve
+ * - No eager dependency resolution: Calling {@code configuration.resolve()} or iterating
+ *   {@code configuration.incoming.artifacts} during configuration time forces Gradle to resolve
  *   the full dependency graph immediately. This is slow, prevents Gradle from parallelizing
  *   resolution across projects, and triggers the "Configuration X was resolved during
  *   configuration time" warning which becomes a hard error under strict CC mode. Instead, use
- *   .resolvedArtifacts which returns a Provider that Gradle resolves only when
+ *   {@code .resolvedArtifacts} which returns a {@code Provider} that Gradle resolves only when
  *   a task actually needs the value.
- * - Use Provider.map {} to chain transformations lazily: The .map {}
+ * - Use {@code Provider.map {}} to chain transformations lazily: The {@code .map {}}
  *   lambda runs only when the provider value is first requested (at task execution time on a
  *   cache miss, or not at all on a cache hit where Gradle replays the serialized result).
  *   This keeps all dependency resolution work out of the configuration phase.
@@ -71,22 +71,6 @@ class OssLicensesPlugin implements Plugin<Project> {
 
     private static void configureLicenseTasks(Project project, ApplicationVariant variant) {
         Provider<Directory> baseDir = project.layout.buildDirectory.dir("generated/third_party_licenses/${variant.name}")
-
-        // Task 1: Dependency Identification
-        // Converts AGP's METADATA_LIBRARY_DEPENDENCIES_REPORT protobuf into a stable JSON list.
-        // libraryDependenciesReport is @Optional — debug variants don't get the report, so the
-        // task writes a sentinel entry instead.
-        def dependenciesJson = baseDir.map { it.file("dependencies.json") }
-        TaskProvider<DependencyTask> dependencyTask = project.tasks.register("${variant.name}OssDependencyTask",
-                DependencyTask.class) {
-            it.dependenciesJson.set(dependenciesJson)
-            it.libraryDependenciesReport.set(variant.artifacts.get(SingleArtifact.METADATA_LIBRARY_DEPENDENCIES_REPORT.INSTANCE))
-        }
-        project.logger.debug("Registered task ${dependencyTask.name}")
-
-        // Task 2: License Extraction
-        // Parses POM files and Google Play Services AARs to produce the final
-        // third_party_licenses / third_party_license_metadata raw resource files.
 
         // --- Lazy artifact providers (see class Javadoc for why this matters) ---
         //
@@ -112,22 +96,43 @@ class OssLicensesPlugin implements Plugin<Project> {
         // serialize), keeping the task graph CC-safe.
         def depHandler = project.dependencies
 
-        // Register the task
+        // GAV → library file (JAR/AAR), for extracting bundled license data from
+        // Google Play Services artifacts. Used by DependencyTask to calculate hashes for snapshots,
+        // and by LicensesTask to extract license files.
+        //
+        // The .map {} lambda runs lazily — only when a task actually executes and reads this property.
+        // On builds with configuration cache hits, Gradle skips the lambda entirely and uses
+        // the Map<String, File> it serialized from the previous run.
+        def libraryFilesByGavProvider = libraryArtifacts.map { artifacts ->
+            artifacts.collectEntries { a ->
+                def id = (ModuleComponentIdentifier) a.id.componentIdentifier
+                ["${id.group}:${id.module}:${id.version}".toString(), a.file]
+            }
+        }
+
+        // Task 1: Dependency Identification
+        // Converts AGP's METADATA_LIBRARY_DEPENDENCIES_REPORT protobuf into a stable JSON list.
+        // libraryDependenciesReport is @Optional — debug variants don't get the report, so the
+        // task writes a sentinel entry instead.
+        // This task also calculates hashes for SNAPSHOT versions to ensure that LicensesTask
+        // re-runs if a snapshot is re-published.
+        def dependenciesJson = baseDir.map { it.file("dependencies.json") }
+        TaskProvider<DependencyTask> dependencyTask = project.tasks.register("${variant.name}OssDependencyTask",
+                DependencyTask.class) {
+            it.dependenciesJson.set(dependenciesJson)
+            it.libraryDependenciesReport.set(variant.artifacts.get(SingleArtifact.METADATA_LIBRARY_DEPENDENCIES_REPORT.INSTANCE))
+            it.libraryFilesByGav.set(libraryFilesByGavProvider)
+        }
+        project.logger.debug("Registered task ${dependencyTask.name}")
+
+        // Task 2: License Extraction
+        // Parses POM files and Google Play Services AARs to produce the final
+        // third_party_licenses / third_party_license_metadata raw resource files.
         TaskProvider<LicensesTask> licenseTask = project.tasks.register("${variant.name}OssLicensesTask",
                 LicensesTask.class) {
             it.dependenciesJson.set(dependencyTask.flatMap { it.dependenciesJson })
 
-            // GAV → library file (JAR/AAR), for extracting bundled license data from
-            // Google Play Services artifacts. The .map {} lambda runs lazily — only when
-            // LicensesTask actually executes and reads this property. On builds with configuration cache hits,
-            // Gradle skips the lambda entirely and uses the Map<String, File> it serialized
-            // from the previous run.
-            it.libraryFilesByGav.set(libraryArtifacts.map { artifacts ->
-                artifacts.collectEntries { a ->
-                    def id = (ModuleComponentIdentifier) a.id.componentIdentifier
-                    ["${id.group}:${id.module}:${id.version}".toString(), a.file]
-                }
-            })
+            it.libraryFilesByGav.set(libraryFilesByGavProvider)
 
             // GAV → POM file, for reading <licenses> URLs from Maven metadata.
             //

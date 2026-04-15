@@ -143,6 +143,83 @@ abstract class EndToEndTest(private val agpVersion: String, private val gradleVe
     }
 
     @Test
+    fun testSnapshotChangeTriggersExecution() {
+        val localRepo = tempDirectory.newFolder("localRepo")
+        val group = "com.example.snapshot"
+        val name = "test-lib"
+        val version = "1.0.0-SNAPSHOT"
+
+        // 1. Publish version 1
+        publishSnapshot(localRepo, group, name, version, "License content v1")
+
+        // 2. Setup project with local repo and snapshot dependency
+        File(projectDir, "build.gradle").writeText(
+            """
+            plugins {
+                id("com.android.application") version "$agpVersion"
+                id("com.google.android.gms.oss-licenses-plugin") version "${System.getProperty("plugin_version")}"
+            }
+            repositories {
+                maven { url = uri("${localRepo.absolutePath.replace("\\", "/")}") }
+                google()
+                mavenCentral()
+            }
+            android {
+                compileSdkVersion = "android-31"
+                namespace = "com.example.app"
+            }
+            dependencies {
+                implementation("$group:$name:$version")
+            }
+        """.trimIndent()
+        )
+
+        // 3. First build - Success
+        val firstResult = createRunner("releaseOssLicensesTask").build()
+        Assert.assertEquals(TaskOutcome.SUCCESS, firstResult.task(":releaseOssLicensesTask")!!.outcome)
+
+        // 4. Second build - UP-TO-DATE
+        val secondResult = createRunner("releaseOssLicensesTask").build()
+        Assert.assertEquals(TaskOutcome.UP_TO_DATE, secondResult.task(":releaseOssLicensesTask")!!.outcome)
+
+        // 5. Update snapshot - Publish version 2
+        publishSnapshot(localRepo, group, name, version, "License content v2")
+
+        // 6. Third build - SUCCESS (not UP-TO-DATE because hash changed)
+        // Note: We use --refresh-dependencies to ensure Gradle actually re-downloads the snapshot
+        // from our local "remote" repo instead of using its local cache.
+        val thirdResult = createRunner("releaseOssLicensesTask", "--refresh-dependencies").build()
+        Assert.assertEquals(TaskOutcome.SUCCESS, thirdResult.task(":releaseOssLicensesTask")!!.outcome)
+    }
+
+    private fun publishSnapshot(repo: File, group: String, name: String, version: String, licenseText: String) {
+        val groupPath = group.replace(".", "/")
+        val artifactDir = File(repo, "$groupPath/$name/$version")
+        artifactDir.mkdirs()
+
+        // Write a simple POM with a license URL
+        File(artifactDir, "$name-$version.pom").writeText(
+            """
+            <project>
+              <modelVersion>4.0.0</modelVersion>
+              <groupId>$group</groupId>
+              <artifactId>$name</artifactId>
+              <version>$version</version>
+              <licenses>
+                <license>
+                  <name>Test License</name>
+                  <url>https://example.com/license</url>
+                </license>
+              </licenses>
+            </project>
+        """.trimIndent()
+        )
+
+        // Write a JAR file. Changing licenseText changes the file's hash.
+        File(artifactDir, "$name-$version.jar").writeText("Random content to change hash: $licenseText")
+    }
+
+    @Test
     fun testComplexDependencyGraph() {
         // Create a multi-module setup to test configuration cache with complex resolution
         val libDir = tempDirectory.newFolder("lib")
