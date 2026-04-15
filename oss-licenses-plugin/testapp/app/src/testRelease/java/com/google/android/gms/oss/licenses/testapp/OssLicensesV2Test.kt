@@ -23,16 +23,11 @@ import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-<<<<<<< HEAD
 import android.graphics.Color
 import android.util.TypedValue
 import com.google.android.gms.oss.licenses.v2.OssLicensesMenuActivity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
-=======
-import com.google.android.gms.oss.licenses.v2.OssLicensesMenuActivity
-import org.junit.Assert.assertEquals
->>>>>>> 8096c82 (test(oss-licenses): introduce unified 'testapp' verification suite)
 import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
@@ -71,7 +66,6 @@ class OssLicensesV2Test {
     }
 
     @Test
-<<<<<<< HEAD
     fun testV2LicenseSourceTypes() {
         // Verifies that the plugin correctly extracts licenses from both sources:
         // 1. POM files (standard Maven deps like AndroidX) — license URL in the POM XML
@@ -91,8 +85,6 @@ class OssLicensesV2Test {
             }
         }
     }
-
-
 
     @Test
     fun testV2ActivitySetActivityTitle() {
@@ -120,7 +112,11 @@ class OssLicensesV2Test {
                 // The expected color is #FCE4EC (Light Pink) defined in Theme.CustomOssThemeV2
                 val expectedColor = Color.parseColor("#FCE4EC")
                 assertEquals("Theme background color mismatch", expectedColor, typedValue.data)
-=======
+            }
+        }
+    }
+
+    @Test
     @Ignore(
         "Fails due to a bug in the play-services-oss-licenses library where the title is not correctly set via Intent extras in V2."
     )
@@ -137,7 +133,6 @@ class OssLicensesV2Test {
                     customTitle,
                     activity.title,
                 )
->>>>>>> 8096c82 (test(oss-licenses): introduce unified 'testapp' verification suite)
             }
         }
     }
