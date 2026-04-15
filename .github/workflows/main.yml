@@ -74,12 +74,13 @@ jobs:
           distribution: 'temurin'
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # ratchet:gradle/actions/wrapper-validation@v6.1.0
+        uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # ratchet:gradle/actions/setup-gradle@v6.1.0
         with:
           dependency-graph: generate-and-submit
 
-      - name: Build and test
-        run: ./gradlew build
+      - name: Build and run unit tests
+        # We exclude IntegrationTest here because they are run in parallel in the next job
+        run: ./gradlew build -x test
         working-directory: ./oss-licenses-plugin
 
       - name: Publish to local repo
@@ -92,11 +93,51 @@ jobs:
           name: oss-licenses-local-repo
           path: oss-licenses-plugin/build/repo/
 
+  # Run the version-matricked integration tests in parallel.
+  oss-licenses-integration-test:
+    needs: oss-licenses-build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        agp-version-key: [AGP74, AGP87, AGP812, AGP_STABLE, AGP_ALPHA]
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # ratchet:actions/checkout@v6.0.2
+
+      - name: Download local repo artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # ratchet:actions/download-artifact@v8.0.1
+        with:
+          name: oss-licenses-local-repo
+          path: oss-licenses-plugin/build/repo/
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # ratchet:actions/setup-java@v5.2.0
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # ratchet:actions/setup-java@v5.2.0
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # ratchet:gradle/actions/setup-gradle@v6.1.0
+
+      - name: Run Integration Test (${{ matrix.agp-version-key }})
+        run: ./gradlew test --tests "com.google.android.gms.oss.licenses.plugin.IntegrationTest_${{ matrix.agp-version-key }}"
+        working-directory: ./oss-licenses-plugin
+
   # Build the testapp and verify configuration cache store → clean → reuse.
   # CC strictness flags are in testapp/gradle.properties (always on).
   oss-licenses-testapp:
     needs: oss-licenses-build
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        agp-version-key: [AGP812, AGP_STABLE, AGP_ALPHA]
     env:
       ANDROID_USER_HOME: /home/runner/.android
     steps:
@@ -120,18 +161,6 @@ jobs:
       - name: Pre-create Android SDK cache directory
         run: mkdir -p "$ANDROID_USER_HOME/cache"
 
-      - name: Build testapp (store configuration cache)
-        run: ./gradlew build -PusePublishedPluginFrom=../build/repo
-        working-directory: oss-licenses-plugin/testapp
-
-      - name: Clean testapp outputs
-        run: ./gradlew clean -PusePublishedPluginFrom=../build/repo
-        working-directory: oss-licenses-plugin/testapp
-
-      - name: Rebuild testapp (verify configuration cache reuse)
-        working-directory: oss-licenses-plugin/testapp
-        run: |
-          OUTPUT=$(./gradlew build -PusePublishedPluginFrom=../build/repo 2>&1)
-          echo "$OUTPUT"
-          echo "$OUTPUT" | rg -q "Configuration cache entry reused" || \
-            { echo "::error::Configuration cache was NOT reused"; exit 1; }
+      - name: Build testapp (verify ${{ matrix.agp-version-key }})
+        run: ./gradlew e2eTestTask --tests "com.google.android.gms.oss.licenses.plugin.EndToEndTest_${{ matrix.agp-version-key }}"
+        working-directory: oss-licenses-plugin

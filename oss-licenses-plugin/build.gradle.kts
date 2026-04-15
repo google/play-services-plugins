@@ -111,7 +111,8 @@ tasks.withType<Test>().configureEach {
 
     val localVersion = project.version.toString()
     systemProperties["plugin_version"] = localVersion // value used by IntegrationTest.kt
-    systemProperties["testkit_path"] = layout.buildDirectory.dir("testkit").get().asFile.absolutePath
+    // Point TestKit to a directory inside the host Gradle User Home so it can be cached by CI (setup-gradle)
+    systemProperties["testkit_path"] = File(System.getProperty("user.home"), ".gradle/testkit").absolutePath
     systemProperties["java21_home"] = java21Home.get() // value used by EndToEndTest.kt
     doFirst {
         // Inside doFirst to make sure that absolute path is not considered to be input to the task
