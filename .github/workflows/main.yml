@@ -79,8 +79,9 @@ jobs:
           dependency-graph: generate-and-submit
 
       - name: Build and run unit tests
-        # We exclude IntegrationTest here because they are run in parallel in the next job
-        run: ./gradlew build -x test
+        # We run unit tests here but exclude the IntegrationTest matrix and E2E tests
+        # which are run in parallel downstream.
+        run: ./gradlew build -x e2eTestTask -PexcludeIntegrationTests
         working-directory: ./oss-licenses-plugin
 
       - name: Publish to local repo

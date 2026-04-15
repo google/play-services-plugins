@@ -133,6 +133,14 @@ tasks.withType<Test>().configureEach {
         showStandardStreams = false
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
     }
+
+    // Allow CI to exclude heavy integration tests from the default 'test' task
+    // so they can be run in parallel matrix jobs instead.
+    if (project.hasProperty("excludeIntegrationTests")) {
+        filter {
+            excludeTestsMatching("*IntegrationTest*")
+        }
+    }
 }
 
 // Separate source set for heavy E2E tests that build the full testapp against multiple AGP versions.
