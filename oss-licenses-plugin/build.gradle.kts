@@ -71,18 +71,23 @@ dependencies {
 // AGP/Gradle version matrix — single source of truth for all GradleTestKit tests.
 // Each entry maps a test subclass name to its (AGP, Gradle) version pair.
 // The versions are injected as system properties so the test files contain no hardcoded versions.
-// Keep the keys in sync with the agp-version-key matrix in
+// Keep the keys in sync with the agp-version-key matrices in
 // .github/workflows/oss-licenses.yml.
-val integrationVersions = mapOf(
-    "AGP74"        to ("7.4.2" to "7.5.1"),       // oldest supported
-    "AGP87"        to ("8.7.3" to "8.9"),         // mainstream
-    "AGP812"       to ("8.12.2" to "8.14.1"),     // latest stable 8.x
-    "AGP_STABLE"   to ("9.0.1" to "9.1.0"),       // latest stable 9.x
-    "AGP_ALPHA"    to ("9.2.0-alpha02" to "9.4.0"), // latest alpha
+// E2E versions are a subset of the integration versions. Integration tests extend the E2E set
+// with older AGP versions to ensure broad backward compatibility.
+val e2eVersions = mapOf(
+    "AGP812"      to ("8.12.2" to "8.14.1"),       // latest stable 8.x
+    "AGP_STABLE"  to ("9.1.1" to "9.4.1"),         // latest stable 9.x
+    "AGP_ALPHA"   to ("9.3.0-alpha01" to "9.5.0-rc-3"), // latest alpha
+)
+val integrationOnlyVersions = mapOf(
+    "AGP74" to ("7.4.2" to "7.5.1"), // oldest supported
+    "AGP87" to ("8.7.3" to "8.9"),   // mainstream mid-range
 )
 
 // Build the full maps with class-name prefixes
-val integrationTestVersions = integrationVersions.mapKeys { "IntegrationTest_${it.key}" }
+val e2eTestVersions = e2eVersions.mapKeys { "EndToEndTest_${it.key}" }
+val integrationTestVersions = (e2eVersions + integrationOnlyVersions).mapKeys { "IntegrationTest_${it.key}" }
 
 // Separate source set for GradleTestKit integration tests that run the plugin
 // against the AGP/Gradle matrix. Keeps the default 'test' task fast.
@@ -112,15 +117,11 @@ tasks.withType<Test>().configureEach {
     }
 }
 
-val integrationTestTask by tasks.registering(Test::class) {
-    description = "Runs GradleTestKit integration tests against the AGP/Gradle version matrix"
-    group = "verification"
-    testClassesDirs = integrationTest.output.classesDirs
-    classpath = integrationTest.runtimeClasspath
-
+// Common TestKit setup: both integration and e2e tasks spawn GradleRunner instances
+// that need the locally-published plugin, a Java 21 toolchain path for newer AGP, and
+// a repo_path pointing at the local publication directory.
+fun Test.configureTestKitDefaults() {
     val localRepo = repo
-    // Prepare the path to the Java 21 JVM used by the main build to inject into the
-    // integration test's environment. Required for some AGP versions (9.0+)
     val javaToolchains = project.extensions.getByType<JavaToolchainService>()
     val java21Home = javaToolchains.launcherFor {
         languageVersion.set(JavaLanguageVersion.of(21))
@@ -139,25 +140,63 @@ val integrationTestTask by tasks.registering(Test::class) {
     ).withPathSensitivity(PathSensitivity.RELATIVE).withPropertyName("repo")
 
     val localVersion = project.version.toString()
-    systemProperties["plugin_version"] = localVersion // value used by IntegrationTest.kt
-    // Point TestKit to a directory inside the host Gradle User Home so it can be cached by CI (setup-gradle)
+    systemProperties["plugin_version"] = localVersion
+    // Point TestKit to a directory inside the host Gradle User Home so it can be cached by CI (setup-gradle).
     systemProperties["testkit_path"] = File(System.getProperty("user.home"), ".gradle/testkit").absolutePath
     doFirst {
         // Resolved inside doFirst so contributors without JDK 21 can still run ./gradlew help, tasks, etc.
         // — the toolchain is only required when a Test task actually executes.
-        systemProperties["java21_home"] = java21Home.get() // value used by IntegrationTest.kt
-        // Inside doFirst to make sure that absolute path is not considered to be input to the task
-        systemProperties["repo_path"] = localRepo.get().asFile.absolutePath // value used by IntegrationTest.kt
+        systemProperties["java21_home"] = java21Home.get()
+        // Inside doFirst to keep absolute paths out of the task input fingerprint.
+        systemProperties["repo_path"] = localRepo.get().asFile.absolutePath
     }
+}
 
-    // Inject AGP/Gradle version pairs as system properties for each test subclass
+val integrationTestTask by tasks.registering(Test::class) {
+    description = "Runs GradleTestKit integration tests against the AGP/Gradle version matrix"
+    group = "verification"
+    testClassesDirs = integrationTest.output.classesDirs
+    classpath = integrationTest.runtimeClasspath
+
+    configureTestKitDefaults()
+
+    // Inject AGP/Gradle version pairs as system properties for each integration test subclass.
     integrationTestVersions.forEach { (className, versions) ->
         systemProperties["$className.agpVersion"] = versions.first
         systemProperties["$className.gradleVersion"] = versions.second
     }
 }
 
-tasks.named("check") { dependsOn(integrationTestTask) }
+// Separate source set for heavy E2E tests that build the full testapp against multiple AGP versions.
+// Lives in src/e2eTest/kotlin/ — fully independent from the unit/integration test source set.
+val e2eTest by sourceSets.creating {
+    compileClasspath += sourceSets.main.get().output
+    runtimeClasspath += sourceSets.main.get().output
+}
+
+configurations[e2eTest.implementationConfigurationName].extendsFrom(configurations.testImplementation.get())
+configurations[e2eTest.runtimeOnlyConfigurationName].extendsFrom(configurations.testRuntimeOnly.get())
+
+dependencies {
+    "e2eTestImplementation"(gradleTestKit())
+}
+
+val e2eTestTask by tasks.registering(Test::class) {
+    description = "Runs end-to-end tests that build the full testapp against multiple AGP versions"
+    group = "verification"
+    testClassesDirs = e2eTest.output.classesDirs
+    classpath = e2eTest.runtimeClasspath
+
+    configureTestKitDefaults()
+
+    // Inject AGP/Gradle version pairs as system properties for each e2e subclass.
+    e2eTestVersions.forEach { (className, versions) ->
+        systemProperties["$className.agpVersion"] = versions.first
+        systemProperties["$className.gradleVersion"] = versions.second
+    }
+}
+
+tasks.named("check") { dependsOn(integrationTestTask, e2eTestTask) }
 
 publishing {
     repositories {
