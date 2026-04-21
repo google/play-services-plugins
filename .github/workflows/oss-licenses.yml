@@ -1,63 +1,11 @@
-# Perform a Gradle `build` which includes `assemble`, `check`, `test` of the projects.
+name: OSS Licenses CI
 
-name: CI
-
-# Controls when the action will run.
 on:
-  # Triggers the workflow on push or pull request events but only for the main branch
-  push:
-    branches: [main]
-  pull_request:
+  workflow_call:
 
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
-
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # Check the integrity of the Gradle Wrapper executables and lint workflows
-  lint-and-check:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # ratchet:actions/checkout@v6.0.2
-      - name: Validate Gradle Wrapper
-        uses: gradle/actions/wrapper-validation@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # ratchet:gradle/actions/wrapper-validation@v6.1.0
-      - name: Lint GitHub Actions
-        uses: abcxyz/actions/.github/actions/lint-github-actions@3894a8d6a18b9aa159fe9092501d523d97f07110 # ratchet:abcxyz/actions/.github/actions/lint-github-actions@main
-      - name: Ratchet Check
-        uses: sethvargo/ratchet@27f7515b4648e179168f8f8ae2257636fdb03c48 # ratchet:sethvargo/ratchet@main
-        with:
-          files: .github/workflows/*.yml
-
-  # Build the simple plugins (no special test infrastructure needed)
-  build:
-    needs: lint-and-check
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        project-dir:
-          - strict-version-matcher-plugin
-          - google-services-plugin
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # ratchet:actions/checkout@v6.0.2
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # ratchet:actions/setup-java@v5.2.0
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # ratchet:gradle/actions/setup-gradle@v6.1.0
-        with:
-          dependency-graph: generate-and-submit
-
-      - name: Perform a Gradle build
-        run: ./gradlew build
-        working-directory: ./${{ matrix.project-dir }}
-
   # Build and test the oss-licenses plugin, then publish for downstream jobs.
   oss-licenses-build:
-    needs: lint-and-check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # ratchet:actions/checkout@v6.0.2
@@ -136,3 +84,22 @@ jobs:
           echo "$OUTPUT"
           echo "$OUTPUT" | grep -q "Configuration cache entry reused" || \
             { echo "::error::Configuration cache was NOT reused"; exit 1; }
+
+  # Aggregate status
+  oss-licenses-success:
+    needs:
+      - oss-licenses-build
+      - oss-licenses-testapp
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check upstream job results
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          echo "$NEEDS_JSON"
+          if echo "$NEEDS_JSON" | jq -e '[.[] | .result] | any(. == "failure" or . == "cancelled")' > /dev/null; then
+            echo "One or more upstream jobs failed or were cancelled."
+            exit 1
+          fi
+          echo "All upstream jobs succeeded or were skipped."
