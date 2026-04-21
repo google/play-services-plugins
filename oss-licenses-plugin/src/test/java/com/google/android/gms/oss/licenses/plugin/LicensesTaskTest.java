@@ -69,7 +69,6 @@ public class LicensesTaskTest {
     licensesTask = project.getTasks().create("generateLicenses", LicensesTask.class);
 
     licensesTask.getGeneratedDirectory().set(outputDir);
-    licensesTask.getArtifactFiles().empty();
   }
 
   @Test
@@ -334,7 +333,7 @@ public class LicensesTaskTest {
   @Test
   public void action_absentDependencies_rendersAbsentData() throws Exception {
     File dependenciesJson = temporaryFolder.newFile();
-    ArtifactInfo[] artifactInfoArray = new ArtifactInfo[] { DependencyUtil.ABSENT_ARTIFACT };
+    ArtifactInfo[] artifactInfoArray = new ArtifactInfo[] { DependencyTask.ABSENT_ARTIFACT };
     Gson gson = new Gson();
     try (FileWriter writer = new FileWriter(dependenciesJson)) {
       gson.toJson(artifactInfoArray, writer);

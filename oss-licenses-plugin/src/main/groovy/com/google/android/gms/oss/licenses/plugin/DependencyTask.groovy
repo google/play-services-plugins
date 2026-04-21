@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Google LLC
+ * Copyright 2018-2026 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,16 +18,18 @@ package com.google.android.gms.oss.licenses.plugin
 
 import com.android.tools.build.libraries.metadata.AppDependencies
 import groovy.json.JsonBuilder
-import groovy.json.JsonGenerator
+import groovy.transform.PackageScope
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.tasks.CacheableTask
+import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
+import org.gradle.api.provider.MapProperty
 import org.slf4j.LoggerFactory
 
 import java.util.stream.Collectors
@@ -39,11 +41,23 @@ import static com.android.tools.build.libraries.metadata.Library.LibraryOneofCas
  * Plugin into a JSON format that will be consumed by the {@link LicensesTask}.
  *
  * If the protobuf is not present (e.g. debug variants) it writes a single
- * dependency on the {@link DependencyUtil#ABSENT_ARTIFACT}.
+ * dependency on the {@link #ABSENT_ARTIFACT}.
+ *
+ * To support active development with SNAPSHOT dependencies, pre-computed hashes
+ * of SNAPSHOT artifacts are provided via {@link #getSnapshotHashes()}. These are
+ * tracked as {@code @Input} so Gradle detects when a re-published SNAPSHOT has
+ * different content, triggering re-execution and propagating the change to
+ * {@link LicensesTask}.
  */
 @CacheableTask
 abstract class DependencyTask extends DefaultTask {
     private static final logger = LoggerFactory.getLogger(DependencyTask.class)
+
+    // Sentinel written to the JSON when AGP does not provide a dependency report (e.g. debug
+    // variants). LicensesTask detects this and renders a placeholder message instead of licenses.
+    @PackageScope
+    static final ArtifactInfo ABSENT_ARTIFACT =
+            new ArtifactInfo("absent", "absent", "absent")
 
     @OutputFile
     abstract RegularFileProperty getDependenciesJson()
@@ -52,6 +66,19 @@ abstract class DependencyTask extends DefaultTask {
     @PathSensitive(PathSensitivity.NONE)
     @Optional
     abstract RegularFileProperty getLibraryDependenciesReport()
+
+    /**
+     * Pre-computed SHA-256 hashes for SNAPSHOT artifacts, keyed by GAV coordinate.
+     * Computed lazily in {@link OssLicensesPlugin} from the resolved artifact files.
+     *
+     * This is an {@code @Input} so Gradle tracks the hash values for up-to-date checks.
+     * When a SNAPSHOT is re-published with different content, its hash changes, which
+     * causes this task to re-execute and produce an updated JSON report — in turn
+     * triggering {@link LicensesTask} to re-run.
+     */
+    @Input
+    @Optional
+    abstract MapProperty<String, String> getSnapshotHashes()
 
     @TaskAction
     void action() {
@@ -67,6 +94,9 @@ abstract class DependencyTask extends DefaultTask {
                 group info.group
                 name info.name
                 version info.version
+                if (info.hash != null) {
+                    hash info.hash
+                }
             }
             it.write(json.toPrettyString())
         }
@@ -75,7 +105,7 @@ abstract class DependencyTask extends DefaultTask {
     private Set<ArtifactInfo> loadArtifactInfo() {
         if (!libraryDependenciesReport.isPresent()) {
             logger.info("$name not provided with AppDependencies proto file.")
-            return [DependencyUtil.ABSENT_ARTIFACT]
+            return [ABSENT_ARTIFACT]
         }
 
         AppDependencies appDependencies = loadDependenciesFile()
@@ -90,9 +120,11 @@ abstract class DependencyTask extends DefaultTask {
         } as AppDependencies
     }
 
-    private static Set<ArtifactInfo> convertDependenciesToArtifactInfo(
+    private Set<ArtifactInfo> convertDependenciesToArtifactInfo(
             AppDependencies appDependencies
     ) {
+        Map<String, String> hashes = snapshotHashes.getOrElse([:])
+
         return appDependencies.libraryList.stream()
                 .filter { it.libraryOneofCase == MAVEN_LIBRARY }
                 .sorted { o1, o2 ->
@@ -105,11 +137,13 @@ abstract class DependencyTask extends DefaultTask {
                     }
                 }
                 .map { library ->
-                    return new ArtifactInfo(
-                            library.mavenLibrary.groupId,
-                            library.mavenLibrary.artifactId,
-                            library.mavenLibrary.version
-                    )
+                    String group = library.mavenLibrary.groupId
+                    String name = library.mavenLibrary.artifactId
+                    String version = library.mavenLibrary.version
+                    String gav = "$group:$name:$version".toString()
+                    String hash = hashes.get(gav)
+
+                    return new ArtifactInfo(group, name, version, hash)
                 }.collect(Collectors.toCollection(LinkedHashSet::new))
     }
 
