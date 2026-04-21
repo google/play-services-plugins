@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Google LLC
+ * Copyright 2018-2026 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,13 +20,22 @@ class ArtifactInfo {
     private String group
     private String name
     private String version
+    private String hash
 
     ArtifactInfo(String group,
                  String name,
                  String version) {
+        this(group, name, version, null)
+    }
+
+    ArtifactInfo(String group,
+                 String name,
+                 String version,
+                 String hash) {
         this.group = group
         this.name = name
         this.version = version
+        this.hash = hash
     }
 
     String getGroup() {
@@ -41,6 +50,10 @@ class ArtifactInfo {
         return version
     }
 
+    String getHash() {
+        return hash
+    }
+
     @Override
     boolean equals(Object obj) {
         if (obj instanceof ArtifactInfo) {
@@ -53,7 +66,10 @@ class ArtifactInfo {
 
     @Override
     int hashCode() {
-        return group.hashCode() ^ name.hashCode() ^ version.hashCode()
+        int result = group.hashCode()
+        result = 31 * result + name.hashCode()
+        result = 31 * result + version.hashCode()
+        return result
     }
 
     @Override
