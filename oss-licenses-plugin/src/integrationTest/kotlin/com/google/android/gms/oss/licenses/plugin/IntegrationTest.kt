@@ -36,13 +36,13 @@ abstract class IntegrationTest {
         ?: error(
             "Missing ${javaClass.simpleName}.agpVersion — run this test via Gradle so version " +
                 "properties are injected, or set the system property manually. If this is a new " +
-                "test variant, add it to integrationVersions in build.gradle.kts"
+                "test variant, add it to integrationOnlyVersions or e2eVersions in build.gradle.kts"
         )
     private val gradleVersion: String = System.getProperty("${javaClass.simpleName}.gradleVersion")
         ?: error(
             "Missing ${javaClass.simpleName}.gradleVersion — run this test via Gradle so version " +
                 "properties are injected, or set the system property manually. If this is a new " +
-                "test variant, add it to integrationVersions in build.gradle.kts"
+                "test variant, add it to integrationOnlyVersions or e2eVersions in build.gradle.kts"
         )
 
     @get:Rule
