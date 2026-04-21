@@ -124,7 +124,11 @@ abstract class EndToEndTest(private val agpVersion: String, private val gradleVe
     @Test
     fun testConfigurationCache() {
         // First run to store the configuration cache
-        createRunner("releaseOssLicensesTask").build()
+        val firstRun = createRunner("releaseOssLicensesTask").build()
+        Assert.assertFalse(
+            "Configurations should not be resolved during configuration time. Wrap resolution in a Provider.",
+            firstRun.output.contains("resolved during configuration time")
+        )
 
         // Clean to test configuration cache with a clean build
         createRunner("clean").build()
@@ -136,6 +140,107 @@ abstract class EndToEndTest(private val agpVersion: String, private val gradleVe
             result.output.contains("Reusing configuration cache") ||
                 result.output.contains("Configuration cache entry reused")
         )
+    }
+
+    @Test
+    fun testSnapshotChangeTriggersExecution() {
+        val localRepo = tempDirectory.newFolder("localRepo")
+        val group = "com.example.snapshot"
+        val name = "test-lib"
+        val version = "1.0.0-SNAPSHOT"
+
+        // 1. Publish version 1
+        publishSnapshot(localRepo, group, name, version, "License content v1")
+
+        // 2. Setup project with local repo and snapshot dependency
+        File(projectDir, "build.gradle").writeText(
+            """
+            plugins {
+                id("com.android.application") version "$agpVersion"
+                id("com.google.android.gms.oss-licenses-plugin") version "${System.getProperty("plugin_version")}"
+            }
+            repositories {
+                maven { url = uri("${localRepo.absolutePath.replace("\\", "/")}") }
+                google()
+                mavenCentral()
+            }
+            android {
+                compileSdkVersion = "android-31"
+                namespace = "com.example.app"
+            }
+            dependencies {
+                implementation("$group:$name:$version")
+            }
+        """.trimIndent()
+        )
+
+        // 3. First build - both tasks should succeed
+        val firstResult = createRunner("releaseOssLicensesTask").build()
+        Assert.assertEquals(TaskOutcome.SUCCESS, firstResult.task(":releaseOssDependencyTask")!!.outcome)
+        Assert.assertEquals(TaskOutcome.SUCCESS, firstResult.task(":releaseOssLicensesTask")!!.outcome)
+
+        // 4. Second build - both tasks should be UP-TO-DATE
+        val secondResult = createRunner("releaseOssLicensesTask").build()
+        Assert.assertEquals(TaskOutcome.UP_TO_DATE, secondResult.task(":releaseOssDependencyTask")!!.outcome)
+        Assert.assertEquals(TaskOutcome.UP_TO_DATE, secondResult.task(":releaseOssLicensesTask")!!.outcome)
+
+        // 5. Update snapshot - Publish version 2
+        publishSnapshot(localRepo, group, name, version, "License content v2")
+
+        // 6. Third build - DependencyTask must re-execute because the snapshot hash changed,
+        // which in turn causes LicensesTask to re-execute.
+        // --refresh-dependencies ensures Gradle re-downloads the snapshot from the local repo.
+        val thirdResult = createRunner("releaseOssLicensesTask", "--refresh-dependencies").build()
+        Assert.assertEquals(
+            "DependencyTask should re-execute when snapshot content changes",
+            TaskOutcome.SUCCESS, thirdResult.task(":releaseOssDependencyTask")!!.outcome
+        )
+        Assert.assertEquals(
+            "LicensesTask should re-execute after DependencyTask produces new output",
+            TaskOutcome.SUCCESS, thirdResult.task(":releaseOssLicensesTask")!!.outcome
+        )
+    }
+
+    private fun publishSnapshot(repo: File, group: String, name: String, version: String, licenseText: String) {
+        val groupPath = group.replace(".", "/")
+        val artifactDir = File(repo, "$groupPath/$name/$version")
+        artifactDir.mkdirs()
+
+        // Write a simple POM with a license URL
+        File(artifactDir, "$name-$version.pom").writeText(
+            """
+            <project>
+              <modelVersion>4.0.0</modelVersion>
+              <groupId>$group</groupId>
+              <artifactId>$name</artifactId>
+              <version>$version</version>
+              <licenses>
+                <license>
+                  <name>Test License</name>
+                  <url>https://example.com/license</url>
+                </license>
+              </licenses>
+            </project>
+        """.trimIndent()
+        )
+
+        // Write maven-metadata.xml so Gradle can discover the SNAPSHOT version
+        File(repo, "$groupPath/$name/maven-metadata.xml").writeText(
+            """
+            <metadata>
+              <groupId>$group</groupId>
+              <artifactId>$name</artifactId>
+              <versioning>
+                <versions>
+                  <version>$version</version>
+                </versions>
+              </versioning>
+            </metadata>
+        """.trimIndent()
+        )
+
+        // Write a JAR file. Changing licenseText changes the file's hash.
+        File(artifactDir, "$name-$version.jar").writeText("Random content to change hash: $licenseText")
     }
 
     @Test
