@@ -1,0 +1,18 @@
+name: Lint
+
+on:
+  workflow_call: # This makes it "callable" by other workflows
+
+jobs:
+  lint-and-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # ratchet:actions/checkout@v6.0.2
+      - name: Validate Gradle Wrapper
+        uses: gradle/actions/wrapper-validation@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # ratchet:gradle/actions/wrapper-validation@v6.1.0
+      - name: Lint GitHub Actions
+        uses: abcxyz/actions/.github/actions/lint-github-actions@3894a8d6a18b9aa159fe9092501d523d97f07110 # ratchet:abcxyz/actions/.github/actions/lint-github-actions@main
+      - name: Ratchet Check
+        uses: sethvargo/ratchet@27f7515b4648e179168f8f8ae2257636fdb03c48 # ratchet:sethvargo/ratchet@main
+        with:
+          files: .github/workflows/*.yml

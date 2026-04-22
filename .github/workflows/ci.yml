@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  # Detect which plugin directories a PR touches so we can skip unrelated jobs.
+  # On push-to-main and workflow_dispatch, downstream jobs ignore these outputs and always run.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      strict-version-matcher: ${{ steps.filter.outputs.strict-version-matcher }}
+      google-services: ${{ steps.filter.outputs.google-services }}
+      oss-licenses: ${{ steps.filter.outputs.oss-licenses }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # ratchet:actions/checkout@v6.0.2
+      - uses: dorny/paths-filter@d1c1ffe0248fe513906c8e24db8ea791d46f8590 # ratchet:dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            strict-version-matcher:
+              - 'strict-version-matcher-plugin/**'
+              - '.github/workflows/**'
+            google-services:
+              - 'google-services-plugin/**'
+              - '.github/workflows/**'
+            oss-licenses:
+              - 'oss-licenses-plugin/**'
+              - '.github/workflows/**'
+
+  # Linting (Runs on every PR)
+  lint:
+    uses: ./.github/workflows/lint.yml
+
+  # Independent Plugins
+  services-and-version-matcher:
+    needs: changes
+    # Only run if one of the plugins or the workflows changed
+    if: github.event_name != 'pull_request' || needs.changes.outputs.strict-version-matcher == 'true' || needs.changes.outputs.google-services == 'true'
+    uses: ./.github/workflows/services_and_version_matcher.yml
+    with:
+      run-google-services: ${{ github.event_name != 'pull_request' || needs.changes.outputs.google-services == 'true' }}
+      run-strict-version-matcher: ${{ github.event_name != 'pull_request' || needs.changes.outputs.strict-version-matcher == 'true' }}
+
+  # OSS Licenses Pipeline
+  oss-licenses:
+    needs: changes
+    if: github.event_name != 'pull_request' || needs.changes.outputs.oss-licenses == 'true'
+    uses: ./.github/workflows/oss-licenses.yml
+
+  # Aggregate status check
+  ci-success:
+    needs:
+      - changes
+      - lint
+      - services-and-version-matcher
+      - oss-licenses
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check upstream job results
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          echo "$NEEDS_JSON"
+          if echo "$NEEDS_JSON" | jq -e '[.[] | .result] | any(. == "failure" or . == "cancelled")' > /dev/null; then
+            echo "One or more upstream jobs failed or were cancelled."
+            exit 1
+          fi
+          echo "All upstream jobs succeeded or were skipped."
