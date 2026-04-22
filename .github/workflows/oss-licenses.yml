@@ -28,8 +28,8 @@ jobs:
           dependency-graph: generate-and-submit
 
       - name: Build and run unit tests
-        # Integration tests live in their own source set + task (integrationTestTask),
-        # so the default 'test' task only runs the unit suite.
+        # Integration tests (integrationTestTask) and e2e tests (e2eTestTask) live in
+        # their own source sets; the default 'test' task only runs the unit suite.
         run: ./gradlew assemble test
         working-directory: ./oss-licenses-plugin
 
@@ -49,7 +49,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      # Keep this list in sync with the integrationVersions map in
+      # Keep this list in sync with the integrationOnlyVersions + e2eVersions maps in
       # oss-licenses-plugin/build.gradle.kts.
       matrix:
         agp-version-key: [AGP74, AGP87, AGP812, AGP_STABLE, AGP_ALPHA]
@@ -83,11 +83,60 @@ jobs:
         run: ./gradlew integrationTestTask --tests "com.google.android.gms.oss.licenses.plugin.IntegrationTest_${{ matrix.agp-version-key }}" -x publishAllPublicationsToLocalRepository
         working-directory: ./oss-licenses-plugin
 
+  # Run end-to-end tests: build the full testapp against the AGP/Gradle version matrix.
+  # Uses the locally-published plugin from oss-licenses-build via -PusePublishedPluginFrom.
+  oss-licenses-e2e:
+    needs: oss-licenses-build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      # Keep this list in sync with the e2eVersions map in
+      # oss-licenses-plugin/build.gradle.kts.
+      matrix:
+        agp-version-key: [AGP812, AGP_STABLE, AGP_ALPHA]
+    env:
+      ANDROID_USER_HOME: /home/runner/.android
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # ratchet:actions/checkout@v6.0.2
+
+      - name: Download local repo artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # ratchet:actions/download-artifact@v8.0.1
+        with:
+          name: oss-licenses-local-repo
+          path: oss-licenses-plugin/build/repo/
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # ratchet:actions/setup-java@v5.2.0
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # ratchet:actions/setup-java@v5.2.0
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # ratchet:gradle/actions/setup-gradle@v6.1.0
+
+      # setup-gradle's cache-restore step runs before any step creates $ANDROID_USER_HOME,
+      # and it fails if the directory it's asked to restore into doesn't exist. Pre-creating
+      # it here keeps the cache path stable across runs.
+      - name: Pre-create Android SDK cache directory
+        run: mkdir -p "$ANDROID_USER_HOME/cache"
+
+      - name: Build testapp (verify ${{ matrix.agp-version-key }})
+        # Skip the local-repo publish here because we want to use the pre-built plugin from the artifact.
+        run: ./gradlew e2eTestTask --tests "com.google.android.gms.oss.licenses.plugin.EndToEndTest_${{ matrix.agp-version-key }}" -x publishAllPublicationsToLocalRepository
+        working-directory: oss-licenses-plugin
+
   # Aggregate status
   oss-licenses-success:
     needs:
       - oss-licenses-build
       - oss-licenses-integration-test
+      - oss-licenses-e2e
     if: always()
     runs-on: ubuntu-latest
     steps:
