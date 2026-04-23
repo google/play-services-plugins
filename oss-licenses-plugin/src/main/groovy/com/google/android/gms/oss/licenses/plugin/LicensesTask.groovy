@@ -32,6 +32,7 @@ import org.gradle.api.tasks.TaskAction
 import org.slf4j.LoggerFactory
 
 import java.util.zip.ZipEntry
+import java.util.zip.ZipException
 import java.util.zip.ZipFile
 
 /**
@@ -46,18 +47,13 @@ abstract class LicensesTask extends DefaultTask {
     private static final String UTF_8 = "UTF-8"
     private static final byte[] LINE_SEPARATOR = System
             .getProperty("line.separator").getBytes(UTF_8)
-    private static final int GRANULAR_BASE_VERSION = 14
-    private static final String GOOGLE_PLAY_SERVICES_GROUP =
-            "com.google.android.gms"
-    private static final String LICENSE_ARTIFACT_SUFFIX = "-license"
-    private static final String FIREBASE_GROUP = "com.google.firebase"
     private static final String FAIL_READING_LICENSES_ERROR =
             "Failed to read license text."
 
     private static final logger = LoggerFactory.getLogger(LicensesTask.class)
 
     protected int start = 0
-    protected Set<String> googleServiceLicenses = []
+    protected Set<String> embeddedLicenses = []
     protected Map<String, String> licensesMap = [:]
     protected Map<String, String> licenseOffsets = [:]
     protected static final String ABSENT_DEPENDENCY_KEY = "Debug License Info"
@@ -126,21 +122,17 @@ abstract class LicensesTask extends DefaultTask {
             addDebugLicense()
         } else {
             for (artifactInfo in artifactInfoSet) {
-                if (isGoogleServices(artifactInfo.group)) {
-                    // Add license info for google-play-services itself
-                    if (!artifactInfo.name.endsWith(LICENSE_ARTIFACT_SUFFIX)) {
-                        addLicensesFromPom(pomMap, artifactInfo)
-                    }
-                    // Add transitive licenses info for google-play-services. For
-                    // post-granular versions, this is located in the artifact
-                    // itself, whereas for pre-granular versions, this information
-                    // is located at the complementary license artifact as a runtime
-                    // dependency.
-                    if (isGranularVersion(artifactInfo.version) || artifactInfo.name.endsWith(LICENSE_ARTIFACT_SUFFIX)) {
-                        addGooglePlayServiceLicenses(libraryMap, artifactInfo)
-                    }
-                } else {
+                // 1. Extract licenses from POM for all artifacts, except for side-car license artifacts.
+                // Artifacts named "*-license" are containers for license data and shouldn't have
+                // their own entry in the attribution list.
+                if (!artifactInfo.name.endsWith("-license")) {
                     addLicensesFromPom(pomMap, artifactInfo)
+                }
+
+                // 2. For any artifact, try to extract embedded licenses if they exist.
+                File libraryFile = libraryMap.get(artifactInfo.toString())
+                if (libraryFile != null && libraryFile.exists()) {
+                    addEmbeddedLicenses(libraryFile)
                 }
             }
         }
@@ -181,59 +173,46 @@ abstract class LicensesTask extends DefaultTask {
         }
     }
 
-    protected static boolean isGoogleServices(String group) {
-        return (GOOGLE_PLAY_SERVICES_GROUP.equalsIgnoreCase(group)
-                || FIREBASE_GROUP.equalsIgnoreCase(group))
-    }
+    protected void addEmbeddedLicenses(File artifactFile) {
+        try {
+            new ZipFile(artifactFile).withCloseable { licensesZip ->
+                ZipEntry jsonFile = licensesZip.getEntry("third_party_licenses.json")
+                ZipEntry txtFile = licensesZip.getEntry("third_party_licenses.txt")
 
-    protected static boolean isGranularVersion(String version) {
-        String[] versions = version.split("\\.")
-        return (versions.length > 0
-                && Integer.valueOf(versions[0]) >= GRANULAR_BASE_VERSION)
-    }
+                if (!jsonFile || !txtFile) {
+                    return
+                }
 
-    protected void addGooglePlayServiceLicenses(Map<String, File> libraryMap, ArtifactInfo artifactInfo) {
-        File libraryFile = libraryMap.get(artifactInfo.toString())
-        if (libraryFile == null || !libraryFile.exists()) {
-            logger.warn("Unable to find Google Play Services Artifact for $artifactInfo")
-            return
-        }
-        addGooglePlayServiceLicenses(libraryFile)
-    }
+                JsonSlurper jsonSlurper = new JsonSlurper()
+                Object licensesObj = licensesZip.getInputStream(jsonFile).withCloseable {
+                    jsonSlurper.parse(it)
+                }
+                if (licensesObj == null) {
+                    return
+                }
 
-    protected void addGooglePlayServiceLicenses(File artifactFile) {
-        ZipFile licensesZip = new ZipFile(artifactFile)
+                for (entry in licensesObj) {
+                    String key = entry.key
+                    int startValue = entry.value.start
+                    int lengthValue = entry.value.length
 
-        ZipEntry jsonFile = licensesZip.getEntry("third_party_licenses.json")
-        ZipEntry txtFile = licensesZip.getEntry("third_party_licenses.txt")
-
-        if (!jsonFile || !txtFile) {
-            return
-        }
-
-        JsonSlurper jsonSlurper = new JsonSlurper()
-        Object licensesObj = licensesZip.getInputStream(jsonFile).withCloseable {
-            jsonSlurper.parse(it)
-        }
-        if (licensesObj == null) {
-            return
-        }
-
-        for (entry in licensesObj) {
-            String key = entry.key
-            int startValue = entry.value.start
-            int lengthValue = entry.value.length
-
-            if (!googleServiceLicenses.contains(key)) {
-                licensesZip.getInputStream(txtFile).withCloseable {
-                    byte[] content = getBytesFromInputStream(
-                            it,
-                            startValue,
-                            lengthValue)
-                    googleServiceLicenses.add(key)
-                    appendDependency(key, content)
+                    if (!embeddedLicenses.contains(key)) {
+                        licensesZip.getInputStream(txtFile).withCloseable {
+                            byte[] content = getBytesFromInputStream(
+                                    it,
+                                    startValue,
+                                    lengthValue)
+                            embeddedLicenses.add(key)
+                            appendDependency(key, content)
+                        }
+                    }
                 }
             }
+        } catch (ZipException e) {
+            // Not a zip file, or malformed. Skip.
+            logger.debug("Failed to open $artifactFile as a zip file: ${e.message}")
+        } catch (IOException e) {
+            logger.warn("Failed to read embedded licenses from $artifactFile: ${e.message}")
         }
     }
 

@@ -88,18 +88,6 @@ public class LicensesTaskTest {
   }
 
   @Test
-  public void testIsGranularVersion_True() {
-    String versionTrue = "14.6.0";
-    assertTrue(LicensesTask.isGranularVersion(versionTrue));
-  }
-
-  @Test
-  public void testIsGranularVersion_False() {
-    String versionFalse = "11.4.0";
-    assertFalse(LicensesTask.isGranularVersion(versionFalse));
-  }
-
-  @Test
   public void testAddLicensesFromPom() throws IOException {
     File deps1 = getResourceFile("dependencies/groupA/deps1.pom");
     String name1 = "deps1";
@@ -222,28 +210,29 @@ public class LicensesTaskTest {
   }
 
   @Test
-  public void testAddGooglePlayServiceLicenses() throws IOException {
+  public void testAddEmbeddedLicenses() throws IOException {
     File tempOutput = temporaryFolder.newFolder();
     tempOutput.mkdirs();
-    createLicenseZip(tempOutput.getPath() + "play-services-foo-license.aar");
-    File artifact = new File(tempOutput.getPath() + "play-services-foo-license.aar");
+    String artifactName = "test-artifact.aar";
+    createLicenseZip(tempOutput.getPath() + "/" + artifactName);
+    File artifact = new File(tempOutput.getPath() + "/" + artifactName);
 
     licensesTask.initOutputDir();
-    licensesTask.addGooglePlayServiceLicenses(artifact);
+    licensesTask.addEmbeddedLicenses(artifact);
 
     String content = new String(Files.readAllBytes(licensesTask.getLicenses().toPath()), UTF_8);
     String expected = "safeparcel" + LINE_BREAK + "JSR 305" + LINE_BREAK;
     assertEquals(expected, content);
-    assertThat(licensesTask.googleServiceLicenses.size(), is(2));
-    assertTrue(licensesTask.googleServiceLicenses.contains("safeparcel"));
-    assertTrue(licensesTask.googleServiceLicenses.contains("JSR 305"));
+    assertThat(licensesTask.embeddedLicenses.size(), is(2));
+    assertTrue(licensesTask.embeddedLicenses.contains("safeparcel"));
+    assertTrue(licensesTask.embeddedLicenses.contains("JSR 305"));
     assertThat(licensesTask.licensesMap.size(), is(2));
     assertTrue(licensesTask.licensesMap.containsKey("safeparcel"));
     assertTrue(licensesTask.licensesMap.containsKey("JSR 305"));
   }
 
   @Test
-  public void testAddGooglePlayServiceLicenses_withoutDuplicate() throws IOException {
+  public void testAddEmbeddedLicenses_withoutDuplicate() throws IOException {
     File groupC = temporaryFolder.newFolder();
     groupC.mkdirs();
     createLicenseZip(groupC.getPath() + "/play-services-foo-license.aar");
@@ -255,18 +244,104 @@ public class LicensesTaskTest {
     File artifactBar = new File(groupD.getPath() + "/play-services-bar-license.aar");
 
     licensesTask.initOutputDir();
-    licensesTask.addGooglePlayServiceLicenses(artifactFoo);
-    licensesTask.addGooglePlayServiceLicenses(artifactBar);
+    licensesTask.addEmbeddedLicenses(artifactFoo);
+    licensesTask.addEmbeddedLicenses(artifactBar);
 
     String content = new String(Files.readAllBytes(licensesTask.getLicenses().toPath()), UTF_8);
     String expected = "safeparcel" + LINE_BREAK + "JSR 305" + LINE_BREAK;
     assertEquals(expected, content);
-    assertThat(licensesTask.googleServiceLicenses.size(), is(2));
-    assertTrue(licensesTask.googleServiceLicenses.contains("safeparcel"));
-    assertTrue(licensesTask.googleServiceLicenses.contains("JSR 305"));
+    assertThat(licensesTask.embeddedLicenses.size(), is(2));
+    assertTrue(licensesTask.embeddedLicenses.contains("safeparcel"));
+    assertTrue(licensesTask.embeddedLicenses.contains("JSR 305"));
     assertThat(licensesTask.licensesMap.size(), is(2));
     assertTrue(licensesTask.licensesMap.containsKey("safeparcel"));
     assertTrue(licensesTask.licensesMap.containsKey("JSR 305"));
+  }
+
+  @Test
+  public void action_embeddedLicenseArtifact_extractsTransitiveLicenses() throws Exception {
+    // 1. Setup a non-GMS artifact with bundled licenses
+    File artifactDir = temporaryFolder.newFolder("artifacts");
+    String gav = "com.example:embedded-lib:1.0.0";
+    String artifactName = "embedded-lib-1.0.0.aar";
+    File artifactFile = new File(artifactDir, artifactName);
+    createLicenseZip(artifactFile.getAbsolutePath());
+
+    // 2. Setup POM file (empty or with its own license)
+    File pomDir = temporaryFolder.newFolder("poms");
+    File pomFile = new File(pomDir, "embedded-lib-1.0.0.pom");
+    try (FileWriter writer = new FileWriter(pomFile)) {
+      writer.write("<project><name>Embedded Lib</name><licenses><license><name>Apache 2.0</name><url>http://www.apache.org/licenses/LICENSE-2.0</url></license></licenses></project>");
+    }
+
+    // 3. Setup dependencies.json
+    File dependenciesJson = temporaryFolder.newFile("dependencies.json");
+    ArtifactInfo[] artifactInfoArray = new ArtifactInfo[] {
+        new ArtifactInfo("com.example", "embedded-lib", "1.0.0")
+    };
+    Gson gson = new Gson();
+    try (FileWriter writer = new FileWriter(dependenciesJson)) {
+      gson.toJson(artifactInfoArray, writer);
+    }
+
+    // 4. Configure task inputs
+    licensesTask.getDependenciesJson().set(dependenciesJson);
+    licensesTask.getLibraryFilesByGav().put(gav, artifactFile);
+    licensesTask.getPomFilesByGav().put(gav, pomFile);
+
+    // 5. Execute action
+    licensesTask.action();
+
+    // 6. Verify results
+    String content = new String(Files.readAllBytes(licensesTask.getLicenses().toPath()), UTF_8);
+    
+    // It should contain BOTH the POM license and the embedded transitive licenses
+    assertTrue("Should contain POM license", content.contains("http://www.apache.org/licenses/LICENSE-2.0"));
+    assertTrue("Should contain Embedded license 'safeparcel'", content.contains("safeparcel"));
+    assertTrue("Should contain Embedded license 'JSR 305'", content.contains("JSR 305"));
+  }
+
+  @Test
+  public void action_licenseSidecarArtifact_skipsPomButExtractsEmbedded() throws Exception {
+    // 1. Setup a side-car license artifact
+    File artifactDir = temporaryFolder.newFolder("sidecar_artifacts");
+    String gav = "com.example:sidecar-license:1.0.0";
+    String artifactName = "sidecar-license-1.0.0.aar";
+    File artifactFile = new File(artifactDir, artifactName);
+    createLicenseZip(artifactFile.getAbsolutePath());
+
+    // 2. Setup POM file with a license URL (which should be ignored)
+    File pomDir = temporaryFolder.newFolder("sidecar_poms");
+    File pomFile = new File(pomDir, "sidecar-license-1.0.0.pom");
+    try (FileWriter writer = new FileWriter(pomFile)) {
+      writer.write("<project><name>Sidecar License</name><licenses><license><name>Ignored POM License</name><url>http://ignored-pom-url.com</url></license></licenses></project>");
+    }
+
+    // 3. Setup dependencies.json
+    File dependenciesJson = temporaryFolder.newFile("sidecar_dependencies.json");
+    ArtifactInfo[] artifactInfoArray = new ArtifactInfo[] {
+        new ArtifactInfo("com.example", "sidecar-license", "1.0.0")
+    };
+    Gson gson = new Gson();
+    try (FileWriter writer = new FileWriter(dependenciesJson)) {
+      gson.toJson(artifactInfoArray, writer);
+    }
+
+    // 4. Configure task inputs
+    licensesTask.getDependenciesJson().set(dependenciesJson);
+    licensesTask.getLibraryFilesByGav().put(gav, artifactFile);
+    licensesTask.getPomFilesByGav().put(gav, pomFile);
+
+    // 5. Execute action
+    licensesTask.action();
+
+    // 6. Verify results
+    String content = new String(Files.readAllBytes(licensesTask.getLicenses().toPath()), UTF_8);
+    
+    // It should NOT contain the POM license but SHOULD contain the embedded transitive licenses
+    assertFalse("Should NOT contain POM license for sidecar", content.contains("http://ignored-pom-url.com"));
+    assertTrue("Should contain Embedded license 'safeparcel'", content.contains("safeparcel"));
+    assertTrue("Should contain Embedded license 'JSR 305'", content.contains("JSR 305"));
   }
 
   private void createLicenseZip(String name) throws IOException {
