@@ -259,25 +259,25 @@ public class LicensesTaskTest {
   }
 
   @Test
-  public void action_embeddedLicenseArtifact_extractsTransitiveLicenses() throws Exception {
-    // 1. Setup a non-GMS artifact with bundled licenses
+  public void action_nonGmsGranularLibrary_extractsTransitiveLicenses() throws Exception {
+    // 1. Setup a non-GMS granular artifact
     File artifactDir = temporaryFolder.newFolder("artifacts");
-    String gav = "com.example:embedded-lib:1.0.0";
-    String artifactName = "embedded-lib-1.0.0.aar";
+    String gav = "com.example:granular-lib:1.0.0";
+    String artifactName = "granular-lib-1.0.0.aar";
     File artifactFile = new File(artifactDir, artifactName);
     createLicenseZip(artifactFile.getAbsolutePath());
 
     // 2. Setup POM file (empty or with its own license)
     File pomDir = temporaryFolder.newFolder("poms");
-    File pomFile = new File(pomDir, "embedded-lib-1.0.0.pom");
+    File pomFile = new File(pomDir, "granular-lib-1.0.0.pom");
     try (FileWriter writer = new FileWriter(pomFile)) {
-      writer.write("<project><name>Embedded Lib</name><licenses><license><name>Apache 2.0</name><url>http://www.apache.org/licenses/LICENSE-2.0</url></license></licenses></project>");
+      writer.write("<project><name>Granular Lib</name><licenses><license><name>Apache 2.0</name><url>http://www.apache.org/licenses/LICENSE-2.0</url></license></licenses></project>");
     }
 
     // 3. Setup dependencies.json
     File dependenciesJson = temporaryFolder.newFile("dependencies.json");
     ArtifactInfo[] artifactInfoArray = new ArtifactInfo[] {
-        new ArtifactInfo("com.example", "embedded-lib", "1.0.0")
+        new ArtifactInfo("com.example", "granular-lib", "1.0.0")
     };
     Gson gson = new Gson();
     try (FileWriter writer = new FileWriter(dependenciesJson)) {
@@ -295,10 +295,10 @@ public class LicensesTaskTest {
     // 6. Verify results
     String content = new String(Files.readAllBytes(licensesTask.getLicenses().toPath()), UTF_8);
     
-    // It should contain BOTH the POM license and the embedded transitive licenses
+    // It should contain BOTH the POM license and the granular transitive licenses
     assertTrue("Should contain POM license", content.contains("http://www.apache.org/licenses/LICENSE-2.0"));
-    assertTrue("Should contain Embedded license 'safeparcel'", content.contains("safeparcel"));
-    assertTrue("Should contain Embedded license 'JSR 305'", content.contains("JSR 305"));
+    assertTrue("Should contain Granular license 'safeparcel'", content.contains("safeparcel"));
+    assertTrue("Should contain Granular license 'JSR 305'", content.contains("JSR 305"));
   }
 
   @Test
@@ -338,10 +338,10 @@ public class LicensesTaskTest {
     // 6. Verify results
     String content = new String(Files.readAllBytes(licensesTask.getLicenses().toPath()), UTF_8);
     
-    // It should NOT contain the POM license but SHOULD contain the embedded transitive licenses
+    // It should NOT contain the POM license but SHOULD contain the granular transitive licenses
     assertFalse("Should NOT contain POM license for sidecar", content.contains("http://ignored-pom-url.com"));
-    assertTrue("Should contain Embedded license 'safeparcel'", content.contains("safeparcel"));
-    assertTrue("Should contain Embedded license 'JSR 305'", content.contains("JSR 305"));
+    assertTrue("Should contain Granular license 'safeparcel'", content.contains("safeparcel"));
+    assertTrue("Should contain Granular license 'JSR 305'", content.contains("JSR 305"));
   }
 
   private void createLicenseZip(String name) throws IOException {
