@@ -20,8 +20,8 @@ import org.gradle.jvm.toolchain.JavaToolchainService
 plugins {
     id("groovy")
     id("java-gradle-plugin")
-    id("org.jetbrains.kotlin.jvm") version "2.3.10"
-    id("com.gradle.plugin-publish") version "1.3.1"
+    id("org.jetbrains.kotlin.jvm") version "2.3.20"
+    id("com.gradle.plugin-publish") version "2.1.1"
 }
 
 group = "com.google.android.gms"
@@ -52,18 +52,18 @@ gradlePlugin {
 }
 
 dependencies {
-    compileOnly("com.android.tools.build:gradle:9.1.0")
-    compileOnly("com.android.tools.build:gradle-api:9.1.0")
+    compileOnly("com.android.tools.build:gradle:9.2.0")
+    compileOnly("com.android.tools.build:gradle-api:9.2.0")
     implementation(gradleApi())
     implementation(localGroovy())
-    implementation("com.google.protobuf:protobuf-java:4.34.0")
+    implementation("com.google.protobuf:protobuf-java:4.34.1")
 
     testImplementation("junit:junit:4.13.2")
-    testImplementation("org.mockito:mockito-core:4.1.0")
-    testImplementation("com.google.guava:guava:33.4.0-jre")
-    testImplementation("com.google.truth:truth:1.4.4")
-    testImplementation("com.google.code.gson:gson:2.12.1")
-    testImplementation("com.android.tools.build:gradle:9.1.0") {
+    testImplementation("org.mockito:mockito-core:5.23.0")
+    testImplementation("com.google.guava:guava:33.6.0-jre")
+    testImplementation("com.google.truth:truth:1.4.5")
+    testImplementation("com.google.code.gson:gson:2.13.2")
+    testImplementation("com.android.tools.build:gradle:9.2.0") {
         because("Needed for DependencyTaskTest.")
     }
 }
