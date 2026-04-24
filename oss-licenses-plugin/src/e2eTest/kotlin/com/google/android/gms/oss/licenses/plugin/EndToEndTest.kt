@@ -44,12 +44,6 @@ abstract class EndToEndTest {
         private val AGP_VERSION_REGEX = Regex("""agp = ".*"""")
         private val KOTLIN_VERSION_REGEX = Regex("""kotlin = ".*"""")
 
-        // Files to copy from the testapp source into the temp project directory
-        private val TESTAPP_ALLOW_LIST = listOf(
-            "app", "gradle", "build.gradle.kts", "settings.gradle.kts", "gradle.properties",
-            "gradlew", "gradlew.bat"
-        )
-
         // AGP 9+ has built-in Kotlin support; AGP 8.x requires the standalone KGP with legacy config.
         private val AGP_9_KOTLIN_BLOCK = """
             kotlin {
@@ -78,16 +72,19 @@ abstract class EndToEndTest {
         projectDir = tempDirectory.newFolder("testapp")
 
         val currentDir = File(System.getProperty("user.dir")!!) // if this is missing then something is very wrong
-        val testAppSourceDir = File(currentDir, "testapp")
+        val testappDirPath = System.getProperty("testapp.dir")
+        requireNotNull(testappDirPath) { "testapp.dir system property is missing" }
+
+        val testAppSourceDir = File(testappDirPath)
         require(testAppSourceDir.exists()) {
             "Test app source not found at: ${testAppSourceDir.absolutePath}"
         }
 
         configureAndroidSdk(currentDir)
-        copyTestApp(testAppSourceDir)
+        testAppSourceDir.copyRecursively(projectDir, overwrite = true)
 
-        // Remove the Gradle daemon JVM file — the JAVA_HOME injection in createRunner() handles
-        // JVM selection more cleanly across all Gradle versions.
+        // Remove the Gradle daemon JVM file if present — the JAVA_HOME injection in createRunner()
+        // handles JVM selection more cleanly across all Gradle versions.
         File(projectDir, "gradle/gradle-daemon-jvm.properties").delete()
 
         patchVersions()
@@ -100,13 +97,6 @@ abstract class EndToEndTest {
                 ?.substringAfter("sdk.dir=")
             ?: error("Cannot find Android SDK: set ANDROID_HOME or create local.properties")
         File(projectDir, "local.properties").writeText("sdk.dir=${sdkDir.replace("\\", "\\\\")}\n")
-    }
-
-    private fun copyTestApp(sourceDir: File) {
-        TESTAPP_ALLOW_LIST
-            .map { sourceDir.resolve(it) }
-            .filter { it.exists() }
-            .forEach { it.copyRecursively(projectDir.resolve(it.name), overwrite = true) }
     }
 
     private fun patchVersions() {

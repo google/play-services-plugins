@@ -120,6 +120,40 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
 
+// Log the actual resolved versions of the library and plugin.
+tasks.register("logOssVersions") {
+    val runtimeConfig = configurations.getByName("releaseRuntimeClasspath")
+    val buildConfig = rootProject.buildscript.configurations.getByName("classpath")
+
+    // Use providers to resolve versions safely.
+    val libVersion = provider {
+        runtimeConfig.incoming.resolutionResult.allComponents
+            .map { it.id }
+            .filterIsInstance<org.gradle.api.artifacts.component.ModuleComponentIdentifier>()
+            .find { it.group == "com.google.android.gms" && it.module == "play-services-oss-licenses" }
+            ?.version ?: "UNKNOWN"
+    }
+
+    val plugVersion = provider {
+        buildConfig.incoming.resolutionResult.allComponents
+            .map { it.id }
+            .filterIsInstance<org.gradle.api.artifacts.component.ModuleComponentIdentifier>()
+            .find { it.group == "com.google.android.gms" && it.module == "oss-licenses-plugin" }
+            ?.version ?: "LOCAL"
+    }
+
+    doFirst {
+        println("------------------------------------------------------------")
+        println("OSS Licenses Library (Resolved): ${libVersion.get()}")
+        println("OSS Licenses Plugin  (Resolved): ${plugVersion.get()}")
+        println("------------------------------------------------------------")
+    }
+}
+
+tasks.matching { it.name == "preBuild" || it.name == "test" }.configureEach {
+    dependsOn("logOssVersions")
+}
+
 abstract class GenerateVersionTask : DefaultTask() {
     @get:org.gradle.api.tasks.InputFile
     @get:org.gradle.api.tasks.Optional
