@@ -181,6 +181,22 @@ dependencies {
     "e2eTestImplementation"(gradleTestKit())
 }
 
+// Pre-process the testapp into a clean directory using an allow-list.
+// This excludes redundant build artifacts and IDE/Gradle internal folders.
+// The Gradle wrapper is also excluded because E2E tests use GradleRunner.withGradleVersion().
+val prepareTestApp by tasks.registering(Sync::class) {
+    from("testapp") {
+        include("app/src/**")
+        include("app/build.gradle.kts")
+        include("gradle/*.toml")
+        include("gradle/*.properties")
+        include("build.gradle.kts")
+        include("settings.gradle.kts")
+        include("gradle.properties")
+    }
+    into(layout.buildDirectory.dir("testapp-prepared"))
+}
+
 val e2eTestTask by tasks.registering(Test::class) {
     description = "Runs end-to-end tests that build the full testapp against multiple AGP versions"
     group = "verification"
@@ -188,6 +204,18 @@ val e2eTestTask by tasks.registering(Test::class) {
     classpath = e2eTest.runtimeClasspath
 
     configureTestKitDefaults()
+
+    // Wire the prepared directory to inputs and system properties via Providers.
+    // This implicitly handles the task dependency on prepareTestApp.
+    val testAppDirProvider = prepareTestApp.map { it.destinationDir }
+    inputs.dir(testAppDirProvider)
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+        .withPropertyName("testapp")
+
+    // Pass as a system property lazily to maintain configuration cache compatibility.
+    jvmArgumentProviders.add(CommandLineArgumentProvider {
+        listOf("-Dtestapp.dir=${testAppDirProvider.get().absolutePath}")
+    })
 
     // Inject AGP/Gradle version pairs as system properties for each e2e subclass.
     e2eTestVersions.forEach { (className, versions) ->

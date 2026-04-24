@@ -18,6 +18,7 @@ package com.google.android.gms.oss.licenses.testapp
 
 import android.content.Intent
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ActivityScenario
@@ -42,6 +43,27 @@ class OssLicensesV2Test {
         ActivityScenario.launch(OssLicensesMenuActivity::class.java).use {
             // Verify a standard library is visible
             composeTestRule.onNodeWithText("Activity", ignoreCase = true).assertExists()
+        }
+    }
+
+    @Test
+    fun testV2DoubleTapUpButton() {
+        // Reproduces Issue 397: Rapid double-tap on Up button leads to IllegalArgumentException
+        ActivityScenario.launch(OssLicensesMenuActivity::class.java).use {
+            // Navigate to detail
+            composeTestRule.onNodeWithText("Activity", ignoreCase = true).performClick()
+
+            // Find the "Up" button (usually the first IconButton in the TopAppBar or has "Back" content description)
+            // In Nav3 default TopAppBar, it might be the back button.
+            // Let's assume it has a content description "Back" or "Navigate up"
+            val backButton = composeTestRule.onNodeWithContentDescription("Back", ignoreCase = true)
+
+            // Rapidly double tap
+            backButton.performClick()
+            backButton.performClick()
+
+            // If it crashes, the test will fail with the exception.
+            composeTestRule.onNodeWithText("Open source licenses", ignoreCase = true).assertExists()
         }
     }
 
