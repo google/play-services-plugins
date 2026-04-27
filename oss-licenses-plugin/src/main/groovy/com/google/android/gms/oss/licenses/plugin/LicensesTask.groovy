@@ -151,7 +151,7 @@ abstract class LicensesTask extends DefaultTask {
         artifactInfoSet.asImmutable()
     }
 
-    private void addDebugLicense() {
+    protected void addDebugLicense() {
         appendDependency(
                 ABSENT_DEPENDENCY_KEY,
                 ABSENT_DEPENDENCY_TEXT.getBytes(UTF_8)
