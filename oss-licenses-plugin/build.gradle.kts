@@ -20,7 +20,7 @@ import org.gradle.jvm.toolchain.JavaToolchainService
 plugins {
     id("groovy")
     id("java-gradle-plugin")
-    id("org.jetbrains.kotlin.jvm") version "2.3.20"
+    id("org.jetbrains.kotlin.jvm") version "2.3.21"
     id("com.gradle.plugin-publish") version "2.1.1"
 }
 
@@ -62,7 +62,7 @@ dependencies {
     testImplementation("org.mockito:mockito-core:5.23.0")
     testImplementation("com.google.guava:guava:33.6.0-jre")
     testImplementation("com.google.truth:truth:1.4.5")
-    testImplementation("com.google.code.gson:gson:2.13.2")
+    testImplementation("com.google.code.gson:gson:2.14.0")
     testImplementation("com.android.tools.build:gradle:9.2.0") {
         because("Needed for DependencyTaskTest.")
     }
