@@ -52,8 +52,8 @@ gradlePlugin {
 }
 
 dependencies {
-    compileOnly("com.android.tools.build:gradle:9.2.0")
-    compileOnly("com.android.tools.build:gradle-api:9.2.0")
+    compileOnly("com.android.tools.build:gradle:9.2.1")
+    compileOnly("com.android.tools.build:gradle-api:9.2.1")
     implementation(gradleApi())
     implementation(localGroovy())
     implementation("com.google.protobuf:protobuf-java:4.34.1")
@@ -63,7 +63,7 @@ dependencies {
     testImplementation("com.google.guava:guava:33.6.0-jre")
     testImplementation("com.google.truth:truth:1.4.5")
     testImplementation("com.google.code.gson:gson:2.14.0")
-    testImplementation("com.android.tools.build:gradle:9.2.0") {
+    testImplementation("com.android.tools.build:gradle:9.2.1") {
         because("Needed for DependencyTaskTest.")
     }
 }
