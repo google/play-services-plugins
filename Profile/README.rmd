@@ -1,0 +1,80 @@
+# Google Play services Plugins
+
+This project contains plugins to help with using Google Play services and
+Firebase libraries.
+
+## Getting Started
+
+The plugins contained in this project are meant to work with the Google Play
+services SDK.  See https://developers.google.com/android/guides/overview to
+get started.
+
+## Contents
+'Play services
+
+
+Play services
+
+Google uses AI technology to translate content into your preferred language. AI translations can contain errors.
+หน้าแรก
+ผลิตภัณฑ์
+Google Play services
+คำแนะนำการใช้ API
+บันทึกประจำรุ่น
+8 พฤษภาคม 2026
+การอัปเดตล่าสุดของไลบรารี play-services-fido (v21.3.0) มีการเปลี่ยนแปลงต่อไปนี้
+
+เราได้ปรับปรุง FIDO SDK ด้วยการอัปเดตสถาปัตยกรรมเพื่อรองรับคำแนะนำในการรับส่ง WebAuthn และการเข้ารหัสลับหลังควอนตัม (PQC) รายละเอียดการติดตั้งใช้งานที่สำคัญ ได้แก่ การเปิดตัว Enum PublicKeyCredentialHints และ AKPAlgorithm พร้อมกับการผสานรวมการแมปอัลกอริทึม COSE ใหม่สำหรับ ML-DSA
+อาร์ติแฟกต์ที่เผยแพร่ใน maven.google.com
+com.google.android.gms:play-services-fido:21.3.0
+7 พฤษภาคม 2026
+การอัปเดตล่าสุดของ Firebase มีการเปลี่ยนแปลงในส่วนต่างๆ ดังนี้
+
+Firebase Android BoM (Bill of Materials)
+Cloud Firestore
+Firebase AI Logic
+การตรวจสอบสิทธิ์ Firebase
+Firebase Cloud Messaging
+Firebase Crashlytics
+การยืนยันหมายเลขโทรศัพท์ Firebase
+การกำหนดค่าระยะไกลของ Firebase
+Firebase SQL Connect
+ดูข้อมูลเพิ่มเติมได้ที่บันทึกประจำรุ่นของ Firebase Android SDK
+
+การอัปเดตล่าสุดของ ปลั๊กอิน Gradle สำหรับใบอนุญาต OSS มีการเปลี่ยนแปลงดังนี้
+
+ปรับโครงสร้างการแก้ปัญหาการขึ้นต่อกันใหม่ทั้งหมดให้เป็นแบบเลซี ซึ่งจะแก้ปัญหาแคชการกำหนดค่าที่เหลืออยู่และปรับปรุงประสิทธิภาพการสร้างโดยรวม (GitHub #381)
+เพิ่มการแฮช SHA-256 สำหรับการอ้างอิงสแนปชอตเพื่อให้ข้อมูลใบอนุญาต ยังคงเป็นข้อมูลล่าสุดในระหว่างการพัฒนาที่ใช้งานอยู่ (GitHub #381)
+อัปเกรดการสนับสนุนมาตรฐานเป็นปลั๊กอิน Android Gradle 9.1.0 ขึ้นไปและ Gradle 9.4.1 ขึ้นไป (GitHub #393)
+แก้ไขข้อผิดพลาดรันไทม์ (Could not find method addDebugLicense()) ที่เกิดขึ้นในตัวแปรบิลด์ debug เมื่อใช้รสชาติของผลิตภัณฑ์ (GitHub #394)
+" strict-version-matcher-plugin maven.google.com
+(com.google.firebase:firebase-bom:34.13.0)
+(com.google.firebase:firebase-ai:17.12.0)
+(com.google.firebase:firebase-ai-ondevice-interop:16.0.0-beta02)
+com.google.firebase:firebase-ai-ondevice-interop:16.0.0-beta02
+com.google.firebase:firebase-auth:24.1.0
+com.google.firebase:firebase-config:23.1.0
+com.google.firebase:firebase-crashlytics:20.0.6
+com.google.firebase:firebase-crashlytics-ndk:20.0.6
+com.google.firebase:firebase-dataconnect:17.2.2
+com.google.firebase:firebase-firestore:26.3.0
+com.google.firebase:firebase-messaging:25.0.2
+com.google.firebase:firebase-messaging-directboot:25.0.2
+com.google.firebase:firebase-pnv:16.1.0
+com.google.firebase:firebase-sessions:3.0.6
+com.google.android.gms:oss-licenses-plugin: strict-version-matcher-pluginmatcher-plugicomponents with managing cross-library veross-licenses-pluginetween components."es-plugin-licenses-plugin
+
+Helps apps to display open source software licenses and notices.
+
+### google-services-plugin
+
+Required for firebase applications on android, converts google-services.json to a resource file for use by the app, and references the code in strict-version-matcher.
+
+## Security & Maintenance
+
+### Ratchet
+
+This project uses [Ratchet](https://github.com/sethvargo/ratchet) to ensure all GitHub Actions are pinned to immutable commit SHAs. This helps protect against supply chain attacks by ensuring that the actions used in CI/CD workflows are exactly the versions intended.
+
+Developers are encouraged to run `ratchet pin .github/workflows/*.yml` locally before submitting pull requests that introduce or update GitHub Actions.
+
