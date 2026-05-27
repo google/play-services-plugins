@@ -261,8 +261,8 @@ abstract class GoogleServicesTask : DefaultTask() {
   }
 
     fun FirebaseClientData.handleSiteKey(resValues: MutableMap<String, String?>) {
-        this.getAsJsonPrimitive("recaptcha_enterprise_site_key")?.let {
-            resValues["recaptcha_enterprise_site_key"] = it.asString
+        this.getAsJsonPrimitive("recaptcha_site_key")?.let {
+            resValues["recaptcha_site_key"] = it.asString
         }
     }
 

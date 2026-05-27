@@ -7,5 +7,5 @@
     <string name="google_app_id" translatable="false">1:123456789000:android:f1bf012572b04063</string>
     <string name="google_crash_reporting_api_key" translatable="false">AIzbSzCn1N6LWIe6wthYyrgUUSAlUsdqMb-wvTo</string>
     <string name="project_id" translatable="false">mockproject-1234</string>
-    <string name="recaptcha_enterprise_site_key" translatable="false">6L00000sAAAAAAaaaaaAAaa00000_AAAaAaaAa00</string>
+    <string name="recaptcha_site_key" translatable="false">6L00000sAAAAAAaaaaaAAaa00000_AAAaAaaAa00</string>
 </resources>
