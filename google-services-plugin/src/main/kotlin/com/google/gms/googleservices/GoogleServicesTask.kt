@@ -65,8 +65,8 @@ abstract class GoogleServicesTask : DefaultTask() {
     if (jsonFiles.isEmpty()) {
       val message =
           """
-                File $JSON_FILE_NAME is missing. 
-                The Google Services Plugin cannot function without it. 
+                File $JSON_FILE_NAME is missing.
+                The Google Services Plugin cannot function without it.
                 Searched locations: ${
                 googleServicesJsonFiles.get().joinToString { it.absolutePath }
             }
@@ -109,6 +109,7 @@ abstract class GoogleServicesTask : DefaultTask() {
       handleGoogleApiKey(resValues)
       handleGoogleAppId(resValues)
       handleWebClientId(resValues)
+        handleSiteKey(resValues)
     }
         ?: throw GradleException(
             "No matching client found for package name '${applicationId.get()}' in ${quickstartFile.path}")
@@ -208,7 +209,7 @@ abstract class GoogleServicesTask : DefaultTask() {
           """
                     <?xml version="1.0" encoding="utf-8"?>
                     <resources>
-                    
+
                 """
               .trimIndent())
       for ((name, value) in values) {
@@ -258,6 +259,12 @@ abstract class GoogleServicesTask : DefaultTask() {
       }
     }
   }
+
+    fun FirebaseClientData.handleSiteKey(resValues: MutableMap<String, String?>) {
+        this.getAsJsonPrimitive("recaptcha_site_key")?.let {
+            resValues["recaptcha_site_key"] = it.asString
+        }
+    }
 
   /**
    * Handle a client object for analytics (@xml/global_tracker)
