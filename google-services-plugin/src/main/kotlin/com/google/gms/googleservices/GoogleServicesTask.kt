@@ -260,13 +260,11 @@ abstract class GoogleServicesTask : DefaultTask() {
     }
   }
 
-  fun FirebaseClientData.handleSiteKey(resValues: MutableMap<String, String?>) {
-    if (!this.has("recaptcha_enterprise_site_key")) {
-      return
+    fun FirebaseClientData.handleSiteKey(resValues: MutableMap<String, String?>) {
+        this.getAsJsonPrimitive("recaptcha_enterprise_site_key")?.let {
+            resValues["recaptcha_enterprise_site_key"] = it.asString
+        }
     }
-    val siteKey = this.getAsJsonPrimitive("recaptcha_enterprise_site_key")
-    resValues["recaptcha_enterprise_site_key"] = siteKey.asString
-  }
 
   /**
    * Handle a client object for analytics (@xml/global_tracker)
