@@ -23,7 +23,7 @@ plugins {
 }
 
 group = "com.google.gms"
-version = "4.4.4"
+version = "4.5.0"
 
 dependencies {
     compileOnly("com.android.tools.build:gradle-api:7.3.0")
