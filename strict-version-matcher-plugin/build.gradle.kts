@@ -1,8 +1,8 @@
 plugins {
     id("groovy")
     id("java-gradle-plugin")
-    id("org.jetbrains.kotlin.jvm") version "1.8.22"
-    id("com.gradle.plugin-publish") version "1.1.0"
+    id("org.jetbrains.kotlin.jvm") version "2.4.0"
+    id("com.gradle.plugin-publish") version "2.1.1"
 }
 
 group = "com.google.android.gms"
@@ -17,11 +17,11 @@ repositories {
 dependencies {
     implementation(gradleApi())
     implementation(localGroovy())
-    testImplementation("junit:junit:4.12")
-    testImplementation("com.google.truth:truth:0.42")
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("com.google.truth:truth:1.4.5")
     implementation("com.google.code.findbugs:jsr305:3.0.2")
-    implementation("com.google.guava:guava:27.0.1-jre")
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.20")
+    implementation("com.google.guava:guava:33.6.0-jre")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.4.0")
 }
 
 java {
