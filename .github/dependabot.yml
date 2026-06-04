@@ -19,3 +19,35 @@ updates:
       all-dependencies:
         patterns:
           - "*"
+    ignore:
+      - dependency-name: "gradle-wrapper"
+
+  - package-ecosystem: "gradle"
+    directory: "/oss-licenses-plugin"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 1
+    groups:
+      all-dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "gradle"
+    directory: "/google-services-plugin"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 1
+    groups:
+      all-dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "gradle"
+    directory: "/strict-version-matcher-plugin"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 1
+    groups:
+      all-dependencies:
+        patterns:
+          - "*"
