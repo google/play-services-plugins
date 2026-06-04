@@ -393,6 +393,13 @@ public class LicensesTaskTest {
     createNamespacedLicenseZip(name, "");
   }
 
+  /**
+   * Helper method to create a mock dependency ZIP (AAR/JAR) containing license files
+   * packaged under specific namespaced folders (or at the root if prefix is empty).
+   *
+   * @param name the absolute file path of the output ZIP archive to create
+   * @param entryPrefixes folder prefixes under which to package the license json/txt files
+   */
   private void createNamespacedLicenseZip(String name, String... entryPrefixes) throws IOException {
     File zipFile = new File(name);
     ZipOutputStream output = new ZipOutputStream(new FileOutputStream(zipFile));

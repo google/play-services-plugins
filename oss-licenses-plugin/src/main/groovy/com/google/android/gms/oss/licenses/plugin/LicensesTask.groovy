@@ -215,6 +215,15 @@ abstract class LicensesTask extends DefaultTask {
         }
     }
 
+    /**
+     * Parses the license metadata JSON file within the dependency ZIP, extracts
+     * license texts at the specified offsets from the corresponding license text file,
+     * and registers them with the task's aggregated license tracker.
+     *
+     * @param licensesZip the ZipFile representation of the dependency archive
+     * @param jsonFile the ZipEntry for the third-party license JSON metadata file
+     * @param txtFile the ZipEntry for the third-party license text file (.txt)
+     */
     protected void processLicenseEntry(ZipFile licensesZip, ZipEntry jsonFile, ZipEntry txtFile) {
         JsonSlurper jsonSlurper = new JsonSlurper()
         Object licensesObj = licensesZip.getInputStream(jsonFile).withCloseable {

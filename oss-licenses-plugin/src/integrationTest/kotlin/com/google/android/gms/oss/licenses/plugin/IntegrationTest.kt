@@ -408,6 +408,15 @@ abstract class IntegrationTest {
         File(artifactDir, "$name-$version.jar").writeText("dummy jar content")
     }
 
+    /**
+     * Helper method to compile and publish a mock library dependency containing embedded licenses
+     * to a local Maven repository.
+     *
+     * If [namespaceGroup] and [namespaceArtifact] are provided, the license files will be packaged
+     * within the AAR/JAR in the namespaced subfolder:
+     * `META-INF/third_party_licenses/<namespaceGroup>/<namespaceArtifact>/`.
+     * Otherwise, they will be packaged at the root of the archive.
+     */
     private fun publishLibraryWithEmbeddedLicenses(
         repo: File,
         group: String,
