@@ -382,6 +382,169 @@ abstract class IntegrationTest {
             result2.task(":releaseOssDependencyTask")?.outcome
         )
     }
+
+    private fun publishSimpleLibrary(repo: File, group: String, name: String, version: String, licenseName: String, licenseUrl: String) {
+        val groupPath = group.replace(".", "/")
+        val artifactDir = File(repo, "$groupPath/$name/$version")
+        artifactDir.mkdirs()
+
+        File(artifactDir, "$name-$version.pom").writeText(
+            """
+            <project>
+              <modelVersion>4.0.0</modelVersion>
+              <groupId>$group</groupId>
+              <artifactId>$name</artifactId>
+              <version>$version</version>
+              <name>$name</name>
+              <licenses>
+                <license>
+                  <name>$licenseName</name>
+                  <url>$licenseUrl</url>
+                </license>
+              </licenses>
+            </project>
+        """.trimIndent()
+        )
+        File(artifactDir, "$name-$version.jar").writeText("dummy jar content")
+    }
+
+    private fun publishLibraryWithEmbeddedLicenses(
+        repo: File,
+        group: String,
+        name: String,
+        version: String,
+        embeddedLicenses: Map<String, String>,
+        dependencies: List<String> = emptyList(),
+        namespaceGroup: String? = null,
+        namespaceArtifact: String? = null
+    ) {
+        val groupPath = group.replace(".", "/")
+        val artifactDir = File(repo, "$groupPath/$name/$version")
+        artifactDir.mkdirs()
+
+        val depStrings = dependencies.map { dep ->
+            val parts = dep.split(":")
+            """
+            <dependency>
+              <groupId>${parts[0]}</groupId>
+              <artifactId>${parts[1]}</artifactId>
+              <version>${parts[2]}</version>
+            </dependency>
+            """
+        }.joinToString("\n")
+
+        File(artifactDir, "$name-$version.pom").writeText(
+            """
+            <project>
+              <modelVersion>4.0.0</modelVersion>
+              <groupId>$group</groupId>
+              <artifactId>$name</artifactId>
+              <version>$version</version>
+              <licenses>
+                <license>
+                  <name>Library License</name>
+                  <url>https://example.com/lib-license</url>
+                </license>
+              </licenses>
+              <dependencies>
+                $depStrings
+              </dependencies>
+            </project>
+        """.trimIndent()
+        )
+
+        val jarFile = File(artifactDir, "$name-$version.jar")
+        java.util.zip.ZipOutputStream(java.io.FileOutputStream(jarFile)).use { zos ->
+            val txtBuilder = StringBuilder()
+            val jsonParts = mutableListOf<String>()
+            var currentOffset = 0
+            for ((key, text) in embeddedLicenses) {
+                val bytes = text.toByteArray(kotlin.text.Charsets.UTF_8)
+                txtBuilder.append(text).append("\n")
+                jsonParts.add("\"$key\": {\"start\": $currentOffset, \"length\": ${bytes.size}}")
+                currentOffset += bytes.size + 1
+            }
+            val jsonContent = jsonParts.joinToString(prefix = "{", postfix = "}")
+
+            val namespacePrefix = if (namespaceGroup != null && namespaceArtifact != null) {
+                "META-INF/third_party_licenses/$namespaceGroup/$namespaceArtifact/"
+            } else {
+                ""
+            }
+
+            zos.putNextEntry(java.util.zip.ZipEntry("${namespacePrefix}third_party_licenses.json"))
+            zos.write(jsonContent.toByteArray(kotlin.text.Charsets.UTF_8))
+            zos.closeEntry()
+
+            zos.putNextEntry(java.util.zip.ZipEntry("${namespacePrefix}third_party_licenses.txt"))
+            zos.write(txtBuilder.toString().toByteArray(kotlin.text.Charsets.UTF_8))
+            zos.closeEntry()
+        }
+    }
+
+    @Test
+    fun testNamespacedLicenseMerging() {
+        val localRepo = tempDirectory.newFolder("localRepoNamespaced")
+
+        // 1. Publish shared dependency with POM license
+        publishSimpleLibrary(
+            localRepo,
+            "com.example",
+            "shared-dep",
+            "1.0.0",
+            "Shared Dep License",
+            "https://example.com/shared-dep-license"
+        )
+
+        // 2. Publish library with namespaced embedded license for shared-dep
+        publishLibraryWithEmbeddedLicenses(
+            localRepo,
+            "com.example",
+            "library-with-embedded",
+            "1.0.0",
+            embeddedLicenses = mapOf("shared-dep-key" to "Shared Dep License Namespaced Text"),
+            dependencies = listOf("com.example:shared-dep:1.0.0"),
+            namespaceGroup = "com.example",
+            namespaceArtifact = "library-with-embedded"
+        )
+
+        // 3. Setup project
+        File(projectDir, "build.gradle").writeText(
+            """
+            plugins {
+                id("com.android.application") version "$agpVersion"
+                id("com.google.android.gms.oss-licenses-plugin") version "${System.getProperty("plugin_version")}"
+            }
+            repositories {
+                maven { url = uri("${localRepo.absolutePath.replace("\\", "/")}") }
+                google()
+                mavenCentral()
+            }
+            android {
+                compileSdkVersion = "android-31"
+                namespace = "com.example.app"
+            }
+            dependencies {
+                implementation("com.example:library-with-embedded:1.0.0")
+            }
+        """.trimIndent()
+        )
+
+        // 4. Run task
+        val result = createRunner("releaseOssLicensesTask").build()
+        Assert.assertEquals(TaskOutcome.SUCCESS, result.task(":releaseOssLicensesTask")!!.outcome)
+
+        // 5. Verify metadata and licenses
+        val metadataFile = File(projectDir, "build/generated/res/releaseOssLicensesTask/raw/third_party_license_metadata")
+        val metadata = metadataFile.readText()
+        Assert.assertTrue(metadata.contains("shared-dep"))
+        Assert.assertTrue(metadata.contains("shared-dep-key"))
+
+        val licensesFile = File(projectDir, "build/generated/res/releaseOssLicensesTask/raw/third_party_licenses")
+        val licenses = licensesFile.readText()
+        Assert.assertTrue(licenses.contains("https://example.com/shared-dep-license"))
+        Assert.assertTrue(licenses.contains("Shared Dep License Namespaced Text"))
+    }
 }
 
 class IntegrationTest_AGP74 : IntegrationTest()
