@@ -176,35 +176,30 @@ abstract class LicensesTask extends DefaultTask {
     protected void addEmbeddedLicenses(File artifactFile) {
         try {
             new ZipFile(artifactFile).withCloseable { licensesZip ->
-                ZipEntry jsonFile = licensesZip.getEntry("third_party_licenses.json")
-                ZipEntry txtFile = licensesZip.getEntry("third_party_licenses.txt")
-
-                if (!jsonFile || !txtFile) {
-                    return
+                def namespacedJsonEntries = []
+                def entries = licensesZip.entries()
+                while (entries.hasMoreElements()) {
+                    def entry = entries.nextElement()
+                    if (entry.name.startsWith("META-INF/third_party_licenses/") && entry.name.endsWith("/third_party_licenses.json")) {
+                        namespacedJsonEntries.add(entry)
+                    }
                 }
 
-                JsonSlurper jsonSlurper = new JsonSlurper()
-                Object licensesObj = licensesZip.getInputStream(jsonFile).withCloseable {
-                    jsonSlurper.parse(it)
-                }
-                if (licensesObj == null) {
-                    return
-                }
-
-                for (entry in licensesObj) {
-                    String key = entry.key
-                    int startValue = entry.value.start
-                    int lengthValue = entry.value.length
-
-                    if (!embeddedLicenses.contains(key)) {
-                        licensesZip.getInputStream(txtFile).withCloseable {
-                            byte[] content = getBytesFromInputStream(
-                                    it,
-                                    startValue,
-                                    lengthValue)
-                            embeddedLicenses.add(key)
-                            appendDependency(key, content)
+                if (!namespacedJsonEntries.isEmpty()) {
+                    for (jsonEntry in namespacedJsonEntries) {
+                        String jsonPath = jsonEntry.name
+                        String txtPath = jsonPath.substring(0, jsonPath.length() - 5) + ".txt"
+                        ZipEntry txtEntry = licensesZip.getEntry(txtPath)
+                        if (txtEntry) {
+                            processLicenseEntry(licensesZip, jsonEntry, txtEntry)
                         }
+                    }
+                } else {
+                    ZipEntry jsonFile = licensesZip.getEntry("third_party_licenses.json")
+                    ZipEntry txtFile = licensesZip.getEntry("third_party_licenses.txt")
+
+                    if (jsonFile && txtFile) {
+                        processLicenseEntry(licensesZip, jsonFile, txtFile)
                     }
                 }
             }
@@ -215,6 +210,34 @@ abstract class LicensesTask extends DefaultTask {
             logger.warn("Failed to read embedded licenses from $artifactFile: ${e.message}")
         }
     }
+
+    protected void processLicenseEntry(ZipFile licensesZip, ZipEntry jsonFile, ZipEntry txtFile) {
+        JsonSlurper jsonSlurper = new JsonSlurper()
+        Object licensesObj = licensesZip.getInputStream(jsonFile).withCloseable {
+            jsonSlurper.parse(it)
+        }
+        if (licensesObj == null) {
+            return
+        }
+
+        for (entry in licensesObj) {
+            String key = entry.key
+            int startValue = entry.value.start
+            int lengthValue = entry.value.length
+
+            if (!embeddedLicenses.contains(key)) {
+                licensesZip.getInputStream(txtFile).withCloseable {
+                    byte[] content = getBytesFromInputStream(
+                            it,
+                            startValue,
+                            lengthValue)
+                    embeddedLicenses.add(key)
+                    appendDependency(key, content)
+                }
+            }
+        }
+    }
+
 
     protected static byte[] getBytesFromInputStream(
             InputStream stream,
