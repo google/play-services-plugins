@@ -18,18 +18,18 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
     id("java-gradle-plugin")
-    id("org.jetbrains.kotlin.jvm") version "2.1.0"
-    id("com.gradle.plugin-publish") version "1.1.0"
+    id("org.jetbrains.kotlin.jvm") version "2.4.0"
+    id("com.gradle.plugin-publish") version "2.1.1"
 }
 
 group = "com.google.gms"
 version = "4.5.0"
 
 dependencies {
-    compileOnly("com.android.tools.build:gradle-api:7.3.0")
+    compileOnly("com.android.tools.build:gradle-api:9.2.1")
     implementation("com.google.android.gms:strict-version-matcher-plugin:1.2.4")
-    implementation("com.google.code.gson:gson:2.8.5")
-    testImplementation("junit:junit:4.12")
+    implementation("com.google.code.gson:gson:2.14.0")
+    testImplementation("junit:junit:4.13.2")
 }
 
 gradlePlugin {
