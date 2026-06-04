@@ -231,6 +231,8 @@ public class LicensesTaskTest {
     assertTrue(licensesTask.licensesMap.containsKey("JSR 305"));
   }
 
+  // Verifies that the plugin successfully extracts license metadata and text when they are located 
+  // in a single namespaced path: META-INF/third_party_licenses/<group>/<artifact>/
   @Test
   public void testAddEmbeddedLicenses_namespacedSingle() throws IOException {
     File tempOutput = temporaryFolder.newFolder();
@@ -251,6 +253,8 @@ public class LicensesTaskTest {
     assertTrue(licensesTask.embeddedLicenses.contains("JSR 305"));
   }
 
+  // Verifies that the plugin successfully extracts and aggregates multiple distinct namespaced license
+  // directories within a single JAR file (simulating a shaded or fat JAR with multiple dependencies).
   @Test
   public void testAddEmbeddedLicenses_namespacedMultiple() throws IOException {
     File tempOutput = temporaryFolder.newFolder();

@@ -482,6 +482,9 @@ abstract class IntegrationTest {
         }
     }
 
+    // Verifies end-to-end execution of a Gradle project building against a namespaced library
+    // dependency, ensuring the plugin successfully extracts license files located inside
+    // META-INF/third_party_licenses/<group>/<artifact>/ and merges them with other dependencies.
     @Test
     fun testNamespacedLicenseMerging() {
         val localRepo = tempDirectory.newFolder("localRepoNamespaced")

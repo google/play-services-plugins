@@ -192,6 +192,8 @@ abstract class LicensesTask extends DefaultTask {
                         ZipEntry txtEntry = licensesZip.getEntry(txtPath)
                         if (txtEntry) {
                             processLicenseEntry(licensesZip, jsonEntry, txtEntry)
+                        } else {
+                            logger.info("Missing namespaced license text file: ${txtPath}")
                         }
                     }
                 } else {
@@ -200,6 +202,8 @@ abstract class LicensesTask extends DefaultTask {
 
                     if (jsonFile && txtFile) {
                         processLicenseEntry(licensesZip, jsonFile, txtFile)
+                    } else if (jsonFile) {
+                        logger.info("Missing root license text file: third_party_licenses.txt")
                     }
                 }
             }
