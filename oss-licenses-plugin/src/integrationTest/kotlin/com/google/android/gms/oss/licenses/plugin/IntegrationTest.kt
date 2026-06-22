@@ -382,32 +382,6 @@ abstract class IntegrationTest {
             result2.task(":releaseOssDependencyTask")?.outcome
         )
     }
-
-    private fun publishSimpleLibrary(repo: File, group: String, name: String, version: String, licenseName: String, licenseUrl: String) {
-        val groupPath = group.replace(".", "/")
-        val artifactDir = File(repo, "$groupPath/$name/$version")
-        artifactDir.mkdirs()
-
-        File(artifactDir, "$name-$version.pom").writeText(
-            """
-            <project>
-              <modelVersion>4.0.0</modelVersion>
-              <groupId>$group</groupId>
-              <artifactId>$name</artifactId>
-              <version>$version</version>
-              <name>$name</name>
-              <licenses>
-                <license>
-                  <name>$licenseName</name>
-                  <url>$licenseUrl</url>
-                </license>
-              </licenses>
-            </project>
-        """.trimIndent()
-        )
-        File(artifactDir, "$name-$version.jar").writeText("dummy jar content")
-    }
-
 }
 
 class IntegrationTest_AGP74 : IntegrationTest()
