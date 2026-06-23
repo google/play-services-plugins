@@ -31,8 +31,8 @@ import java.io.File
 abstract class EndToEndTest {
 
     // AGP and Gradle versions are defined in build.gradle.kts (single source of truth) and injected
-    // as system properties keyed by class name. E.g., EndToEndTest_AGP812 reads the system
-    // properties "EndToEndTest_AGP812.agpVersion" and "EndToEndTest_AGP812.gradleVersion".
+    // as system properties keyed by class name. E.g., EndToEndTest_AGP813 reads the system
+    // properties "EndToEndTest_AGP813.agpVersion" and "EndToEndTest_AGP813.gradleVersion".
     // To add a new version: add an entry to e2eVersions in build.gradle.kts and a subclass here
     // whose name matches the map key (prefixed with "EndToEndTest_").
     private val agpVersion: String = System.getProperty("${javaClass.simpleName}.agpVersion")
@@ -163,6 +163,6 @@ abstract class EndToEndTest {
 }
 
 // Due to the dependency requirements of the library, we can only test with recent versions of AGP
-class EndToEndTest_AGP812 : EndToEndTest()
+class EndToEndTest_AGP813 : EndToEndTest()
 class EndToEndTest_AGP_STABLE : EndToEndTest()
 class EndToEndTest_AGP_ALPHA : EndToEndTest()

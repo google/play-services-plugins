@@ -386,7 +386,7 @@ abstract class IntegrationTest {
 
 class IntegrationTest_AGP74 : IntegrationTest()
 class IntegrationTest_AGP87 : IntegrationTest()
-class IntegrationTest_AGP812 : IntegrationTest()
+class IntegrationTest_AGP813 : IntegrationTest()
 class IntegrationTest_AGP_STABLE : IntegrationTest()
 class IntegrationTest_AGP_ALPHA : IntegrationTest()
 
