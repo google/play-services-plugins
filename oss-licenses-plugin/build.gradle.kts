@@ -56,7 +56,7 @@ dependencies {
     compileOnly("com.android.tools.build:gradle-api:9.2.1")
     implementation(gradleApi())
     implementation(localGroovy())
-    implementation("com.google.protobuf:protobuf-java:4.35.0")
+    implementation("com.google.protobuf:protobuf-java:4.35.1")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.mockito:mockito-core:5.23.0")
