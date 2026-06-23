@@ -173,48 +173,80 @@ abstract class LicensesTask extends DefaultTask {
         }
     }
 
+    /**
+     * Extracts embedded licenses from the dependency artifact (JAR/AAR ZIP).
+     *
+     * This method scans the artifact for license metadata files packaged either at the root
+     * (the legacy location) or under namespaced paths in META-INF. The namespaced layout
+     * (META-INF/third_party_licenses/&lt;group&gt;/&lt;artifact&gt;/) is a specialized format used by a
+     * subset of libraries built by Google (such as Google Play services and Firebase) to prevent
+     * resource merging conflicts in downstream client builds. It processes all valid license
+     * metadata and text pairs it finds and aggregates their records.
+     */
     protected void addEmbeddedLicenses(File artifactFile) {
         try {
             new ZipFile(artifactFile).withCloseable { licensesZip ->
-                ZipEntry jsonFile = licensesZip.getEntry("third_party_licenses.json")
-                ZipEntry txtFile = licensesZip.getEntry("third_party_licenses.txt")
-
-                if (!jsonFile || !txtFile) {
-                    return
+                // Explicitly find metadata files either at the root (legacy) or under the META-INF
+                // namespaced prefix (specialized format for a subset of Google-built libraries)
+                // to avoid accidentally processing unrelated resources or assets.
+                def jsonEntries = licensesZip.entries().toList().findAll { entry ->
+                    entry.name == "third_party_licenses.json" ||
+                        (entry.name.startsWith("META-INF/third_party_licenses/") && entry.name.endsWith("/third_party_licenses.json"))
                 }
 
-                JsonSlurper jsonSlurper = new JsonSlurper()
-                Object licensesObj = licensesZip.getInputStream(jsonFile).withCloseable {
-                    jsonSlurper.parse(it)
-                }
-                if (licensesObj == null) {
-                    return
-                }
-
-                for (entry in licensesObj) {
-                    String key = entry.key
-                    int startValue = entry.value.start
-                    int lengthValue = entry.value.length
-
-                    if (!embeddedLicenses.contains(key)) {
-                        licensesZip.getInputStream(txtFile).withCloseable {
-                            byte[] content = getBytesFromInputStream(
-                                    it,
-                                    startValue,
-                                    lengthValue)
-                            embeddedLicenses.add(key)
-                            appendDependency(key, content)
-                        }
+                jsonEntries.each { jsonEntry ->
+                    String txtPath = jsonEntry.name.replace(".json", ".txt")
+                    ZipEntry txtEntry = licensesZip.getEntry(txtPath)
+                    if (!txtEntry) {
+                        logger.info("Missing license text file: ${txtPath}")
+                        return
                     }
+                    processLicenseEntry(licensesZip, jsonEntry, txtEntry)
                 }
             }
         } catch (ZipException e) {
-            // Not a zip file, or malformed. Skip.
             logger.debug("Failed to open $artifactFile as a zip file: ${e.message}")
         } catch (IOException e) {
             logger.warn("Failed to read embedded licenses from $artifactFile: ${e.message}")
         }
     }
+
+    /**
+     * Parses the license metadata JSON file within the dependency ZIP, extracts
+     * license texts at the specified offsets from the corresponding license text file,
+     * and registers them with the task's aggregated license tracker.
+     *
+     * @param licensesZip the ZipFile representation of the dependency archive
+     * @param jsonFile the ZipEntry for the third-party license JSON metadata file
+     * @param txtFile the ZipEntry for the third-party license text file (.txt)
+     */
+    protected void processLicenseEntry(ZipFile licensesZip, ZipEntry jsonFile, ZipEntry txtFile) {
+        JsonSlurper jsonSlurper = new JsonSlurper()
+        Object licensesObj = licensesZip.getInputStream(jsonFile).withCloseable {
+            jsonSlurper.parse(it)
+        }
+        if (licensesObj == null) {
+            return
+        }
+
+        for (entry in licensesObj) {
+            String key = entry.key
+            int startValue = entry.value.start
+            int lengthValue = entry.value.length
+
+            if (!embeddedLicenses.contains(key)) {
+                licensesZip.getInputStream(txtFile).withCloseable {
+                    byte[] content = getBytesFromInputStream(
+                            it,
+                            startValue,
+                            lengthValue)
+                    embeddedLicenses.add(key)
+                    appendDependency(key, content)
+                }
+            }
+        }
+    }
+
 
     protected static byte[] getBytesFromInputStream(
             InputStream stream,
