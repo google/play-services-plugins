@@ -76,9 +76,9 @@ dependencies {
 // E2E versions are a subset of the integration versions. Integration tests extend the E2E set
 // with older AGP versions to ensure broad backward compatibility.
 val e2eVersions = mapOf(
-    "AGP812"      to ("8.12.2" to "8.14.1"),       // latest stable 8.x
-    "AGP_STABLE"  to ("9.1.1" to "9.4.1"),         // latest stable 9.x
-    "AGP_ALPHA"   to ("9.3.0-alpha01" to "9.5.0-rc-3"), // latest alpha
+    "AGP813"      to ("8.13.2" to "8.14.1"),       // latest stable 8.x (bumped from 8.12.2)
+    "AGP_STABLE"  to ("9.2.1" to "9.6.0"),         // latest stable 9.x using latest stable Gradle (9.6.0)
+    "AGP_ALPHA"   to ("9.4.0-alpha01" to "9.6.0"), // latest alpha using latest stable Gradle (no active RC; satisfies >= 9.5.0)
 )
 val integrationOnlyVersions = mapOf(
     "AGP74" to ("7.4.2" to "7.5.1"), // oldest supported

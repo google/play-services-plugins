@@ -52,7 +52,7 @@ jobs:
       # Keep this list in sync with the integrationOnlyVersions + e2eVersions maps in
       # oss-licenses-plugin/build.gradle.kts.
       matrix:
-        agp-version-key: [AGP74, AGP87, AGP812, AGP_STABLE, AGP_ALPHA]
+        agp-version-key: [AGP74, AGP87, AGP813, AGP_STABLE, AGP_ALPHA]
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # ratchet:actions/checkout@v7.0.0
 
@@ -93,7 +93,7 @@ jobs:
       # Keep this list in sync with the e2eVersions map in
       # oss-licenses-plugin/build.gradle.kts.
       matrix:
-        agp-version-key: [AGP812, AGP_STABLE, AGP_ALPHA]
+        agp-version-key: [AGP813, AGP_STABLE, AGP_ALPHA]
     env:
       ANDROID_USER_HOME: /home/runner/.android
     steps:
