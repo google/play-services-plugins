@@ -231,6 +231,51 @@ public class LicensesTaskTest {
     assertTrue(licensesTask.licensesMap.containsKey("JSR 305"));
   }
 
+  // Verifies that the plugin successfully extracts license metadata and text when they are located 
+  // in a single namespaced path: META-INF/third_party_licenses/<group>/<artifact>/
+  @Test
+  public void testAddEmbeddedLicenses_namespacedSingle() throws IOException {
+    File tempOutput = temporaryFolder.newFolder();
+    tempOutput.mkdirs();
+    String artifactName = "namespaced-single.aar";
+    String prefix = "META-INF/third_party_licenses/com.example/namespaced-single/";
+    createNamespacedLicenseZip(tempOutput.getPath() + "/" + artifactName, prefix);
+    File artifact = new File(tempOutput.getPath() + "/" + artifactName);
+
+    licensesTask.initOutputDir();
+    licensesTask.addEmbeddedLicenses(artifact);
+
+    String content = new String(Files.readAllBytes(licensesTask.getLicenses().toPath()), UTF_8);
+    String expected = "safeparcel" + LINE_BREAK + "JSR 305" + LINE_BREAK;
+    assertEquals(expected, content);
+    assertThat(licensesTask.embeddedLicenses.size(), is(2));
+    assertTrue(licensesTask.embeddedLicenses.contains("safeparcel"));
+    assertTrue(licensesTask.embeddedLicenses.contains("JSR 305"));
+  }
+
+  // Verifies that the plugin successfully extracts and aggregates multiple distinct namespaced license
+  // directories within a single JAR file (simulating a shaded or fat JAR with multiple dependencies).
+  @Test
+  public void testAddEmbeddedLicenses_namespacedMultiple() throws IOException {
+    File tempOutput = temporaryFolder.newFolder();
+    tempOutput.mkdirs();
+    String artifactName = "namespaced-multiple.aar";
+    String prefix1 = "META-INF/third_party_licenses/com.example/dep1/";
+    String prefix2 = "META-INF/third_party_licenses/com.example/dep2/";
+    createNamespacedLicenseZip(tempOutput.getPath() + "/" + artifactName, prefix1, prefix2);
+    File artifact = new File(tempOutput.getPath() + "/" + artifactName);
+
+    licensesTask.initOutputDir();
+    licensesTask.addEmbeddedLicenses(artifact);
+
+    String content = new String(Files.readAllBytes(licensesTask.getLicenses().toPath()), UTF_8);
+    String expected = "safeparcel" + LINE_BREAK + "JSR 305" + LINE_BREAK;
+    assertEquals(expected, content);
+    assertThat(licensesTask.embeddedLicenses.size(), is(2));
+    assertTrue(licensesTask.embeddedLicenses.contains("safeparcel"));
+    assertTrue(licensesTask.embeddedLicenses.contains("JSR 305"));
+  }
+
   @Test
   public void testAddEmbeddedLicenses_withoutDuplicate() throws IOException {
     File groupC = temporaryFolder.newFolder();
@@ -345,18 +390,33 @@ public class LicensesTaskTest {
   }
 
   private void createLicenseZip(String name) throws IOException {
+    createNamespacedLicenseZip(name, "");
+  }
+
+  /**
+   * Helper method to create a mock dependency ZIP (AAR/JAR) containing license files
+   * packaged under specific namespaced folders (or at the root if prefix is empty).
+   *
+   * @param name the absolute file path of the output ZIP archive to create
+   * @param entryPrefixes folder prefixes under which to package the license json/txt files
+   */
+  private void createNamespacedLicenseZip(String name, String... entryPrefixes) throws IOException {
     File zipFile = new File(name);
     ZipOutputStream output = new ZipOutputStream(new FileOutputStream(zipFile));
     File input = new File(BASE_DIR + "/sampleLicenses");
-    for (File file : input.listFiles()) {
-      ZipEntry entry = new ZipEntry(file.getName());
-      byte[] bytes = Files.readAllBytes(file.toPath());
-      output.putNextEntry(entry);
-      output.write(bytes, 0, bytes.length);
-      output.closeEntry();
+    for (String entryPrefix : entryPrefixes) {
+      for (File file : input.listFiles()) {
+        String entryName = entryPrefix.isEmpty() ? file.getName() : entryPrefix + file.getName();
+        ZipEntry entry = new ZipEntry(entryName);
+        byte[] bytes = Files.readAllBytes(file.toPath());
+        output.putNextEntry(entry);
+        output.write(bytes, 0, bytes.length);
+        output.closeEntry();
+      }
     }
     output.close();
   }
+
 
   @Test
   public void testAppendLicense() throws IOException {
