@@ -6,10 +6,19 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pull-requests: read # Required by dorny/paths-filter to fetch PR file diffs
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   # Detect which plugin directories a PR touches so we can skip unrelated jobs.
   # On push-to-main and workflow_dispatch, downstream jobs ignore these outputs and always run.
   changes:
+    name: Detect changes
     runs-on: ubuntu-latest
     outputs:
       strict-version-matcher: ${{ steps.filter.outputs.strict-version-matcher }}
@@ -17,6 +26,8 @@ jobs:
       oss-licenses: ${{ steps.filter.outputs.oss-licenses }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # ratchet:actions/checkout@v7.0.0
+        with:
+          persist-credentials: false
       - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # ratchet:dorny/paths-filter@v4.0.1
         id: filter
         with:
@@ -53,6 +64,7 @@ jobs:
 
   # Aggregate status check
   ci-success:
+    name: CI Status Gate
     needs:
       - changes
       - lint

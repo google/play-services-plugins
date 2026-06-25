@@ -3,11 +3,17 @@ name: Lint
 on:
   workflow_call: # This makes it "callable" by other workflows
 
+permissions:
+  contents: read
+
 jobs:
   lint-and-check:
+    name: Run linters and checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # ratchet:actions/checkout@v7.0.0
+        with:
+          persist-credentials: false
       - name: Validate Gradle Wrapper
         uses: gradle/actions/wrapper-validation@3f131e8634966bd73d06cc69884922b02e6faf92 # ratchet:gradle/actions/wrapper-validation@v6.2.0
       - name: Lint GitHub Actions
