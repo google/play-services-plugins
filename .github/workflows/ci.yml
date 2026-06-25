@@ -64,7 +64,6 @@ jobs:
 
   # Aggregate status check
   ci-success:
-    name: CI Status Gate
     needs:
       - changes
       - lint
