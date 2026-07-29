@@ -109,7 +109,6 @@ abstract class GoogleServicesTask : DefaultTask() {
       handleGoogleApiKey(resValues)
       handleGoogleAppId(resValues)
       handleWebClientId(resValues)
-        handleSiteKey(resValues)
     }
         ?: throw GradleException(
             "No matching client found for package name '${applicationId.get()}' in ${quickstartFile.path}")
@@ -259,12 +258,6 @@ abstract class GoogleServicesTask : DefaultTask() {
       }
     }
   }
-
-    fun FirebaseClientData.handleSiteKey(resValues: MutableMap<String, String?>) {
-        this.getAsJsonPrimitive("recaptcha_site_key")?.let {
-            resValues["recaptcha_site_key"] = it.asString
-        }
-    }
 
   /**
    * Handle a client object for analytics (@xml/global_tracker)
