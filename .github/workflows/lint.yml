@@ -11,7 +11,7 @@ jobs:
     name: Run linters and checks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # ratchet:actions/checkout@v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7.0.1
         with:
           persist-credentials: false
       - name: Validate Gradle Wrapper
@@ -19,6 +19,6 @@ jobs:
       - name: Lint GitHub Actions
         uses: abcxyz/actions/.github/actions/lint-github-actions@3894a8d6a18b9aa159fe9092501d523d97f07110 # ratchet:abcxyz/actions/.github/actions/lint-github-actions@main
       - name: Ratchet Check
-        uses: sethvargo/ratchet@c7c58082b6096c976e42dfcc1ddab83f97d61c28 # ratchet:sethvargo/ratchet@main
+        uses: sethvargo/ratchet@a7ead07a89972fef4316ad196af18f87ac77bb97 # ratchet:sethvargo/ratchet@main
         with:
           files: .github/workflows/*.yml
