@@ -234,14 +234,15 @@ abstract class LicensesTask extends DefaultTask {
             int startValue = entry.value.start
             int lengthValue = entry.value.length
 
-            if (!embeddedLicenses.contains(key)) {
+            Dependency dependency = new Dependency(key, key)
+            if (!embeddedLicenses.contains(dependency.key)) {
                 licensesZip.getInputStream(txtFile).withCloseable {
                     byte[] content = getBytesFromInputStream(
                             it,
                             startValue,
                             lengthValue)
-                    embeddedLicenses.add(key)
-                    appendDependency(key, content)
+                    embeddedLicenses.add(dependency.key)
+                    appendDependency(dependency, content)
                 }
             }
         }
@@ -252,12 +253,19 @@ abstract class LicensesTask extends DefaultTask {
             InputStream stream,
             long offset,
             int length) {
+        if (offset < 0 || length < 0) {
+            throw new IllegalArgumentException("offset and length must be non-negative: offset=$offset, length=$length")
+        }
         try {
+            if (length == 0) {
+                stream.close()
+                return new byte[0]
+            }
             byte[] buffer = new byte[1024]
             ByteArrayOutputStream textArray = new ByteArrayOutputStream()
 
             stream.skip(offset)
-            int bytesRemaining = length > 0 ? length : Integer.MAX_VALUE
+            int bytesRemaining = length
             int bytes = 0
 
             while (bytesRemaining > 0
@@ -352,12 +360,22 @@ abstract class LicensesTask extends DefaultTask {
     }
 
     protected static class Dependency {
-        String key
-        String name
+        final String key
+        final String name
 
         Dependency(String key, String name) {
-            this.key = key
-            this.name = name
+            this.key = sanitize(key, "key")
+            if (this.key.isEmpty()) {
+                throw new IllegalArgumentException("key cannot be empty")
+            }
+            String sanitizedName = sanitize(name, "name")
+            this.name = sanitizedName.isEmpty() ? this.key : sanitizedName
+        }
+
+        private static String sanitize(String value, String fieldName) {
+            return Objects.requireNonNull(value, "$fieldName cannot be null")
+                    .replaceAll(/\R+/, ' ')
+                    .strip()
         }
 
         String buildLicensesMetadata(String offset) {

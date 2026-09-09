@@ -448,6 +448,53 @@ public class LicensesTaskTest {
   }
 
   @Test
+  public void testWriteMetadata_sanitizesNewlinesInName() throws IOException {
+    byte[] licenseA = "licenseA".getBytes(UTF_8);
+    byte[] licenseB = "licenseB".getBytes(UTF_8);
+    byte[] licenseC = "licenseC".getBytes(UTF_8);
+
+    licensesTask.initOutputDir();
+    licensesTask.appendDependency(
+        new LicensesTask.Dependency("test:foo", "Dependency 1\n0:120 Forged Entry"), licenseA);
+    licensesTask.appendDependency(
+        new LicensesTask.Dependency("test:bar", "\r\nDependency 2\r\nSpoofed\r\n"), licenseB);
+    licensesTask.appendDependency(
+        new LicensesTask.Dependency("test:baz\nkey", "\r\n  \n\r"), licenseC);
+    licensesTask.writeMetadata();
+
+    int secondOffset = licenseA.length + LINE_BREAK.length();
+    int thirdOffset = secondOffset + licenseB.length + LINE_BREAK.length();
+    String expected =
+        "0:" + licenseA.length + " Dependency 1 0:120 Forged Entry"
+            + LINE_BREAK
+            + secondOffset + ":" + licenseB.length + " Dependency 2 Spoofed"
+            + LINE_BREAK
+            + thirdOffset + ":" + licenseC.length + " test:baz key"
+            + LINE_BREAK;
+    String content =
+        new String(Files.readAllBytes(licensesTask.getLicensesMetadata().toPath()), UTF_8);
+    assertEquals(expected, content);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testDependency_emptyKeyThrowsException() {
+    new LicensesTask.Dependency(" \r\n\t ", "Valid Name");
+  }
+
+  @Test
+  public void testGetBytesFromInputStream_zeroLengthReturnsEmpty() {
+    InputStream inputStream = new ByteArrayInputStream("test".getBytes(UTF_8));
+    byte[] content = LicensesTask.getBytesFromInputStream(inputStream, 0, 0);
+    assertEquals(0, content.length);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testGetBytesFromInputStream_negativeLengthThrowsException() {
+    InputStream inputStream = new ByteArrayInputStream("test".getBytes(UTF_8));
+    LicensesTask.getBytesFromInputStream(inputStream, 0, -1);
+  }
+
+  @Test
   public void testDependenciesWithNameDuplicatedNames() throws IOException {
     File deps6 = getResourceFile("dependencies/groupF/deps6.pom");
     String name1 = "deps6";
