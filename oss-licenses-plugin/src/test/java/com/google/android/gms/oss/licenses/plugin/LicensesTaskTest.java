@@ -23,6 +23,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.gson.Gson;
@@ -174,6 +175,77 @@ public class LicensesTaskTest {
 
     assertThat(licensesTask.licensesMap.size(), is(1));
     assertTrue(licensesTask.licensesMap.containsKey("groupA:deps1"));
+    assertEquals(expected, content);
+  }
+
+  /**
+   * A POM {@code <name>} is attacker-controlled. No line break encoding that survives an XML
+   * parser may forge an extra record in the line-delimited metadata file.
+   */
+  @Test
+  public void testAddLicensesFromPom_sanitizesNewlinesInName() throws IOException {
+    File deps7 = getResourceFile("dependencies/groupG/deps7.pom");
+    licensesTask.initOutputDir();
+    licensesTask.addLicensesFromPom(deps7, "groupG", "deps7");
+    licensesTask.writeMetadata();
+
+    byte[] licenseUrl = "http://www.opensource.org/licenses/mit-license.php".getBytes(UTF_8);
+    // Asserting the whole file, rather than a substring, is what proves no second record exists.
+    String expected =
+        "0:"
+            + licenseUrl.length
+            + " Forged Library 0:120 Fake Attribution 0:130 Another Fake CR Injected LS Injected"
+            + LINE_BREAK;
+    String content =
+        new String(Files.readAllBytes(licensesTask.getLicensesMetadata().toPath()), UTF_8);
+    assertThat(licensesTask.licensesMap.size(), is(1));
+    assertEquals(expected, content);
+  }
+
+  /**
+   * With multiple licenses the map key is composed from the attacker-controlled {@code <license>}
+   * name, so newlines must be stripped from the key as well as the display name. An unsanitized
+   * key would split one dependency across two dedup entries.
+   */
+  @Test
+  public void testAddLicensesFromPom_sanitizesNewlinesInMultipleLicenseKeys() throws IOException {
+    File deps8 = getResourceFile("dependencies/groupG/deps8.pom");
+    licensesTask.initOutputDir();
+    licensesTask.addLicensesFromPom(deps8, "groupG", "deps8");
+    licensesTask.writeMetadata();
+
+    assertThat(licensesTask.licensesMap.size(), is(2));
+    assertTrue(licensesTask.licensesMap.containsKey("groupG:deps8 MIT 0:120 Forged Key"));
+    assertTrue(licensesTask.licensesMap.containsKey("groupG:deps8 Apache License 2.0"));
+
+    byte[] mit = "http://www.opensource.org/licenses/mit-license.php".getBytes(UTF_8);
+    byte[] apache = "https://www.apache.org/licenses/LICENSE-2.0".getBytes(UTF_8);
+    int secondOffset = mit.length + LINE_BREAK.getBytes(UTF_8).length;
+    String expected =
+        "0:" + mit.length + " Multi License Library"
+            + LINE_BREAK
+            + secondOffset + ":" + apache.length + " Multi License Library"
+            + LINE_BREAK;
+    String content =
+        new String(Files.readAllBytes(licensesTask.getLicensesMetadata().toPath()), UTF_8);
+    assertEquals(expected, content);
+  }
+
+  /**
+   * A POM whose {@code <name>} is blank once parsed is attributed by its Maven coordinate. The
+   * record must never be blank, because a blank display name attributes nothing.
+   */
+  @Test
+  public void testAddLicensesFromPom_blankNameIsAttributedByCoordinate() throws IOException {
+    File deps9 = getResourceFile("dependencies/groupG/deps9.pom");
+    licensesTask.initOutputDir();
+    licensesTask.addLicensesFromPom(deps9, "groupG", "deps9");
+    licensesTask.writeMetadata();
+
+    byte[] licenseUrl = "http://www.opensource.org/licenses/mit-license.php".getBytes(UTF_8);
+    String expected = "0:" + licenseUrl.length + " groupG:deps9" + LINE_BREAK;
+    String content =
+        new String(Files.readAllBytes(licensesTask.getLicensesMetadata().toPath()), UTF_8);
     assertEquals(expected, content);
   }
 
@@ -445,6 +517,139 @@ public class LicensesTaskTest {
     String content = new String(Files.readAllBytes(licensesTask.getLicensesMetadata().toPath()),
         UTF_8);
     assertEquals(expected, content);
+  }
+
+  @Test
+  public void testWriteMetadata_sanitizesNewlinesInName() throws IOException {
+    byte[] licenseA = "licenseA".getBytes(UTF_8);
+    byte[] licenseB = "licenseB".getBytes(UTF_8);
+    byte[] licenseC = "licenseC".getBytes(UTF_8);
+
+    licensesTask.initOutputDir();
+    licensesTask.appendDependency(
+        new LicensesTask.Dependency("test:foo", "Dependency 1\n0:120 Forged Entry"), licenseA);
+    licensesTask.appendDependency(
+        new LicensesTask.Dependency("test:bar", "\r\nDependency 2\r\nSpoofed\r\n"), licenseB);
+    licensesTask.appendDependency(
+        new LicensesTask.Dependency("test:baz\nkey", "\r\n  \n\r"), licenseC);
+    licensesTask.writeMetadata();
+
+    int lineBreakBytes = LINE_BREAK.getBytes(UTF_8).length;
+    int secondOffset = licenseA.length + lineBreakBytes;
+    int thirdOffset = secondOffset + licenseB.length + lineBreakBytes;
+    String expected =
+        "0:" + licenseA.length + " Dependency 1 0:120 Forged Entry"
+            + LINE_BREAK
+            + secondOffset + ":" + licenseB.length + " Dependency 2 Spoofed"
+            + LINE_BREAK
+            + thirdOffset + ":" + licenseC.length + " test:baz key"
+            + LINE_BREAK;
+    String content =
+        new String(Files.readAllBytes(licensesTask.getLicensesMetadata().toPath()), UTF_8);
+    assertEquals(expected, content);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testDependency_emptyKeyThrowsException() {
+    new LicensesTask.Dependency(" \r\n\t ", "Valid Name");
+  }
+
+  @Test
+  public void testGetBytesFromInputStream_zeroLengthReadsToEnd() {
+    // A zero length means the license metadata omitted the field, so the whole stream is read.
+    InputStream inputStream = new ByteArrayInputStream("test".getBytes(UTF_8));
+    byte[] content = LicensesTask.getBytesFromInputStream(inputStream, 0, 0);
+    assertEquals("test", new String(content, UTF_8));
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testGetBytesFromInputStream_negativeLengthThrowsException() {
+    InputStream inputStream = new ByteArrayInputStream("test".getBytes(UTF_8));
+    LicensesTask.getBytesFromInputStream(inputStream, 0, -1);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testGetBytesFromInputStream_negativeOffsetThrowsException() {
+    InputStream inputStream = new ByteArrayInputStream("test".getBytes(UTF_8));
+    LicensesTask.getBytesFromInputStream(inputStream, -1, 1);
+  }
+
+  @Test
+  public void testGetBytesFromInputStream_invalidBoundsClosesStream() throws IOException {
+    InputStream inputStream = mock(InputStream.class);
+    try {
+      LicensesTask.getBytesFromInputStream(inputStream, -1, 1);
+      fail("This test should throw IllegalArgumentException.");
+    } catch (IllegalArgumentException expected) {
+      // Expected.
+    }
+    verify(inputStream).close();
+  }
+
+  @Test
+  public void testAddEmbeddedLicenses_sanitizesAndDeduplicatesKeysWithNewlines() throws IOException {
+    File artifactFile = temporaryFolder.newFile("newline-keys.aar");
+    writeLicenseZip(
+        artifactFile,
+        "{\"foo\\nbar\": {\"start\": 0, \"length\": 4}, \"foo bar\": {\"start\": 0, \"length\": 4}}");
+
+    licensesTask.initOutputDir();
+    licensesTask.addEmbeddedLicenses(artifactFile);
+
+    assertThat(licensesTask.embeddedLicenses.size(), is(1));
+    assertTrue(licensesTask.embeddedLicenses.contains("foo bar"));
+    assertThat(licensesTask.licensesMap.size(), is(1));
+    assertTrue(licensesTask.licensesMap.containsKey("foo bar"));
+  }
+
+  // A dependency author must not be able to break a consumer's build with a blank license key.
+  @Test
+  public void testAddEmbeddedLicenses_blankKeyIsSkippedNotFatal() throws IOException {
+    File artifactFile = temporaryFolder.newFile("blank-key.aar");
+    writeLicenseZip(
+        artifactFile,
+        "{\"\\n\": {\"start\": 0, \"length\": 4}, \"valid\": {\"start\": 0, \"length\": 4}}");
+
+    licensesTask.initOutputDir();
+    licensesTask.addEmbeddedLicenses(artifactFile);
+
+    assertThat(licensesTask.embeddedLicenses.size(), is(1));
+    assertTrue(licensesTask.embeddedLicenses.contains("valid"));
+    assertThat(licensesTask.licensesMap.size(), is(1));
+    assertTrue(licensesTask.licensesMap.containsKey("valid"));
+  }
+
+  // Negative start or length in third_party_licenses.json must be skipped without aborting the
+  // build or polluting embeddedLicenses.
+  @Test
+  public void testAddEmbeddedLicenses_negativeBoundsIsSkippedNotFatal() throws IOException {
+    File artifactFile = temporaryFolder.newFile("negative-bounds.aar");
+    writeLicenseZip(
+        artifactFile,
+        "{\"badStart\": {\"start\": -1, \"length\": 4},"
+            + " \"badLength\": {\"start\": 0, \"length\": -5},"
+            + " \"valid\": {\"start\": 0, \"length\": 4}}");
+
+    licensesTask.initOutputDir();
+    licensesTask.addEmbeddedLicenses(artifactFile);
+
+    assertThat(licensesTask.embeddedLicenses.size(), is(1));
+    assertTrue(licensesTask.embeddedLicenses.contains("valid"));
+    assertThat(licensesTask.licensesMap.size(), is(1));
+    assertTrue(licensesTask.licensesMap.containsKey("valid"));
+  }
+
+  /** Writes a minimal AAR containing the given {@code third_party_licenses.json} content. */
+  private void writeLicenseZip(File artifactFile, String jsonContent) throws IOException {
+    try (ZipOutputStream output = new ZipOutputStream(new FileOutputStream(artifactFile))) {
+      output.putNextEntry(new ZipEntry("third_party_licenses.json"));
+      output.write(jsonContent.getBytes(UTF_8));
+      output.closeEntry();
+
+      output.putNextEntry(new ZipEntry("third_party_licenses.txt"));
+      output.write("test".getBytes(UTF_8));
+      output.closeEntry();
+    }
   }
 
   @Test

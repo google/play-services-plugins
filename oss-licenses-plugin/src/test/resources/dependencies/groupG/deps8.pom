@@ -1,0 +1,26 @@
+<project>
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>groupG</groupId>
+  <artifactId>groupG-deps8</artifactId>
+  <version>1</version>
+  <name>Multi License Library</name>
+  <description>groupG deps8</description>
+
+  <!--
+    With more than one license, LicensesTask composes the map key as
+    "<group>:<artifact> <licenseName>". The license name is attacker-controlled too, so this
+    fixture drives newlines into the key rather than the display name.
+  -->
+  <licenses>
+    <license>
+      <name>MIT
+0:120 Forged Key</name>
+      <url>http://www.opensource.org/licenses/mit-license.php</url>
+    </license>
+    <license>
+      <name>Apache License 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+    </license>
+  </licenses>
+</project>

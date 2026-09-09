@@ -1,0 +1,23 @@
+<project>
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>groupG</groupId>
+  <artifactId>groupG-deps7</artifactId>
+  <version>1</version>
+  <!--
+    The display name carries every newline encoding an attacker can get through an XML parser:
+    a literal line break, a &#10; LF entity, a &#13; CR entity (a literal CR would be normalized
+    to LF by the parser per XML 1.0 2.11, so the entity is the only way to smuggle a real CR),
+    and a &#8232; U+2028 LINE SEPARATOR. All must collapse to a single-line record.
+  -->
+  <name>Forged Library
+0:120 Fake Attribution&#10;0:130 Another Fake&#13;CR Injected&#8232;LS Injected</name>
+  <description>groupG deps7</description>
+
+  <licenses>
+    <license>
+      <name>MIT License</name>
+      <url>http://www.opensource.org/licenses/mit-license.php</url>
+    </license>
+  </licenses>
+</project>

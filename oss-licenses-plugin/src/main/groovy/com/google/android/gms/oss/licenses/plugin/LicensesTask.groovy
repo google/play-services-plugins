@@ -216,6 +216,11 @@ abstract class LicensesTask extends DefaultTask {
      * license texts at the specified offsets from the corresponding license text file,
      * and registers them with the task's aggregated license tracker.
      *
+     * A record whose key or byte range is malformed is logged and skipped rather than aborting the
+     * build. The caller, {@link #addEmbeddedLicenses(File)}, deliberately tolerates unreadable
+     * third-party artifacts, and an unchecked exception thrown from here would escape that handler
+     * and fail a consumer's build over a single bad entry.
+     *
      * @param licensesZip the ZipFile representation of the dependency archive
      * @param jsonFile the ZipEntry for the third-party license JSON metadata file
      * @param txtFile the ZipEntry for the third-party license text file (.txt)
@@ -230,51 +235,80 @@ abstract class LicensesTask extends DefaultTask {
         }
 
         for (entry in licensesObj) {
-            String key = entry.key
-            int startValue = entry.value.start
-            int lengthValue = entry.value.length
+            // A malformed entry must not fail the build: addEmbeddedLicenses() deliberately
+            // tolerates unreadable third-party artifacts, so skip the record and keep going.
+            try {
+                String key = entry.key
+                int startValue = entry.value.start
+                int lengthValue = entry.value.length
+                Dependency dependency = new Dependency(key, key)
 
-            if (!embeddedLicenses.contains(key)) {
-                licensesZip.getInputStream(txtFile).withCloseable {
-                    byte[] content = getBytesFromInputStream(
-                            it,
-                            startValue,
-                            lengthValue)
-                    embeddedLicenses.add(key)
-                    appendDependency(key, content)
+                if (!embeddedLicenses.contains(dependency.key)) {
+                    licensesZip.getInputStream(txtFile).withCloseable {
+                        byte[] content = getBytesFromInputStream(
+                                it,
+                                startValue,
+                                lengthValue)
+                        embeddedLicenses.add(dependency.key)
+                        appendDependency(dependency, content)
+                    }
                 }
+            } catch (IllegalArgumentException | NullPointerException e) {
+                logger.warn("Skipping malformed license entry in ${jsonFile.name}: ${e.message}")
             }
         }
     }
 
 
+    /**
+     * Reads the license text occupying {@code length} bytes at {@code offset}, always closing
+     * {@code stream} before returning.
+     *
+     * Why is a {@code length} of zero read to the end of the stream rather than treated as an
+     * empty range? Groovy coerces an absent JSON {@code length} field to {@code 0}, so zero means
+     * "the artifact did not say", not "no bytes". Returning an empty array would silently drop the
+     * attribution text for every artifact with incomplete metadata.
+     *
+     * @param stream the license text stream, closed on every return path including failures
+     * @param offset the byte offset at which this dependency's license text begins
+     * @param length the number of bytes to read, or zero to read to the end of the stream
+     * @return the license text bytes
+     * @throws IllegalArgumentException if {@code offset} or {@code length} is negative
+     * @throws RuntimeException if the stream cannot be read
+     */
     protected static byte[] getBytesFromInputStream(
             InputStream stream,
             long offset,
             int length) {
-        try {
-            byte[] buffer = new byte[1024]
-            ByteArrayOutputStream textArray = new ByteArrayOutputStream()
-
-            stream.skip(offset)
-            int bytesRemaining = length > 0 ? length : Integer.MAX_VALUE
-            int bytes = 0
-
-            while (bytesRemaining > 0
-                    && (bytes =
-                    stream.read(
-                            buffer,
-                            0,
-                            Math.min(bytesRemaining, buffer.length)))
-                    != -1) {
-                textArray.write(buffer, 0, bytes)
-                bytesRemaining -= bytes
+        return stream.withCloseable { InputStream is ->
+            if (offset < 0 || length < 0) {
+                throw new IllegalArgumentException("offset and length must be non-negative: offset=$offset, length=$length")
             }
-            stream.close()
+            try {
+                byte[] buffer = new byte[1024]
+                ByteArrayOutputStream textArray = new ByteArrayOutputStream()
 
-            return textArray.toByteArray()
-        } catch (Exception e) {
-            throw new RuntimeException(FAIL_READING_LICENSES_ERROR, e)
+                is.skip(offset)
+                // A length of 0 means the license metadata omitted the field. Read to the end
+                // of the stream, as before, rather than silently shipping an empty attribution.
+                int bytesRemaining = length > 0 ? length : Integer.MAX_VALUE
+                int bytes = 0
+
+                while (bytesRemaining > 0
+                        && (bytes =
+                        is.read(
+                                buffer,
+                                0,
+                                Math.min(bytesRemaining, buffer.length)))
+                        != -1) {
+                    textArray.write(buffer, 0, bytes)
+                    bytesRemaining -= bytes
+                }
+
+                return textArray.toByteArray()
+            } catch (Exception e) {
+                throw new RuntimeException(FAIL_READING_LICENSES_ERROR, e)
+            }
         }
     }
 
@@ -351,15 +385,65 @@ abstract class LicensesTask extends DefaultTask {
         return new ArtifactInfo(entry.group, entry.name, entry.version)
     }
 
+    /**
+     * One attribution record: the key that identifies a dependency for deduplication, and the
+     * display name shown in the consuming app's license menu.
+     *
+     * Both values originate from dependency-authored metadata — a Maven POM {@code <name>} element
+     * or a key in an AAR's third_party_licenses.json — and are sanitized here, at the only point
+     * where an instance can be created. The metadata file these records are written to is newline
+     * delimited, so an unsanitized line break would terminate a record early and let the remainder
+     * forge a second, fully attacker-controlled entry.
+     *
+     * Why are the fields {@code final}? A non-final Groovy property generates a public setter and
+     * enables the map constructor, either of which would write an unsanitized value straight past
+     * the constructor.
+     */
     protected static class Dependency {
-        String key
-        String name
+        final String key
+        final String name
 
+        /**
+         * @param key identifies the dependency for deduplication; rejected when blank, as there is
+         *     no substitute for it and a blank key silently collapses distinct dependencies
+         * @param name the display name, falling back to the sanitized key when blank, because a
+         *     record with no display name attributes nothing; every current caller already
+         *     supplies a non-blank name, so the fallback is defensive only
+         * @throws IllegalArgumentException if {@code key} is blank once sanitized
+         * @throws NullPointerException if {@code key} or {@code name} is null
+         */
         Dependency(String key, String name) {
-            this.key = key
-            this.name = name
+            this.key = sanitize(key, "key")
+            if (this.key.isEmpty()) {
+                throw new IllegalArgumentException("key cannot be empty")
+            }
+            String sanitizedName = sanitize(name, "name")
+            this.name = sanitizedName.isEmpty() ? this.key : sanitizedName
         }
 
+        /**
+         * Collapses each run of line breaks in {@code value} to a single space, then trims.
+         *
+         * {@code \R} matches every Unicode line break — LF, CR, CRLF, vertical tab, form feed,
+         * NEL, and the U+2028 and U+2029 separators — so an unusual encoding cannot evade this.
+         * {@code strip} handles the resulting edges and, unlike {@code trim}, is Unicode-aware.
+         *
+         * @param value the raw, dependency-authored string
+         * @param fieldName the field being sanitized, used in the null-check message
+         * @return the single-line, trimmed value, empty only if {@code value} was blank
+         */
+        private static String sanitize(String value, String fieldName) {
+            return Objects.requireNonNull(value, "$fieldName cannot be null")
+                    .replaceAll(/\R+/, ' ')
+                    .strip()
+        }
+
+        /**
+         * Renders this dependency's line in the newline-delimited metadata file.
+         *
+         * @param offset the "start:length" pair locating this dependency's license text
+         * @return one record; the name is sanitized, so the line cannot be split
+         */
         String buildLicensesMetadata(String offset) {
             return "$offset $name"
         }
