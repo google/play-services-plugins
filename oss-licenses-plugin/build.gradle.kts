@@ -20,8 +20,8 @@ import org.gradle.jvm.toolchain.JavaToolchainService
 plugins {
     id("groovy")
     id("java-gradle-plugin")
-    id("org.jetbrains.kotlin.jvm") version "2.4.10"
-    id("com.gradle.plugin-publish") version "2.1.1"
+    id("org.jetbrains.kotlin.jvm") version "2.4.20"
+    id("com.gradle.plugin-publish") version "2.2.1"
 }
 
 group = "com.google.android.gms"
