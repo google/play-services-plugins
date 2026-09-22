@@ -20,8 +20,8 @@ import org.gradle.jvm.toolchain.JavaToolchainService
 plugins {
     id("groovy")
     id("java-gradle-plugin")
-    id("org.jetbrains.kotlin.jvm") version "2.4.10"
-    id("com.gradle.plugin-publish") version "2.1.1"
+    id("org.jetbrains.kotlin.jvm") version "2.4.20"
+    id("com.gradle.plugin-publish") version "2.2.1"
 }
 
 group = "com.google.android.gms"
@@ -56,7 +56,7 @@ dependencies {
     compileOnly("com.android.tools.build:gradle-api:9.2.1")
     implementation(gradleApi())
     implementation(localGroovy())
-    implementation("com.google.protobuf:protobuf-java:4.36.1")
+    implementation("com.google.protobuf:protobuf-java:4.36.2")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.mockito:mockito-core:5.23.0")
