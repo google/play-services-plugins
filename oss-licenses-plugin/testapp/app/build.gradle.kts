@@ -64,6 +64,11 @@ tasks.withType<Test>().configureEach {
     val javaToolchains = project.extensions.getByType<JavaToolchainService>()
     javaLauncher.set(javaToolchains.launcherFor { languageVersion.set(JavaLanguageVersion.of(21)) })
 
+    // Robolectric 4.17's FileDescriptorInterceptor reflects on jdk.internal.access.SharedSecrets
+    // when ApplicationSharedMemory.create() initializes on SDK 36+, which requires opening
+    // java.base/jdk.internal.access to unnamed modules on JDK 21+.
+    jvmArgs("--add-opens=java.base/jdk.internal.access=ALL-UNNAMED")
+
     // Enable parallel execution for faster Robolectric runs
     maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
 
