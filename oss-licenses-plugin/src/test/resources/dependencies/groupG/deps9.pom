@@ -1,0 +1,17 @@
+<project>
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>groupG</groupId>
+  <artifactId>groupG-deps9</artifactId>
+  <version>1</version>
+  <!-- A display name consisting only of line breaks, i.e. blank once parsed. -->
+  <name>&#10;&#10;</name>
+  <description>groupG deps9</description>
+
+  <licenses>
+    <license>
+      <name>MIT License</name>
+      <url>http://www.opensource.org/licenses/mit-license.php</url>
+    </license>
+  </licenses>
+</project>
