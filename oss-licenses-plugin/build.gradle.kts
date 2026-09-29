@@ -63,6 +63,7 @@ dependencies {
     testImplementation("com.google.guava:guava:33.7.1-jre")
     testImplementation("com.google.truth:truth:1.4.5")
     testImplementation("com.google.code.gson:gson:2.14.0")
+    testImplementation("org.semver4j:semver4j:6.0.0")
     testImplementation("com.android.tools.build:gradle:9.2.1") {
         because("Needed for DependencyTaskTest.")
     }

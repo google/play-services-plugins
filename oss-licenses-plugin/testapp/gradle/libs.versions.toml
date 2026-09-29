@@ -1,19 +1,19 @@
 [versions]
-agp = "9.4.0"
+agp = "9.4.1"
 androidx-activity = "1.13.0"
 androidx-appcompat = "1.8.0"
-androidx-compose-bom = "2026.06.00"
+androidx-compose-bom = "2026.09.00"
 androidx-test = "1.7.0"
 androidx-test-espresso = "3.7.0"
 androidx-test-ext = "1.3.0"
-compileSdk = "36"
+compileSdk = "37"
 junit = "4.13.2"
-kotlin = "2.4.10"
+kotlin = "2.4.20"
 minSdk = "24"
 oss-licenses-plugin = "+"
 oss-licenses-library = "+" # Always use the latest available
-robolectric = "4.16.1"
-targetSdk = "36"
+robolectric = "4.17"
+targetSdk = "37"
 
 [libraries]
 androidx-activity = { module = "androidx.activity:activity", version.ref = "androidx-activity" }

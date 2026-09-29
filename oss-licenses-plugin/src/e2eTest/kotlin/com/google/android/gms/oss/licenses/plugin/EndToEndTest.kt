@@ -23,6 +23,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import org.semver4j.Semver
 import java.io.File
 
 /**
@@ -41,9 +42,6 @@ abstract class EndToEndTest {
         ?: error("Missing ${javaClass.simpleName}.gradleVersion — add to e2eVersions in build.gradle.kts")
 
     companion object {
-        private val AGP_VERSION_REGEX = Regex("""agp = ".*"""")
-        private val KOTLIN_VERSION_REGEX = Regex("""kotlin = ".*"""")
-
         // AGP 9+ has built-in Kotlin support; AGP 8.x requires the standalone KGP with legacy config.
         private val AGP_9_KOTLIN_BLOCK = """
             kotlin {
@@ -100,33 +98,43 @@ abstract class EndToEndTest {
     }
 
     private fun patchVersions() {
-        val agpBundlesKgp = agpVersion.substringBefore('.').toIntOrNull()?.let { it >= 9 } ?: false
+        val agp = Semver(agpVersion)
+        val agpBundlesKgp = agp.isGreaterThanOrEqualTo("9.0.0")
+        // Compose BOM 2026.09.00+ (Compose 1.12.1+) requires minAgpVersion 9.1.0 in AAR metadata.
+        val supportsLatestComposeBom = agp.isGreaterThanOrEqualTo("9.1.0")
 
-        // Patch AGP (and optionally Kotlin) version in the version catalog
         val tomlFile = File(projectDir, "gradle/libs.versions.toml")
         var tomlContent = tomlFile.readText()
-        check(AGP_VERSION_REGEX.containsMatchIn(tomlContent)) {
-            "libs.versions.toml missing expected 'agp = \"...\"' entry — has the testapp template changed?"
-        }
-        tomlContent = tomlContent.replace(AGP_VERSION_REGEX, "agp = \"$agpVersion\"")
-        if (!agpBundlesKgp) {
-            check(KOTLIN_VERSION_REGEX.containsMatchIn(tomlContent)) {
-                "libs.versions.toml missing expected 'kotlin = \"...\"' entry — has the testapp template changed?"
-            }
-            tomlContent = tomlContent.replace(KOTLIN_VERSION_REGEX, "kotlin = \"2.1.10\"")
-        }
-        tomlFile.writeText(tomlContent)
+            .replaceVersionCatalogEntry("agp", agpVersion)
 
-        // AGP 8.x doesn't have built-in Kotlin support — replace with standalone KGP config
         if (!agpBundlesKgp) {
-            val buildFile = File(projectDir, "app/build.gradle.kts")
-            val original = buildFile.readText()
-            val patched = original.replace(AGP_9_KOTLIN_BLOCK, AGP_8_KOTLIN_BLOCK)
-            check(patched != original) {
-                "Failed to patch Kotlin block in app/build.gradle.kts — has the testapp template changed?"
-            }
-            buildFile.writeText(patched)
+            tomlContent = tomlContent.replaceVersionCatalogEntry("kotlin", "2.1.10")
+            patchLegacyKotlinBuildConfig()
         }
+        if (!supportsLatestComposeBom) {
+            tomlContent = tomlContent.replaceVersionCatalogEntry("androidx-compose-bom", "2026.06.00")
+        }
+
+        tomlFile.writeText(tomlContent)
+    }
+
+    private fun String.replaceVersionCatalogEntry(key: String, version: String): String {
+        val regex = Regex("""${Regex.escape(key)} = ".*"""")
+        check(regex.containsMatchIn(this)) {
+            "libs.versions.toml missing expected '$key = \"...\"' entry — has the testapp template changed?"
+        }
+        return replace(regex, """$key = "$version"""")
+    }
+
+    private fun patchLegacyKotlinBuildConfig() {
+        // AGP 8.x doesn't have built-in Kotlin support — replace with standalone KGP config.
+        val buildFile = File(projectDir, "app/build.gradle.kts")
+        val original = buildFile.readText()
+        val patched = original.replace(AGP_9_KOTLIN_BLOCK, AGP_8_KOTLIN_BLOCK)
+        check(patched != original) {
+            "Failed to patch Kotlin block in app/build.gradle.kts — has the testapp template changed?"
+        }
+        buildFile.writeText(patched)
     }
 
     private fun createRunner(vararg arguments: String): GradleRunner {
