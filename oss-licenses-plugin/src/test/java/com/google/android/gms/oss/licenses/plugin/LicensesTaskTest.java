@@ -639,6 +639,38 @@ public class LicensesTaskTest {
     assertTrue(licensesTask.licensesMap.containsKey("valid"));
   }
 
+  // A wrongly shaped entry (value is not an object) must be skipped, and later entries kept.
+  @Test
+  public void testAddEmbeddedLicenses_wronglyShapedEntryIsSkippedNotFatal() throws IOException {
+    File artifactFile = temporaryFolder.newFile("wrong-shape.aar");
+    writeLicenseZip(
+        artifactFile,
+        "{\"notAnObject\": 5,"
+            + " \"badStart\": {\"start\": \"abc\", \"length\": 4},"
+            + " \"valid\": {\"start\": 0, \"length\": 4}}");
+
+    licensesTask.initOutputDir();
+    licensesTask.addEmbeddedLicenses(artifactFile);
+
+    assertThat(licensesTask.embeddedLicenses.size(), is(1));
+    assertTrue(licensesTask.embeddedLicenses.contains("valid"));
+    assertThat(licensesTask.licensesMap.size(), is(1));
+    assertTrue(licensesTask.licensesMap.containsKey("valid"));
+  }
+
+  // A third_party_licenses.json that is not valid JSON must not fail the consumer's build.
+  @Test
+  public void testAddEmbeddedLicenses_unparseableJsonIsSkippedNotFatal() throws IOException {
+    File artifactFile = temporaryFolder.newFile("bad-json.aar");
+    writeLicenseZip(artifactFile, "{\"valid\": {\"start\": 0, ");
+
+    licensesTask.initOutputDir();
+    licensesTask.addEmbeddedLicenses(artifactFile);
+
+    assertTrue(licensesTask.embeddedLicenses.isEmpty());
+    assertTrue(licensesTask.licensesMap.isEmpty());
+  }
+
   /** Writes a minimal AAR containing the given {@code third_party_licenses.json} content. */
   private void writeLicenseZip(File artifactFile, String jsonContent) throws IOException {
     try (ZipOutputStream output = new ZipOutputStream(new FileOutputStream(artifactFile))) {

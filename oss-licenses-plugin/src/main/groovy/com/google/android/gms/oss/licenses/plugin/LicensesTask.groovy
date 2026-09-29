@@ -216,10 +216,16 @@ abstract class LicensesTask extends DefaultTask {
      * license texts at the specified offsets from the corresponding license text file,
      * and registers them with the task's aggregated license tracker.
      *
-     * A record whose key or byte range is malformed is logged and skipped rather than aborting the
-     * build. The caller, {@link #addEmbeddedLicenses(File)}, deliberately tolerates unreadable
-     * third-party artifacts, and an unchecked exception thrown from here would escape that handler
-     * and fail a consumer's build over a single bad entry.
+     * A malformed file or record is logged and skipped rather than aborting the build. The caller,
+     * {@link #addEmbeddedLicenses(File)}, deliberately tolerates unreadable third-party artifacts,
+     * and an unchecked exception thrown from here would escape that handler and fail a consumer's
+     * build over a single bad entry.
+     *
+     * Why catch {@code RuntimeException} rather than specific types? The JSON is untrusted, and
+     * its failure modes surface as many unrelated unchecked types: {@code JsonException} for bad
+     * syntax, Groovy coercion and missing-property exceptions for a wrongly shaped entry,
+     * {@code IllegalArgumentException} for a blank key or negative byte range, and a wrapped
+     * {@code IOException} from {@link #getBytesFromInputStream}.
      *
      * @param licensesZip the ZipFile representation of the dependency archive
      * @param jsonFile the ZipEntry for the third-party license JSON metadata file
@@ -227,16 +233,20 @@ abstract class LicensesTask extends DefaultTask {
      */
     protected void processLicenseEntry(ZipFile licensesZip, ZipEntry jsonFile, ZipEntry txtFile) {
         JsonSlurper jsonSlurper = new JsonSlurper()
-        Object licensesObj = licensesZip.getInputStream(jsonFile).withCloseable {
-            jsonSlurper.parse(it)
+        Object licensesObj
+        try {
+            licensesObj = licensesZip.getInputStream(jsonFile).withCloseable {
+                jsonSlurper.parse(it)
+            }
+        } catch (RuntimeException e) {
+            logger.warn("Skipping unparseable license metadata ${jsonFile.name}: ${e.message}")
+            return
         }
         if (licensesObj == null) {
             return
         }
 
         for (entry in licensesObj) {
-            // A malformed entry must not fail the build: addEmbeddedLicenses() deliberately
-            // tolerates unreadable third-party artifacts, so skip the record and keep going.
             try {
                 String key = entry.key
                 int startValue = entry.value.start
@@ -253,7 +263,7 @@ abstract class LicensesTask extends DefaultTask {
                         appendDependency(dependency, content)
                     }
                 }
-            } catch (IllegalArgumentException | NullPointerException e) {
+            } catch (RuntimeException e) {
                 logger.warn("Skipping malformed license entry in ${jsonFile.name}: ${e.message}")
             }
         }
