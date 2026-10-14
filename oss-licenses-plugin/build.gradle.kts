@@ -20,7 +20,7 @@ import org.gradle.jvm.toolchain.JavaToolchainService
 plugins {
     id("groovy")
     id("java-gradle-plugin")
-    id("org.jetbrains.kotlin.jvm") version "2.4.20"
+    id("org.jetbrains.kotlin.jvm") version "2.4.21"
     id("com.gradle.plugin-publish") version "2.2.1"
 }
 
@@ -60,7 +60,7 @@ dependencies {
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.mockito:mockito-core:5.24.0")
-    testImplementation("com.google.guava:guava:33.7.1-jre")
+    testImplementation("com.google.guava:guava:33.7.2-jre")
     testImplementation("com.google.truth:truth:1.4.5")
     testImplementation("com.google.code.gson:gson:2.14.0")
     testImplementation("org.semver4j:semver4j:6.0.0")
