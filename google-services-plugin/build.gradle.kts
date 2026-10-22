@@ -71,6 +71,9 @@ tasks.withType<Test>().configureEach {
     // See GoogleServicesPluginTest.kt -> testResGeneration
     dependsOn("publishAllPublicationsToMavenRepository")
     systemProperties["plugin_version"] = project.version // value used by GoogleServicesPluginTest.kt
+    inputs.dir("src/test/testData")
+        .withPropertyName("testData")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
 }
 
 tasks.withType<Jar>().configureEach {
