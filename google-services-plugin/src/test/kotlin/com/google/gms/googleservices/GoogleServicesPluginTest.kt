@@ -195,6 +195,22 @@ class GoogleServicesPluginTest {
   }
 
   @Test
+  fun `res file generation for library module`() {
+    val projectName = "project4"
+
+    copyProjectToTemp(projectName)
+    val buildResult = runBuild(gradleVersion = "7.6", agpVersion = "7.4.1")
+
+    Assert.assertEquals(TaskOutcome.SUCCESS, buildResult.task(":lib:assembleDebug")?.outcome)
+    Assert.assertEquals(
+        TaskOutcome.SUCCESS, buildResult.task(":lib:processDebugGoogleServices")?.outcome)
+
+    val actualResults = tempFolder.root.resolve("lib/build/generated/res/")
+    val expectedResults = getExpectedResults(projectName)
+    compareResults(actualResults, expectedResults)
+  }
+
+  @Test
   fun testNoFlavor() {
     val output: List<String> = GoogleServicesPlugin.getJsonLocations("release", emptyList())
     Assert.assertTrue(output.contains("src/release/google-services.json"))

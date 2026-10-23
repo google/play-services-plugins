@@ -23,7 +23,7 @@ plugins {
 }
 
 group = "com.google.gms"
-version = "4.5.0"
+version = "4.6.0"
 
 dependencies {
     compileOnly("com.android.tools.build:gradle-api:7.3.0")
@@ -71,6 +71,9 @@ tasks.withType<Test>().configureEach {
     // See GoogleServicesPluginTest.kt -> testResGeneration
     dependsOn("publishAllPublicationsToMavenRepository")
     systemProperties["plugin_version"] = project.version // value used by GoogleServicesPluginTest.kt
+    inputs.dir("src/test/testData")
+        .withPropertyName("testData")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
 }
 
 tasks.withType<Jar>().configureEach {
