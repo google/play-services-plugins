@@ -17,7 +17,7 @@ package com.google.gms.googleservices
 
 import com.android.build.api.variant.ApplicationAndroidComponentsExtension
 import com.android.build.api.variant.DynamicFeatureAndroidComponentsExtension
-import com.android.build.api.variant.GeneratesApk
+import com.android.build.api.variant.LibraryAndroidComponentsExtension
 import com.android.build.api.variant.Variant
 import com.google.android.gms.dependencies.DependencyAnalyzer
 import com.google.android.gms.dependencies.DependencyInspector
@@ -25,6 +25,7 @@ import java.io.File
 import java.util.*
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.provider.Provider
 
 class GoogleServicesPlugin : Plugin<Project> {
 
@@ -56,14 +57,21 @@ class GoogleServicesPlugin : Plugin<Project> {
       pluginApplied = true
       project.extensions.configure(ApplicationAndroidComponentsExtension::class.java) {
         it.registerSourceType(SOURCE_TYPE)
-        it.onVariants { variant -> handleVariant(variant, project) }
+        it.onVariants { variant -> handleVariant(variant, variant.applicationId, project) }
+      }
+    }
+    project.pluginManager.withPlugin("com.android.library") {
+      pluginApplied = true
+      project.extensions.configure(LibraryAndroidComponentsExtension::class.java) {
+        it.registerSourceType(SOURCE_TYPE)
+        it.onVariants { variant -> handleVariant(variant, variant.namespace, project) }
       }
     }
     project.pluginManager.withPlugin("com.android.dynamic-feature") {
       pluginApplied = true
       project.extensions.configure(DynamicFeatureAndroidComponentsExtension::class.java) {
         it.registerSourceType(SOURCE_TYPE)
-        it.onVariants { variant -> handleVariant(variant, project) }
+        it.onVariants { variant -> handleVariant(variant, variant.applicationId, project) }
       }
     }
 
@@ -73,11 +81,11 @@ class GoogleServicesPlugin : Plugin<Project> {
       }
       project.logger.error(
           "The google-services Gradle plugin needs to be applied on a project with " +
-              "com.android.application or com.android.dynamic-feature.")
+              "com.android.application, com.android.library, or com.android.dynamic-feature.")
     }
   }
 
-  private fun <T> handleVariant(variant: T, project: Project) where T : Variant, T : GeneratesApk {
+  private fun handleVariant(variant: Variant, packageName: Provider<String>, project: Project) {
     val jsonToXmlTask =
         project.tasks.register(
             "process${variant.name.capitalize()}GoogleServices", GoogleServicesTask::class.java) {
@@ -90,7 +98,7 @@ class GoogleServicesPlugin : Plugin<Project> {
                       variant.buildType.orEmpty(),
                       variant.productFlavors.map { it.second },
                       project.projectDir))
-              it.applicationId.set(variant.applicationId)
+              it.applicationId.set(packageName)
               it.gmpAppId.set(project.layout.buildDirectory.file("gmpAppId/${variant.name}.txt"))
             }
 
