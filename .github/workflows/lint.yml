@@ -15,7 +15,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Validate Gradle Wrapper
-        uses: gradle/actions/wrapper-validation@9c971963bec38e04b3d30dcc455b5382be2fdbfb # ratchet:gradle/actions/wrapper-validation@v6.3.0
+        uses: gradle/actions/wrapper-validation@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # ratchet:gradle/actions/wrapper-validation@v6.4.0
       - name: Lint GitHub Actions
         uses: abcxyz/actions/.github/actions/lint-github-actions@3894a8d6a18b9aa159fe9092501d523d97f07110 # ratchet:abcxyz/actions/.github/actions/lint-github-actions@main
       - name: Ratchet Check
