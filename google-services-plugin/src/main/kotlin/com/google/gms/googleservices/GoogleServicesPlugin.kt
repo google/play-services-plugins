@@ -158,15 +158,19 @@ class GoogleServicesPlugin : Plugin<Project> {
         return listOf(project.file(overridePath))
       }
       val files = mutableListOf<File>()
-      val xdgConfigHome = project.providers.environmentVariable("XDG_CONFIG_HOME").orNull
-      if (!xdgConfigHome.isNullOrBlank()) {
-        files.add(File(xdgConfigHome, "configstore/$APPCHECK_CONFIG_FILE_NAME"))
-      }
+      // Per go/firebase-api-sdk-cli-seamless-debug-tokens, the Firebase CLI always writes
+      // $HOME/.config/configstore/firebase-appcheck.json as the canonical primary path and
+      // mirrors to $XDG_CONFIG_HOME/configstore/firebase-appcheck.json when XDG_CONFIG_HOME
+      // is set, so GUI IDEs/Gradle daemons and interactive shells never diverge.
       val userHome = project.providers.systemProperty("user.home").orNull
       if (!userHome.isNullOrBlank()) {
-        val homeFile = File(userHome, ".config/configstore/$APPCHECK_CONFIG_FILE_NAME")
-        if (!files.contains(homeFile)) {
-          files.add(homeFile)
+        files.add(File(userHome, ".config/configstore/$APPCHECK_CONFIG_FILE_NAME"))
+      }
+      val xdgConfigHome = project.providers.environmentVariable("XDG_CONFIG_HOME").orNull
+      if (!xdgConfigHome.isNullOrBlank()) {
+        val xdgFile = File(xdgConfigHome, "configstore/$APPCHECK_CONFIG_FILE_NAME")
+        if (!files.contains(xdgFile)) {
+          files.add(xdgFile)
         }
       }
       return files
