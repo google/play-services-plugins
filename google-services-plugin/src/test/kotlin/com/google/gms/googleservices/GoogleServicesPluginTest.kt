@@ -355,6 +355,39 @@ class GoogleServicesPluginTest {
     Assert.assertFalse(valuesXml.contains("firebase_app_check_debug_token"))
   }
 
+  @Test
+  fun `appCheck token sanitization rejects AAPT special characters and resource prefixes`() {
+    val project = ProjectBuilder.builder().withProjectDir(tempFolder.root).build()
+    val googleServicesJson = File("src/test/testData/project1/app/google-services.json")
+    val invalidTokens = listOf("@string/foo", "?attr/bar", "bad'quote", "bad<tag>")
+
+    for ((idx, invalidToken) in invalidTokens.withIndex()) {
+      val configFile = tempFolder.newFile("invalid-appcheck-$idx.json")
+      configFile.writeText(
+          """{"tokens":{"1:123456789000:android:f1bf012572b04063":"$invalidToken"}}""")
+      val outputDir = tempFolder.newFolder("invalidRes-$idx")
+      val gmpAppId = File(tempFolder.root, "invalidGmpAppId-$idx.txt")
+      val task =
+          project.tasks.register(
+              "processInvalidToken${idx}GoogleServicesTest", GoogleServicesTask::class.java) {
+                it.googleServicesJsonFiles.set(listOf(googleServicesJson))
+                it.applicationId.set("com.google.samples.quickstart.admobexample")
+                it.missingGoogleServicesStrategy.set(
+                    GoogleServicesPlugin.MissingGoogleServicesStrategy.ERROR)
+                it.outputDirectory.set(outputDir)
+                it.gmpAppId.set(gmpAppId)
+                it.debugBuild.set(true)
+                it.appCheckConfigFiles.set(listOf(configFile))
+              }
+      task.get().action()
+
+      val valuesXml = File(outputDir, "values/values.xml").readText()
+      Assert.assertFalse(
+          "Expected token '$invalidToken' to be rejected",
+          valuesXml.contains("firebase_app_check_debug_token"))
+    }
+  }
+
   //    /* Uncomment, edit project paths and run this test to regenerate the
   //    XML files that will be used for comparing output. */
   //    @Test

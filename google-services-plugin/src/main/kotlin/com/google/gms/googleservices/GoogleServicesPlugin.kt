@@ -15,6 +15,7 @@
  */
 package com.google.gms.googleservices
 
+import com.android.build.api.dsl.ApplicationExtension
 import com.android.build.api.variant.ApplicationAndroidComponentsExtension
 import com.android.build.api.variant.DynamicFeatureAndroidComponentsExtension
 import com.android.build.api.variant.LibraryAndroidComponentsExtension
@@ -88,8 +89,13 @@ class GoogleServicesPlugin : Plugin<Project> {
   private fun handleVariant(variant: Variant, packageName: Provider<String>, project: Project) {
     val buildType = variant.buildType.orEmpty()
     val isDebug =
-        buildType.equals("debug", ignoreCase = true) ||
-            variant.name.endsWith("Debug", ignoreCase = true)
+        project.extensions
+            .findByType(ApplicationExtension::class.java)
+            ?.buildTypes
+            ?.findByName(buildType)
+            ?.isDebuggable
+            ?: (buildType.equals("debug", ignoreCase = true) ||
+                variant.name.endsWith("Debug", ignoreCase = true))
     val jsonToXmlTask =
         project.tasks.register(
             "process${variant.name.capitalize()}GoogleServices", GoogleServicesTask::class.java) {
@@ -105,7 +111,13 @@ class GoogleServicesPlugin : Plugin<Project> {
               it.applicationId.set(packageName)
               it.gmpAppId.set(project.layout.buildDirectory.file("gmpAppId/${variant.name}.txt"))
               it.debugBuild.set(isDebug)
-              it.appCheckConfigFiles.set(getAppCheckConfigFiles(project))
+              if (isDebug) {
+                it.appCheckConfigFiles.set(getAppCheckConfigFiles(project))
+              }
+              it.outputs.doNotCacheIf("Firebase App Check debug token is injected") { task ->
+                (task as GoogleServicesTask).debugBuild.getOrElse(false) &&
+                    task.appCheckConfigFiles.getOrElse(emptyList()).any { f -> f.isFile }
+              }
             }
 
     // TODO: add an AGP version check to this block
@@ -143,18 +155,18 @@ class GoogleServicesPlugin : Plugin<Project> {
           project.providers.gradleProperty(APPCHECK_CONFIG_FILE_PROPERTY).orNull
               ?: project.providers.systemProperty(APPCHECK_CONFIG_FILE_PROPERTY).orNull
       if (!overridePath.isNullOrBlank()) {
-        return listOf(File(overridePath))
+        return listOf(project.file(overridePath))
       }
       val files = mutableListOf<File>()
-      val userHome = project.providers.systemProperty("user.home").orNull
-      if (!userHome.isNullOrBlank()) {
-        files.add(File(userHome, ".config/configstore/$APPCHECK_CONFIG_FILE_NAME"))
-      }
       val xdgConfigHome = project.providers.environmentVariable("XDG_CONFIG_HOME").orNull
       if (!xdgConfigHome.isNullOrBlank()) {
-        val xdgFile = File(xdgConfigHome, "configstore/$APPCHECK_CONFIG_FILE_NAME")
-        if (!files.contains(xdgFile)) {
-          files.add(xdgFile)
+        files.add(File(xdgConfigHome, "configstore/$APPCHECK_CONFIG_FILE_NAME"))
+      }
+      val userHome = project.providers.systemProperty("user.home").orNull
+      if (!userHome.isNullOrBlank()) {
+        val homeFile = File(userHome, ".config/configstore/$APPCHECK_CONFIG_FILE_NAME")
+        if (!files.contains(homeFile)) {
+          files.add(homeFile)
         }
       }
       return files

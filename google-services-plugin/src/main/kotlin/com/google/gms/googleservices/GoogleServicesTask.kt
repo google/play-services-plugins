@@ -259,7 +259,7 @@ abstract class GoogleServicesTask : DefaultTask() {
         continue
       }
       try {
-        val root = JsonParser().parse(configFile.bufferedReader(Charsets.UTF_8))
+        val root = configFile.bufferedReader(Charsets.UTF_8).use { JsonParser().parse(it) }
         if (!root.isJsonObject) {
           continue
         }
@@ -267,7 +267,12 @@ abstract class GoogleServicesTask : DefaultTask() {
         val tokenPrimitive = tokensObj.getAsJsonPrimitive(googleAppId) ?: continue
         if (tokenPrimitive.isString) {
           val token = tokenPrimitive.asString.trim()
-          if (token.isNotEmpty() && !token.any { it == '<' || it == '>' || it == '&' || it == '"' }) {
+          if (
+              token.isNotEmpty() &&
+                  token.none { it in "<>&\"'" } &&
+                  !token.startsWith("@") &&
+                  !token.startsWith("?")
+          ) {
             logger.info(
                 "Injecting Firebase App Check debug token for app $googleAppId from ${configFile.path}")
             return token
