@@ -17,6 +17,7 @@
 package com.google.gms.googleservices
 
 import java.io.File
+import org.gradle.testfixtures.ProjectBuilder
 import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
 import org.junit.Assert
@@ -268,6 +269,123 @@ class GoogleServicesPluginTest {
                 "src/flavorTestTestRelease/google-services.json",
                 "src/flavor/testTest/release/google-services.json",
                 "src/flavor/testTestRelease/google-services.json")))
+  }
+
+  @Test
+  fun `appCheck debug token injected in debug build and omitted in release build`() {
+    val project = ProjectBuilder.builder().withProjectDir(tempFolder.root).build()
+    val googleServicesJson = File("src/test/testData/project1/app/google-services.json")
+    val appCheckConfigFile = tempFolder.newFile("firebase-appcheck.json")
+    val expectedToken = "9539cd91-5aa4-4505-b35c-0ee48ea23b04"
+    appCheckConfigFile.writeText(
+        """
+        {
+          "_comment": "Warning: Do not commit this file to source control.",
+          "tokens": {
+            "1:123456789000:android:f1bf012572b04063": "$expectedToken"
+          }
+        }
+        """.trimIndent())
+
+    val debugOutputDir = tempFolder.newFolder("debugRes")
+    val debugGmpAppId = File(tempFolder.root, "debugGmpAppId.txt")
+    val debugTask =
+        project.tasks.register("processDebugGoogleServicesTest", GoogleServicesTask::class.java) {
+          it.googleServicesJsonFiles.set(listOf(googleServicesJson))
+          it.applicationId.set("com.google.samples.quickstart.admobexample")
+          it.missingGoogleServicesStrategy.set(
+              GoogleServicesPlugin.MissingGoogleServicesStrategy.ERROR)
+          it.outputDirectory.set(debugOutputDir)
+          it.gmpAppId.set(debugGmpAppId)
+          it.debugBuild.set(true)
+          it.appCheckConfigFiles.set(listOf(appCheckConfigFile))
+        }
+    debugTask.get().action()
+
+    val debugValuesXml = File(debugOutputDir, "values/values.xml").readText()
+    Assert.assertTrue(
+        debugValuesXml.contains(
+            """<string name="firebase_app_check_debug_token" translatable="false">$expectedToken</string>"""))
+
+    val releaseOutputDir = tempFolder.newFolder("releaseRes")
+    val releaseGmpAppId = File(tempFolder.root, "releaseGmpAppId.txt")
+    val releaseTask =
+        project.tasks.register(
+            "processReleaseGoogleServicesTest", GoogleServicesTask::class.java) {
+              it.googleServicesJsonFiles.set(listOf(googleServicesJson))
+              it.applicationId.set("com.google.samples.quickstart.admobexample")
+              it.missingGoogleServicesStrategy.set(
+                  GoogleServicesPlugin.MissingGoogleServicesStrategy.ERROR)
+              it.outputDirectory.set(releaseOutputDir)
+              it.gmpAppId.set(releaseGmpAppId)
+              it.debugBuild.set(false)
+              it.appCheckConfigFiles.set(listOf(appCheckConfigFile))
+            }
+    releaseTask.get().action()
+
+    val releaseValuesXml = File(releaseOutputDir, "values/values.xml").readText()
+    Assert.assertFalse(releaseValuesXml.contains("firebase_app_check_debug_token"))
+  }
+
+  @Test
+  fun `malformed appCheck config file is ignored gracefully`() {
+    val project = ProjectBuilder.builder().withProjectDir(tempFolder.root).build()
+    val googleServicesJson = File("src/test/testData/project1/app/google-services.json")
+    val malformedConfigFile = tempFolder.newFile("malformed-firebase-appcheck.json")
+    malformedConfigFile.writeText("{ invalid json")
+
+    val outputDir = tempFolder.newFolder("malformedRes")
+    val gmpAppId = File(tempFolder.root, "malformedGmpAppId.txt")
+    val task =
+        project.tasks.register(
+            "processMalformedGoogleServicesTest", GoogleServicesTask::class.java) {
+              it.googleServicesJsonFiles.set(listOf(googleServicesJson))
+              it.applicationId.set("com.google.samples.quickstart.admobexample")
+              it.missingGoogleServicesStrategy.set(
+                  GoogleServicesPlugin.MissingGoogleServicesStrategy.ERROR)
+              it.outputDirectory.set(outputDir)
+              it.gmpAppId.set(gmpAppId)
+              it.debugBuild.set(true)
+              it.appCheckConfigFiles.set(listOf(malformedConfigFile))
+            }
+    task.get().action()
+
+    val valuesXml = File(outputDir, "values/values.xml").readText()
+    Assert.assertTrue(valuesXml.contains("""<string name="google_app_id""""))
+    Assert.assertFalse(valuesXml.contains("firebase_app_check_debug_token"))
+  }
+
+  @Test
+  fun `appCheck token sanitization rejects AAPT special characters and resource prefixes`() {
+    val project = ProjectBuilder.builder().withProjectDir(tempFolder.root).build()
+    val googleServicesJson = File("src/test/testData/project1/app/google-services.json")
+    val invalidTokens = listOf("@string/foo", "?attr/bar", "bad'quote", "bad<tag>")
+
+    for ((idx, invalidToken) in invalidTokens.withIndex()) {
+      val configFile = tempFolder.newFile("invalid-appcheck-$idx.json")
+      configFile.writeText(
+          """{"tokens":{"1:123456789000:android:f1bf012572b04063":"$invalidToken"}}""")
+      val outputDir = tempFolder.newFolder("invalidRes-$idx")
+      val gmpAppId = File(tempFolder.root, "invalidGmpAppId-$idx.txt")
+      val task =
+          project.tasks.register(
+              "processInvalidToken${idx}GoogleServicesTest", GoogleServicesTask::class.java) {
+                it.googleServicesJsonFiles.set(listOf(googleServicesJson))
+                it.applicationId.set("com.google.samples.quickstart.admobexample")
+                it.missingGoogleServicesStrategy.set(
+                    GoogleServicesPlugin.MissingGoogleServicesStrategy.ERROR)
+                it.outputDirectory.set(outputDir)
+                it.gmpAppId.set(gmpAppId)
+                it.debugBuild.set(true)
+                it.appCheckConfigFiles.set(listOf(configFile))
+              }
+      task.get().action()
+
+      val valuesXml = File(outputDir, "values/values.xml").readText()
+      Assert.assertFalse(
+          "Expected token '$invalidToken' to be rejected",
+          valuesXml.contains("firebase_app_check_debug_token"))
+    }
   }
 
   //    /* Uncomment, edit project paths and run this test to regenerate the

@@ -15,6 +15,7 @@
  */
 package com.google.gms.googleservices
 
+import com.android.build.api.dsl.ApplicationExtension
 import com.android.build.api.variant.ApplicationAndroidComponentsExtension
 import com.android.build.api.variant.DynamicFeatureAndroidComponentsExtension
 import com.android.build.api.variant.LibraryAndroidComponentsExtension
@@ -86,6 +87,15 @@ class GoogleServicesPlugin : Plugin<Project> {
   }
 
   private fun handleVariant(variant: Variant, packageName: Provider<String>, project: Project) {
+    val buildType = variant.buildType.orEmpty()
+    val isDebug =
+        project.extensions
+            .findByType(ApplicationExtension::class.java)
+            ?.buildTypes
+            ?.findByName(buildType)
+            ?.isDebuggable
+            ?: (buildType.equals("debug", ignoreCase = true) ||
+                variant.name.endsWith("Debug", ignoreCase = true))
     val jsonToXmlTask =
         project.tasks.register(
             "process${variant.name.capitalize()}GoogleServices", GoogleServicesTask::class.java) {
@@ -95,11 +105,19 @@ class GoogleServicesPlugin : Plugin<Project> {
                       .missingGoogleServicesStrategy)
               it.googleServicesJsonFiles.set(
                   getJsonFiles(
-                      variant.buildType.orEmpty(),
+                      buildType,
                       variant.productFlavors.map { it.second },
                       project.projectDir))
               it.applicationId.set(packageName)
               it.gmpAppId.set(project.layout.buildDirectory.file("gmpAppId/${variant.name}.txt"))
+              it.debugBuild.set(isDebug)
+              if (isDebug) {
+                it.appCheckConfigFiles.set(getAppCheckConfigFiles(project))
+              }
+              it.outputs.doNotCacheIf("Firebase App Check debug token is injected") { task ->
+                (task as GoogleServicesTask).debugBuild.getOrElse(false) &&
+                    task.appCheckConfigFiles.getOrElse(emptyList()).any { f -> f.isFile }
+              }
             }
 
     // TODO: add an AGP version check to this block
@@ -129,6 +147,34 @@ class GoogleServicesPlugin : Plugin<Project> {
     const val MINIMUM_VERSION = "9.0.0"
     const val SOURCE_TYPE = "google-services"
     const val JSON_FILE_NAME = "google-services.json"
+    const val APPCHECK_CONFIG_FILE_PROPERTY = "firebase.appcheck.configFile"
+    const val APPCHECK_CONFIG_FILE_NAME = "firebase-appcheck.json"
+
+    fun getAppCheckConfigFiles(project: Project): List<File> {
+      val overridePath =
+          project.providers.gradleProperty(APPCHECK_CONFIG_FILE_PROPERTY).orNull
+              ?: project.providers.systemProperty(APPCHECK_CONFIG_FILE_PROPERTY).orNull
+      if (!overridePath.isNullOrBlank()) {
+        return listOf(project.file(overridePath))
+      }
+      val files = mutableListOf<File>()
+      // Per go/firebase-api-sdk-cli-seamless-debug-tokens, the Firebase CLI always writes
+      // $HOME/.config/configstore/firebase-appcheck.json as the canonical primary path and
+      // mirrors to $XDG_CONFIG_HOME/configstore/firebase-appcheck.json when XDG_CONFIG_HOME
+      // is set, so GUI IDEs/Gradle daemons and interactive shells never diverge.
+      val userHome = project.providers.systemProperty("user.home").orNull
+      if (!userHome.isNullOrBlank()) {
+        files.add(File(userHome, ".config/configstore/$APPCHECK_CONFIG_FILE_NAME"))
+      }
+      val xdgConfigHome = project.providers.environmentVariable("XDG_CONFIG_HOME").orNull
+      if (!xdgConfigHome.isNullOrBlank()) {
+        val xdgFile = File(xdgConfigHome, "configstore/$APPCHECK_CONFIG_FILE_NAME")
+        if (!files.contains(xdgFile)) {
+          files.add(xdgFile)
+        }
+      }
+      return files
+    }
 
     fun getJsonFiles(buildType: String, flavorNames: List<String>, root: File): List<File> {
       return getJsonLocations(buildType, flavorNames).map { root.resolve(it) }

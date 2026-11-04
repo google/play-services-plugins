@@ -30,6 +30,7 @@ import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.Internal
+import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.PathSensitive
@@ -56,6 +57,13 @@ abstract class GoogleServicesTask : DefaultTask() {
   @get:Input abstract val missingGoogleServicesStrategy: Property<MissingGoogleServicesStrategy>
 
   @get:OutputFile abstract val gmpAppId: RegularFileProperty
+
+  @get:Optional @get:Input abstract val debugBuild: Property<Boolean>
+
+  @get:Optional
+  @get:PathSensitive(PathSensitivity.RELATIVE)
+  @get:InputFiles
+  abstract val appCheckConfigFiles: Property<Collection<File>>
 
   @Throws(GradleException::class)
   @TaskAction
@@ -190,6 +198,7 @@ abstract class GoogleServicesTask : DefaultTask() {
 
   companion object {
     const val JSON_FILE_NAME = "google-services.json"
+    const val APPCHECK_DEBUG_TOKEN_RES_NAME = "firebase_app_check_debug_token"
     private const val STATUS_DISABLED = "1"
     private const val STATUS_ENABLED = "2"
     private const val OAUTH_CLIENT_TYPE_WEB = "3"
@@ -235,6 +244,45 @@ abstract class GoogleServicesTask : DefaultTask() {
     }
     resValues["google_app_id"] = googleAppIdStr
     gmpAppId.get().asFile.writeText(googleAppIdStr, Charsets.UTF_8)
+    if (debugBuild.getOrElse(false)) {
+      val debugToken = resolveAppCheckDebugToken(googleAppIdStr)
+      if (!debugToken.isNullOrEmpty()) {
+        resValues[APPCHECK_DEBUG_TOKEN_RES_NAME] = debugToken
+      }
+    }
+  }
+
+  private fun resolveAppCheckDebugToken(googleAppId: String): String? {
+    val configFiles = appCheckConfigFiles.orNull ?: return null
+    for (configFile in configFiles) {
+      if (!configFile.isFile) {
+        continue
+      }
+      try {
+        val root = configFile.bufferedReader(Charsets.UTF_8).use { JsonParser().parse(it) }
+        if (!root.isJsonObject) {
+          continue
+        }
+        val tokensObj = root.asJsonObject.getAsJsonObject("tokens") ?: continue
+        val tokenPrimitive = tokensObj.getAsJsonPrimitive(googleAppId) ?: continue
+        if (tokenPrimitive.isString) {
+          val token = tokenPrimitive.asString.trim()
+          if (
+              token.isNotEmpty() &&
+                  token.none { it in "<>&\"'" } &&
+                  !token.startsWith("@") &&
+                  !token.startsWith("?")
+          ) {
+            logger.info(
+                "Injecting Firebase App Check debug token for app $googleAppId from ${configFile.path}")
+            return token
+          }
+        }
+      } catch (e: Exception) {
+        logger.warn("Failed to parse App Check config file at ${configFile.path}: ${e.message}")
+      }
+    }
+    return null
   }
 
   fun FirebaseClientData.handleWebClientId(resValues: MutableMap<String, String?>) {
